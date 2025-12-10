@@ -39,14 +39,11 @@ const submit = () => {
       <AuthenticationCardLogo />
     </template>
 
-    <!-- Status Message -->
     <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
       {{ status }}
     </div>
 
-    <!-- Login Form -->
     <form @submit.prevent="submit">
-      <!-- Email -->
       <div>
         <InputLabel for="email" value="Email" />
         <TextInput
@@ -61,7 +58,6 @@ const submit = () => {
         <InputError class="mt-2" :message="form.errors.email" />
       </div>
 
-      <!-- Password -->
       <div class="mt-4">
         <InputLabel for="password" value="Password" />
         <TextInput
@@ -75,7 +71,6 @@ const submit = () => {
         <InputError class="mt-2" :message="form.errors.password" />
       </div>
 
-      <!-- Remember Me -->
       <div class="block mt-4">
         <label class="flex items-center">
           <Checkbox v-model:checked="form.remember" name="remember" />
@@ -83,11 +78,8 @@ const submit = () => {
         </label>
       </div>
 
-      <!-- Footer Actions -->
       <div class="mt-6 space-y-4">
-        <!-- Links -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <!-- Forgot Password -->
           <Link
             :href="route('password.request')"
             class="underline text-sm text-gray-600 hover:text-gray-900"
@@ -95,7 +87,6 @@ const submit = () => {
             Forgot your password?
           </Link>
 
-          <!-- Sign up as Patient -->
           <Link
             :href="route('register.patient')"
             class="underline text-sm text-blue-600 hover:text-blue-800"
@@ -104,7 +95,6 @@ const submit = () => {
           </Link>
         </div>
 
-        <!-- Login Button -->
         <div>
           <PrimaryButton
             class="w-full justify-center"

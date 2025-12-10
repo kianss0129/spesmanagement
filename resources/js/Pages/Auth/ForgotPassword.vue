@@ -8,15 +8,11 @@ import InputLabel from '@/Components/InputLabel.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
 import TextInput from '@/Components/TextInput.vue'
 
-defineProps({
-  status: String,
-})
+defineProps({ status: String })
 
 const statusMessage = ref('')
 
-const form = useForm({
-  email: '',
-})
+const form = useForm({ email: '' })
 
 const submit = () => {
   form.post(route('password.email'), {

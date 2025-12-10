@@ -1,30 +1,32 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Http\Request;
-use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class VerifyEmailController extends Controller
 {
-    public function __invoke(Request $request)
+    public function __invoke($id, $hash)
     {
-        $user = User::findOrFail($request->route('id'));
+        try {
+            $user = \App\Models\User::findOrFail($id);
 
-        if (! hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-            abort(403, 'Invalid verification link.');
+            if ($user->hasVerifiedEmail()) {
+                return redirect()->route('dashboard');
+            }
+
+            if ($user->getEmailForVerification() === $hash) {
+                $user->markEmailAsVerified();
+                event(new Verified($user));
+
+                return redirect()->route('dashboard')->with('status', 'Email verified!');
+            }
+
+            return redirect()->route('login')->withErrors(['email' => 'Invalid verification link.']);
+        } catch (\Exception $e) {
+            Log::error('Error verifying email: ' . $e->getMessage());
+            return back()->withErrors(['email' => 'An error occurred during verification.']);
         }
-
-        if (! $user->hasVerifiedEmail()) {
-            $user->markEmailAsVerified();
-            event(new Verified($user));
-        }
-
-        Auth::login($user); // ✅ Auto-login after verification
-
-        return redirect()->intended('/dashboard');
     }
 }

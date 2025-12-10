@@ -1,178 +1,139 @@
 <?php
 
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\PESO\PESOController;
+use App\Http\Controllers\PESO\AnalyticsController;
+use App\Http\Controllers\PESO\InterviewController;
+use App\Http\Controllers\Employer\EmployerController;
+use App\Http\Controllers\Employer\JobController;
+use App\Http\Controllers\Beneficiary\BeneficiaryController;
+use Illuminate\Foundation\Application;
 use Inertia\Inertia;
-use App\Http\Controllers\Patient\PatientMedicalRecordController;
-use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\BeneficiaryRegisterController;
+use App\Http\Controllers\Auth\EmployerRegisterController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\PatientRegisterController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\VerifyEmailController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\{
-    AppointmentController,
-    MedicalRecordController,
-    PrescriptionController,
-    BillingController,
-    ReportController
-};
-use App\Http\Controllers\Patient\PatientAppointmentController;
+use App\Http\Controllers\Auth\EmailVerificationNotificationController;
+
+// Guest Routes
+Route::middleware('guest')->group(function () {
+    
+    // Beneficiary registration
+    Route::get('register/beneficiary', [BeneficiaryRegisterController::class, 'create'])->name('register.beneficiary');
+    Route::post('register/beneficiary', [BeneficiaryRegisterController::class, 'store']);
+
+    // Employer registration
+    Route::get('register/employer', [EmployerRegisterController::class, 'create'])->name('register.employer');
+    Route::post('register/employer', [EmployerRegisterController::class, 'store']);
+
+    // PESO registration
+    Route::get('register/peso', [PESORegisterController::class, 'create'])->name('register.peso');
+    Route::post('register/peso', [PESORegisterController::class, 'store']);
+
+    // Forgot Password
+    Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+
+    // Reset Password
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
+});
+
+// Email Verification
+Route::middleware('auth')->group(function() {
+    Route::get('verify-email', [EmailVerificationPromptController::class,'__invoke'])->name('verification.notice');
+    Route::get('verify-email/{id}/{hash}', [VerifyEmailController::class,'__invoke'])
+        ->middleware(['signed','throttle:6,1'])->name('verification.verify');
+    Route::post('email/verification-notification', [EmailVerificationNotificationController::class,'store'])
+        ->middleware(['throttle:6,1'])->name('verification.send');
+});
+
+// Logout
+Route::post('logout', [AuthenticatedSessionController::class,'destroy'])->name('logout');
 
 /*
-|----------------------------------------------------------------------
-| Public Routes
-|----------------------------------------------------------------------
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
 */
 
-<<<<<<< HEAD
-=======
-// Forgot password form
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
-Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])
-    ->middleware('guest')
-    ->name('password.request');
-
-<<<<<<< HEAD
-=======
-// Send reset email
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
-Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
-    ->middleware('guest')
-    ->name('password.email');
-
-<<<<<<< HEAD
-=======
-// Reset password form
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
-Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
-    ->middleware('guest')
-    ->name('password.reset');
-
-<<<<<<< HEAD
-=======
-// Handle new password submission
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
-Route::post('/reset-password', [NewPasswordController::class, 'store'])
-    ->middleware('guest')
-    ->name('password.update');
-
-// Welcome page
 Route::get('/', fn () => Inertia::render('Welcome', [
     'canLogin' => Route::has('login'),
     'canRegister' => Route::has('register.patient'),
     'laravelVersion' => Application::VERSION,
     'phpVersion' => PHP_VERSION,
-]));
+]))->name('home');
 
-// Patient‑only registration (guest‑only)
-Route::middleware('guest')->group(function () {
-    Route::get('register/patient', [PatientRegisterController::class, 'create'])->name('register.patient');
-    Route::post('register/patient', [PatientRegisterController::class, 'store']);
-});
+// Auth / Dashboard routes (keep your existing auth file)
+require __DIR__ . '/auth.php';
 
-/*
-|----------------------------------------------------------------------
-| Email Verification Route
-|----------------------------------------------------------------------
-*/
-Route::get('/email/verify/{id}/{hash}', VerifyEmailController::class)
-    ->middleware(['signed', 'throttle:6,1'])
-    ->name('verification.verify');
-
-/*
-|----------------------------------------------------------------------
-| Authenticated Routes (Verified Only)
-|----------------------------------------------------------------------
-*/
+// Example protected dashboard route
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->group(function () {
-
     Route::get('/dashboard', function () {
         return match (auth()->user()->getRoleNames()->first()) {
-            'Admin'       => Inertia::render('Dashboard/Admin'),
-            'Doctor'      => Inertia::render('Dashboard/Doctor'),
-            'Patient'     => Inertia::render('Dashboard/Patient'),
+            'Admin' => Inertia::render('Dashboard/Admin'),
+            'Doctor' => Inertia::render('Dashboard/Doctor'),
+            'Patient' => Inertia::render('Dashboard/Patient'),
             'Super Admin' => Inertia::render('Dashboard/SuperAdmin'),
-            default       => abort(403),
+            default => abort(403),
         };
     })->name('dashboard');
-
-    // ✅ Admin and Super Admin Routes
-    Route::middleware('role:Admin|Super Admin')->group(function () {
-        Route::resources([
-            '/appointments' => AppointmentController::class,
-            '/medical-records' => MedicalRecordController::class,
-            '/billing' => BillingController::class,
-        ]);
-
-        Route::post('/billing/{id}/status', [BillingController::class, 'updateStatus'])->name('billing.updateStatus');
-        Route::get('/billing/pdf/export', [BillingController::class, 'exportPDF'])->name('billing.exportPDF');
-       Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-    Route::post('/roles/assign', [RoleController::class, 'assign'])->name('roles.assign');
-    Route::delete('/roles/{user}', [RoleController::class, 'remove'])->name('roles.remove');
-    Route::delete('/billing/{billing}', [BillingController::class, 'destroy'])->name('billing.destroy');
-
-    });
-
-    // ✅ Doctor Routes
-    Route::middleware('role:Doctor')->prefix('doctor')->name('doctor.')->group(function () {
-        Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
-        Route::post('/appointments/{id}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
-
-        // Medical Records
-        Route::get('/medical-records', [MedicalRecordController::class, 'index'])->name('records.index');
-        Route::get('/medical-records/create', [MedicalRecordController::class, 'create'])->name('records.create');
-        Route::post('/medical-records', [MedicalRecordController::class, 'store'])->name('records.store');
-        Route::get('/medical-records/{medicalRecord}/edit', [MedicalRecordController::class, 'edit'])->name('records.edit');
-        Route::put('/medical-records/{medicalRecord}', [MedicalRecordController::class, 'update'])->name('records.update');
-
-        // Prescriptions
-        Route::prefix('prescriptions')->name('prescriptions.')->group(function () {
-            Route::get('/', [PrescriptionController::class, 'index'])->name('index');
-            Route::get('/create', [PrescriptionController::class, 'create'])->name('create');
-            Route::get('/medical-records', [PatientMedicalRecordController::class, 'index'])->name('patient.medical-records');
-            Route::post('/', [PrescriptionController::class, 'store'])->name('store');
-        });
-    });
-
-    // ✅ Patient Routes
-    Route::middleware('role:Patient')->prefix('patient')->name('patient.')->group(function () {
-        Route::get('/medical-records', [MedicalRecordController::class, 'index'])->name('patient.medical-records');
-        Route::get('/appointments', [PatientAppointmentController::class, 'index'])->name('appointments.index');
-        Route::get('/appointments/create', [PatientAppointmentController::class, 'create'])->name('appointments.create');
-        Route::post('/appointments', [PatientAppointmentController::class, 'store'])->name('appointments.store');
-        Route::post('/appointments/{appointment}/cancel', [PatientAppointmentController::class, 'cancel'])
-            ->name('appointments.cancel');
-        Route::get('/records', [MedicalRecordController::class, 'index'])->name('patient.records');
-<<<<<<< HEAD
-        //Route::get('/prescriptions', [PrescriptionController::class, 'patientPrescriptions'])->name('patient.prescriptions');
-=======
-        Route::get('/prescriptions', [PrescriptionController::class, 'patientPrescriptions'])->name('patient.prescriptions');
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
-        Route::get('/billings', [BillingController::class, 'patientIndex'])->name('patient.billings');
-
-        Route::get('/support', function () {
-            return Inertia::render('Patient/Support');
-        })->name('patient.support');    
-        Route::get('/patient/prescriptions', [PrescriptionController::class, 'patientPrescriptions'])->name('patient.prescriptions');
-    });
-
-    // ✅ Billing Detail (Admin & Patient)
-    Route::get('/admin/billing/{billing}', [BillingController::class, 'show'])
-        ->name('billing.show')
-        ->middleware('role:Admin|Super Admin');
-
-    Route::get('/my-billings', [BillingController::class, 'patientIndex'])
-        ->name('billing.patient.index')
-        ->middleware('role:Patient');
-
-    // ✅ PDF Report
-    Route::get('/report/appointments/pdf', [ReportController::class, 'appointmentPDF'])->name('report.appointments.pdf');
-
-    // ✅ Welcome screen after register
-    Route::get('/welcome-after-register', fn () => Inertia::render('WelcomeAfterRegister'))
-        ->name('welcome.after.register')
-        ->middleware('auth');
 });
 
-// Auth routes (Jetstream/Breeze)
-require __DIR__.'/auth.php';
+/*
+|------------------------------------------
+| PESO (role: peso)
+|------------------------------------------
+*/
+Route::middleware(['auth', 'role:peso'])->prefix('peso')->group(function () {
+    Route::get('dashboard', [PESOController::class, 'dashboard'])->name('peso.dashboard');
+
+    // Analytics
+    Route::get('analytics/applicants-by-school', [AnalyticsController::class, 'applicantsBySchool']);
+    Route::get('analytics/top-employers', [AnalyticsController::class, 'topHiringEmployers']);
+    Route::get('analytics/performance-trends', [AnalyticsController::class, 'performanceTrends']);
+
+    // Assign beneficiary
+    Route::post('assign-beneficiary', [PESOController::class, 'assignBeneficiary']);
+
+    // Schedule interview (PESO)
+    Route::post('schedule-interview', [InterviewController::class, 'schedule']);
+});
+
+/*
+|------------------------------------------
+| Employer (role: employer)
+|------------------------------------------
+*/
+Route::middleware(['auth', 'role:employer'])->prefix('employer')->group(function () {
+    Route::get('dashboard', [EmployerController::class, 'dashboard'])->name('employer.dashboard');
+
+    // Jobs CRUD
+
+
+    // View recommended candidates (employer)
+    Route::get('recommended-candidates', [EmployerController::class, 'recommendedCandidates']);
+
+    // Schedule interview (employer)
+    Route::post('jobs/{id}/interview', [EmployerController::class, 'scheduleInterview']);
+
+    // Rate beneficiary
+    Route::post('jobs/{id}/rate/{beneficiary}', [EmployerController::class, 'submitRating']);
+});
+
+/*
+|------------------------------------------
+| Beneficiary (role: beneficiary)
+|------------------------------------------
+*/
+Route::middleware(['auth', 'role:beneficiary'])->prefix('beneficiary')->group(function () {
+    Route::get('dashboard', [BeneficiaryController::class, 'dashboard'])->name('beneficiary.dashboard');
+
+    Route::post('applications', [BeneficiaryController::class, 'apply']);
+    Route::get('applications', [BeneficiaryController::class, 'listApplications']);
+    Route::post('upload-documents', [BeneficiaryController::class, 'uploadDocuments']);
+});

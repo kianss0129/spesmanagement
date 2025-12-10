@@ -13,12 +13,17 @@ class DatabaseSeeder extends Seeder
     {
         // Call the seeders in order
         $this->call([
-            RoleSeeder::class,
-            UserSeeder::class,
-            AppointmentSeeder::class,       // appointments first
-            MedicalRecordSeeder::class,     // medical records next
-            PermissionSeeder::class,
-            BillingSeeder::class,
+            //RoleSeeder::class,
+            //UserSeeder::class,
+            //AppointmentSeeder::class,       // appointments first
+            //MedicalRecordSeeder::class,     // medical records next
+            //PermissionSeeder::class,
+            //BillingSeeder::class,
+            RoleAndAdminSeeder::class,
+            EmployerSeeder::class,
+            BeneficiarySeeder::class,
+            ApplicationSeeder::class,
+            AttendanceSeeder::class
         ]);
     }
 }

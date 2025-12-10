@@ -62,3 +62,4 @@ class PatientRegisterController extends Controller
     }
 }
 
+        

@@ -1,26 +1,28 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class ConfirmablePasswordController extends Controller
 {
     public function show()
     {
-        return Inertia::render('Auth/ConfirmPassword');
+        return view('auth.confirm-password');
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'password' => 'required|current_password',
+            'password' => 'required',
         ]);
 
-        session(['auth.password_confirmed_at' => time()]);
+        if (Hash::check($request->password, Auth::user()->password)) {
+            return redirect()->route('dashboard');
+        }
 
-        return redirect()->intended('/dashboard');
+        return back()->withErrors(['password' => 'The password is incorrect.']);
     }
 }

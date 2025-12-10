@@ -6,18 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
-<<<<<<< HEAD
-use Illuminate\Support\Str;
-=======
-use Illuminate\Support\Facades\Log;
->>>>>>> 589a8be438392415337ae1288d8ce1280d106ff1
+use Illuminate\Auth\Events\PasswordReset;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 
 class NewPasswordController extends Controller
 {
-    /**
-     * Show the password reset form with token + email.
-     */
     public function create(Request $request)
     {
         return Inertia::render('Auth/ResetPassword', [
@@ -26,17 +20,12 @@ class NewPasswordController extends Controller
         ]);
     }
 
-    /**
-     * Handle the password reset request.
-     */
     public function store(Request $request)
     {
-        Log::info('🔁 Reset Password Data:', $request->all());
-
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
         $status = Password::reset(
@@ -44,12 +33,15 @@ class NewPasswordController extends Controller
             function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
-                    'remember_token' => Str::random(60),
-                ])->save();
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+
+                event(new PasswordReset($user));
             }
         );
 
-        return $status === Password::PASSWORD_RESET
+        return $status == Password::PASSWORD_RESET
             ? redirect()->route('login')->with('status', __($status))
             : back()->withErrors(['email' => [__($status)]]);
     }
