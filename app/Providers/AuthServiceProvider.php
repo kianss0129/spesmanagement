@@ -12,7 +12,8 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @var array
      */
-    protected $policies = [\App\Models\MedicalRecord::class => \App\Policies\MedicalRecordPolicy::class,
+    protected $policies = [
+        // Register model policy mappings here
     ];
 
     /**

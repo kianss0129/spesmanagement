@@ -1,16 +1,23 @@
 <?php
 
 namespace App\Http\Controllers\Beneficiary;
-use App\Models\Beneficiary;
+
 use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Interview;
 use App\Models\EmployerRating;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class BeneficiaryController extends Controller
 {
-    // ✅ Apply to Job
+    // Dashboard page
+    public function dashboard()
+    {
+        return Inertia::render('Beneficiary/Dashboard');
+    }
+
+    // Apply to Job
     public function apply(Request $request)
     {
         $data = $request->validate([
@@ -24,7 +31,7 @@ class BeneficiaryController extends Controller
         return response()->json(['message' => 'Application submitted']);
     }
 
-    // ✅ Upload Documents
+    // Upload Documents
     public function uploadDocs(Request $request)
     {
         $request->validate([
@@ -32,7 +39,6 @@ class BeneficiaryController extends Controller
         ]);
 
         $paths = [];
-
         foreach ($request->file('documents') as $file) {
             $paths[] = $file->store('documents');
         }
@@ -44,30 +50,41 @@ class BeneficiaryController extends Controller
         return response()->json(['message' => 'Documents uploaded']);
     }
 
-    // ✅ View Interview
+    // Upcoming Interviews
     public function interviews()
     {
         return Interview::whereHas('application', function ($q) {
-            $q->where('beneficiary_id', auth()->user()->id);
+            $q->where('beneficiary_id', auth()->id());
         })->get();
     }
 
-    // ✅ View Ratings
+    // Ratings
     public function ratings()
     {
-        return EmployerRating::where('beneficiary_id', auth()->user()->id)->get();
+        return EmployerRating::where('beneficiary_id', auth()->id())->get();
     }
 
- public function getRatings($id)
+    public function getRatings($id)
     {
-        $beneficiary = Beneficiary::with(['ratings.employer','ratings.application'])->findOrFail($id);
-
+        $beneficiary = auth()->user();
         $avg = $beneficiary->ratings()->avg('overall');
 
         return response()->json([
             'ratings' => $beneficiary->ratings,
-            'average' => round($avg,2)
+            'average' => round($avg, 2)
         ]);
     }
 
+    // Attendance analytics (dummy example, replace with real query)
+    public function attendance()
+    {
+        $data = [];
+        for ($i = 0; $i < 30; $i++) {
+            $data[] = [
+                'date' => now()->subDays($i)->format('Y-m-d'),
+                'percentage' => rand(70, 100),
+            ];
+        }
+        return response()->json(array_reverse($data));
+    }
 }

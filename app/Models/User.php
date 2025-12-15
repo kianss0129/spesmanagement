@@ -2,64 +2,46 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\CanResetPassword;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Laravel\Jetstream\HasProfilePhoto;
-use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Log;
-use App\Notifications\ResetPasswordNotification;
+use Spatie\Permission\Traits\HasRoles; // ✅ Add this
 
-class User extends Authenticatable implements MustVerifyEmail, CanResetPassword
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens,
-        HasFactory,
-        HasProfilePhoto,
-        Notifiable,
-        TwoFactorAuthenticatable,
-        HasRoles,
-        CanResetPasswordTrait;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles; // ✅ Add HasRoles
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int,string>
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        // 'role', // ✅ Not needed if using Spatie
     ];
 
+    /**
+     * The attributes that should be hidden for arrays / JSON.
+     *
+     * @var array<int,string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
-
-    protected $appends = [
-        'profile_photo_url',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
 
     /**
-     * Send the password reset notification.
+     * The attributes that should be cast.
      *
-     * @param  string  $token
-     * @return void
+     * @var array<string,string>
      */
-    public function sendPasswordResetNotification($token)
-    {
-        \Log::info("Custom reset email for: {$this->email}");
-    $this->notify(new ResetPasswordNotification($token));
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 }

@@ -10,18 +10,12 @@ return new class extends Migration
      * Run the migrations.
      */
    public function up(): void
-{
-    Schema::table('prescriptions', function (Blueprint $table) {
-        $table->unsignedBigInteger('medical_record_id')->after('id');
-        $table->foreign('medical_record_id')->references('id')->on('medical_records')->onDelete('cascade');
-    });
-}
+    {
+        // No-op: medical_record_id removed for SPES project
+    }
 
-public function down(): void
-{
-    Schema::table('prescriptions', function (Blueprint $table) {
-        $table->dropForeign(['medical_record_id']);
-        $table->dropColumn('medical_record_id');
-    });
-}
+    public function down(): void
+    {
+        // No-op
+    }
 };

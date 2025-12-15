@@ -1,17 +1,54 @@
-<script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3'
-import AuthenticationCard from '@/Components/AuthenticationCard.vue'
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue'
-import Checkbox from '@/Components/Checkbox.vue'
-import InputError from '@/Components/InputError.vue'
-import InputLabel from '@/Components/InputLabel.vue'
-import PrimaryButton from '@/Components/PrimaryButton.vue'
-import TextInput from '@/Components/TextInput.vue'
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div class="w-full max-w-md bg-white rounded-lg shadow p-6">
+      <h1 class="text-2xl font-semibold mb-4">Sign in</h1>
 
-defineProps({
-  canResetPassword: Boolean,
-  status: String,
-})
+      <form @submit.prevent="submit">
+        <div class="mb-4">
+          <label class="block text-sm text-gray-600 mb-1">Email</label>
+          <input v-model="form.email" type="email" required class="w-full border rounded px-3 py-2" />
+          <p v-if="errors.email" class="text-xs text-red-500 mt-1">{{ errors.email }}</p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm text-gray-600 mb-1">Password</label>
+          <input v-model="form.password" type="password" required class="w-full border rounded px-3 py-2" />
+          <p v-if="errors.password" class="text-xs text-red-500 mt-1">{{ errors.password }}</p>
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+          <label class="flex items-center text-sm">
+            <input type="checkbox" v-model="form.remember" class="mr-2" />
+            Remember me
+          </label>
+
+          <inertia-link :href="route('password.request')" class="text-sm text-blue-600 hover:underline">
+            Forgot password?
+          </inertia-link>
+        </div>
+
+        <div class="mb-4">
+          <button type="submit" :disabled="processing" class="w-full bg-blue-600 text-white py-2 rounded">
+            <span v-if="processing">Signing in...</span>
+            <span v-else>Sign in</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="text-sm text-center">
+        Don't have an account?
+        <!-- Use the correct named route for your beneficiary registration -->
+        <inertia-link :href="route('register.beneficiary')" class="text-blue-600 hover:underline">
+          Register as Beneficiary
+        </inertia-link>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { reactive, ref } from 'vue'
+import { useForm } from '@inertiajs/inertia-vue3'
 
 const form = useForm({
   email: '',
@@ -19,92 +56,24 @@ const form = useForm({
   remember: false,
 })
 
-const submit = () => {
-  form
-    .transform(data => ({
-      ...data,
-      remember: form.remember ? 'on' : '',
-    }))
-    .post(route('login'), {
-      onFinish: () => form.reset('password'),
-    })
+const errors = reactive({})
+const processing = ref(false)
+
+function submit() {
+  processing.value = true
+  form.post(route('login'), {
+    onSuccess: () => {
+      processing.value = false
+    },
+    onError: (err) => {
+      processing.value = false
+      // Inertia populates form.errors automatically, but we mirror into `errors` for display
+      Object.assign(errors, form.errors)
+    }
+  })
 }
 </script>
 
-<template>
-  <Head title="Log in" />
-
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
-    <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
-      {{ status }}
-    </div>
-
-    <form @submit.prevent="submit">
-      <div>
-        <InputLabel for="email" value="Email" />
-        <TextInput
-          id="email"
-          v-model="form.email"
-          type="email"
-          class="mt-1 block w-full"
-          required
-          autofocus
-          autocomplete="username"
-        />
-        <InputError class="mt-2" :message="form.errors.email" />
-      </div>
-
-      <div class="mt-4">
-        <InputLabel for="password" value="Password" />
-        <TextInput
-          id="password"
-          v-model="form.password"
-          type="password"
-          class="mt-1 block w-full"
-          required
-          autocomplete="current-password"
-        />
-        <InputError class="mt-2" :message="form.errors.password" />
-      </div>
-
-      <div class="block mt-4">
-        <label class="flex items-center">
-          <Checkbox v-model:checked="form.remember" name="remember" />
-          <span class="ms-2 text-sm text-gray-600">Remember me</span>
-        </label>
-      </div>
-
-      <div class="mt-6 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <Link
-            :href="route('password.request')"
-            class="underline text-sm text-gray-600 hover:text-gray-900"
-          >
-            Forgot your password?
-          </Link>
-
-          <Link
-            :href="route('register.patient')"
-            class="underline text-sm text-blue-600 hover:text-blue-800"
-          >
-            Sign up as Patient
-          </Link>
-        </div>
-
-        <div>
-          <PrimaryButton
-            class="w-full justify-center"
-            :class="{ 'opacity-25': form.processing }"
-            :disabled="form.processing"
-          >
-            Log in
-          </PrimaryButton>
-        </div>
-      </div>
-    </form>
-  </AuthenticationCard>
-</template>
+<style scoped>
+/* small scoped styles if needed */
+</style>

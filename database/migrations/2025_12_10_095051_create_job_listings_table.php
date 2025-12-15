@@ -4,24 +4,27 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-  public function up(): void {
-    Schema::create('job_listings', function (Blueprint $t) {
-      $t->id();
-      $t->unsignedBigInteger('employer_id');
-      $t->string('title');
-      $t->text('description')->nullable();
-      $t->integer('positions')->default(1);
-      $t->date('start_date')->nullable();
-      $t->date('end_date')->nullable();
-      $t->string('status')->default('open');
-      $t->timestamps();
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('job_listings', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('employer_id');
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->string('location')->nullable();
+            $table->string('type')->nullable(); // Full-time, Part-time
+            $table->integer('slots')->default(1);
+            $table->date('closing_date')->nullable();
+            $table->timestamps();
 
-      $t->foreign('employer_id')->references('id')->on('employers')->onDelete('cascade');
-    });
-  }
+            $table->foreign('employer_id')->references('id')->on('employers')->onDelete('cascade');
+        });
+    }
 
-  public function down(): void {
-    Schema::dropIfExists('job_listings');
-  }
+    public function down()
+    {
+        Schema::dropIfExists('job_listings');
+    }
 };

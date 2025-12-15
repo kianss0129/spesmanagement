@@ -1,1 +1,0 @@
-import{c as o,o as t,w as e,a as s,u as n,S as r}from"./app-BDVLSo38.js";const l={__name:"AuthenticationCardLogo",setup(c){return(i,a)=>(t(),o(n(r),{href:"/"},{default:e(()=>a[0]||(a[0]=[s("img",{src:"/images/logo.png.svg",alt:"Clinic Logo",class:"h-16 w-16 object-contain mx-auto"},null,-1)])),_:1,__:[0]}))}};export{l as _};

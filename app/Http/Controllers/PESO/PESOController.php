@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\PESO;
 use App\Models\JobListing;
 use App\Http\Controllers\Controller;
+use Inertia\Inertia;
 use App\Models\Application;
 use App\Models\Interview;
 use Illuminate\Http\Request;
@@ -54,4 +55,10 @@ class PESOController extends Controller
 
     return response()->json(['message' => 'Beneficiary successfully assigned']);
 }
+
+    public function dashboard()
+    {
+        // PESO does not have a dedicated Dashboard page; render analytics page
+        return Inertia::render('PESO/Analytics');
+    }
 }

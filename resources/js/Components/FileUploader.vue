@@ -20,3 +20,4 @@ function handleFiles(event){
   emits('update:files', files.value);
 }
 </script>
+s

@@ -23,13 +23,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
+        if (!Schema::hasTable('password_reset_tokens')) {
+            Schema::create('password_reset_tokens', function (Blueprint $table) {
+                $table->string('email')->primary();
+                $table->string('token');
+                $table->timestamp('created_at')->nullable();
+            });
+        }
 
         Schema::create('sessions', function (Blueprint $table) {
+            $table->string('role');
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();

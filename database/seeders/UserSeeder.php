@@ -5,99 +5,82 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
     public function run()
     {
+        // ✅ Admin
         $this->createUser(
-            name: 'Clinic Admin',
-            email: 'admin@clinic.com',
+            name: 'SPES Admin',
+            email: 'admin@spes.com',
             password: 'admin123',
             role: 'Admin'
         );
 
+        // ✅ PESO Officers
         $this->createUser(
-            name: 'Dr. Kissel',
-            email: 'doctor@clinic.com',
-            password: 'doctor123',
-            role: 'Doctor'
+            name: 'PESO Officer 1',
+            email: 'peso1@spes.com',
+            password: 'peso123',
+            role: 'PESO'
         );
 
         $this->createUser(
-            name: 'Adrian Yalung',
-            email: 'patient@clinic.com',
-            password: 'Adrian123',
-            role: 'Patient'
+            name: 'PESO Officer 2',
+            email: 'peso2@spes.com',
+            password: 'peso123',
+            role: 'PESO'
+        );
+
+        // ✅ Employers
+        $this->createUser(
+            name: 'Employer One',
+            email: 'employer1@spes.com',
+            password: 'employer123',
+            role: 'Employer'
         );
 
         $this->createUser(
-            name: 'Jerome Lacson',
-            email: 'jerome@example.com',
-            password: 'jerome123',
-            role: 'Patient'
+            name: 'Employer Two',
+            email: 'employer2@spes.com',
+            password: 'employer123',
+            role: 'Employer'
+        );
+
+        // ✅ Beneficiaries
+        $this->createUser(
+            name: 'Juan Dela Cruz',
+            email: 'juan@spes.com',
+            password: 'juan123',
+            role: 'Beneficiary'
         );
 
         $this->createUser(
-            name: 'Super Admin',
-            email: 'superadmin@clinic.com',
-            password: 'superadmin123',
-            role: 'Super Admin'
-        );
-
-        // ✅ New Patients
-        $this->createUser(
-            name: 'Bien Mariano',
-            email: 'bien@clinic.com',
-            password: 'bien123',
-            role: 'Patient'
-        );
-
-        $this->createUser(
-            name: 'Sharmaine Mancera',
-            email: 'sharmaine@clinic.com',
-            password: 'sharmaine123',
-            role: 'Patient'
-        );
-
-        $this->createUser(
-            name: 'Zhyrus John Michael',
-            email: 'zhyrus@clinic.com',
-            password: 'zhyrus123',
-            role: 'Patient'
-        );
-
-        // ✅ New Doctors (Random names)
-        $this->createUser(
-            name: 'Dr. Julian Cruz',
-            email: 'julian@clinic.com',
-            password: 'julian123',
-            role: 'Doctor'
-        );
-
-        $this->createUser(
-            name: 'Dr. Maria Santos',
-            email: 'maria@clinic.com',
+            name: 'Maria Santos',
+            email: 'maria@spes.com',
             password: 'maria123',
-            role: 'Doctor'
+            role: 'Beneficiary'
         );
 
         $this->createUser(
-            name: 'Dr. Carlos Rivera',
-            email: 'carlos@clinic.com',
-            password: 'carlos123',
-            role: 'Doctor'
+            name: 'Pedro Reyes',
+            email: 'pedro@spes.com',
+            password: 'pedro123',
+            role: 'Beneficiary'
         );
 
         $this->createUser(
-            name: 'Dr. Angela Reyes',
-            email: 'angela@clinic.com',
-            password: 'angela123',
-            role: 'Doctor'
+            name: 'Ana Garcia',
+            email: 'ana@spes.com',
+            password: 'ana123',
+            role: 'Beneficiary'
         );
     }
 
+    /**
+     * Create or update a user with the given role (column-based).
+     */
     protected function createUser(string $name, string $email, string $password, string $role)
     {
         $user = User::firstOrCreate(
@@ -105,13 +88,18 @@ class UserSeeder extends Seeder
             [
                 'name' => $name,
                 'password' => Hash::make($password),
+                'role' => $role,
                 'email_verified_at' => now(),
             ]
         );
 
-        if (!$user->hasRole($role)) {
-            $user->assignRole($role);
-            echo "Assigned role {$role} to {$email}\n";
+        // If user exists but role is different, update it
+        if ($user->role !== $role) {
+            $user->role = $role;
+            $user->save();
+            echo "Updated role to {$role} for {$email}\n";
+        } else {
+            echo "User {$email} already has role {$role}\n";
         }
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Interview;
 use App\Services\GoogleCalendarService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class EmployerController extends Controller
 {
@@ -182,5 +183,10 @@ class EmployerController extends Controller
             'interview' => $interview,
             'meet_link' => $event->hangoutLink ?? null,
         ]);
+    }
+
+    public function dashboard()
+    {
+        return Inertia::render('Employer/Dashboard');
     }
 }
