@@ -32,29 +32,8 @@
 </head>
 <body>
 
-    <h1>Medical Records Report</h1>
-    <p>Generated on: {{ now()->format('F j, Y g:i A') }}</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Patient Name</th>
-                <th>Doctor Name</th>
-                <th>Diagnosis</th>
-                <th>Notes</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($records as $record)
-                <tr>
-                    <td>{{ $record->patient->name }}</td>
-                    <td>{{ $record->doctor->name }}</td>
-                    <td>{{ $record->diagnosis }}</td>
-                    <td>{{ $record->notes }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <h1>Medical Records (removed)</h1>
+    <p>This medical records report was removed — not applicable to SPES.</p>
 
 </body>
 </html>

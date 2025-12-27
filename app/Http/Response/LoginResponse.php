@@ -10,19 +10,19 @@ class LoginResponse implements LoginResponseContract
     {
         $user = $request->user();
 
-        if ($user->hasRole('Super Admin')) {
-            return redirect()->intended('/dashboard');
-        }
-
         if ($user->hasRole('Admin')) {
             return redirect()->intended('/dashboard');
         }
 
-        if ($user->hasRole('Doctor')) {
+        if ($user->hasRole('PESO')) {
             return redirect()->intended('/dashboard');
         }
 
-        if ($user->hasRole('Patient')) {
+        if ($user->hasRole('Employer')) {
+            return redirect()->intended('/dashboard');
+        }
+
+        if ($user->hasRole('Beneficiary')) {
             return redirect()->intended('/dashboard');
         }
 

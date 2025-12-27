@@ -42,9 +42,10 @@ class RouteServiceProvider extends ServiceProvider
 
                 return match ($role) {
                     'Admin' => redirect('/admin-dashboard'),
-                    'Doctor' => redirect('/doctor-dashboard'),
-                    'Patient' => redirect('/patient-dashboard'),
-                    'Super Admin' => redirect('/superadmin-dashboard'),
+                    'PESO' => redirect('/peso/dashboard'),
+                    'Employer' => redirect('/employer/dashboard'),
+                    'Beneficiary' => redirect('/beneficiary/dashboard'),
+                    'Super Admin' => redirect('/admin-dashboard'),
                     default => abort(403),
                 };
             });

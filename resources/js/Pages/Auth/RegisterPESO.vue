@@ -9,7 +9,7 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.post('/register/peso')
+  form.post(route('register.peso.store'))
 }
 </script>
 

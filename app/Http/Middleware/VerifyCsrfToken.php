@@ -18,5 +18,6 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         // Leave empty unless you need to exclude specific routes
+        '_debug/*',
     ];
 }

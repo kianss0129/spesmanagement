@@ -26,10 +26,31 @@ class AuthenticatedSessionController extends Controller
         try {
             if (Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
                 $request->session()->regenerate();
+
+                $user = Auth::user();
+
+                // Role-aware redirect to avoid extra roundtrips and ensure the correct dashboard
+                if ($user->hasRole('PESO')) {
+                    return redirect()->route('peso.dashboard');
+                }
+
+                if ($user->hasRole('Employer')) {
+                    return redirect()->route('employer.dashboard');
+                }
+
+                if ($user->hasRole('Beneficiary')) {
+                    return redirect()->route('beneficiary.dashboard');
+                }
+
+                if ($user->hasRole('Admin') || $user->hasRole('Super Admin')) {
+                    return redirect()->route('admin.dashboard');
+                }
+
+                // Fallback to the generic dashboard route
                 return redirect()->intended(route('dashboard'));
             }
 
-            return back()->withErrors(['email' => 'The provided credentials do not match our records.']);
+            return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->withInput();
         } catch (\Exception $e) {
             Log::error('Login error: '.$e->getMessage());
             return back()->withErrors(['email' => 'An error occurred during login.']);

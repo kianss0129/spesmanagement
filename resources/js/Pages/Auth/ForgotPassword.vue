@@ -1,57 +1,76 @@
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div class="w-full max-w-md bg-white rounded shadow p-6">
+      <h1 class="text-2xl font-semibold mb-4">Forgot Password</h1>
+
+      <form @submit.prevent="submit">
+        <div class="mb-4">
+          <label class="block text-sm mb-1">Email</label>
+          <input v-model="form.email" type="email" class="w-full border rounded px-3 py-2" />
+          <p v-if="form.errors.email" class="text-xs text-red-500 mt-1">
+            {{ form.errors.email }}
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          :disabled="form.processing"
+          class="w-full bg-blue-600 text-white py-2 rounded"
+        >
+          <span v-if="form.processing">Sending…</span>
+          <span v-else>Send Reset Link</span>
+        </button>
+      </form>
+
+      <p v-if="status" class="text-sm text-green-600 mt-4">
+        {{ status }}
+      </p>
+
+      <p v-if="successMessage && !status" class="text-sm text-green-600 mt-4">
+        {{ successMessage }}
+      </p>
+
+      <p v-if="networkError" class="text-sm text-red-600 mt-4">
+        {{ networkError }}
+      </p>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { ref } from 'vue'
-import { Head, useForm } from '@inertiajs/vue3'
-import AuthenticationCard from '@/Components/AuthenticationCard.vue'
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue'
-import InputError from '@/Components/InputError.vue'
-import InputLabel from '@/Components/InputLabel.vue'
-import PrimaryButton from '@/Components/PrimaryButton.vue'
-import TextInput from '@/Components/TextInput.vue'
+import { useForm, usePage } from '@inertiajs/inertia-vue3'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-defineProps({ status: String })
+const page = usePage()
+const status = page.props.value.flash?.status
 
-const statusMessage = ref('')
+const form = useForm({
+  email: '',
+})
 
-const form = useForm({ email: '' })
+const networkError = ref('')
+const successMessage = ref('')
 
-const submit = () => {
-  form.post(route('password.email'), {
-    onSuccess: () => {
-      statusMessage.value = 'Reset link sent to your email!'
-    },
-  })
+function handleNetworkEvent(e) {
+  networkError.value = e?.detail?.message || 'Network error. Could not reach backend.'
+}
+
+onMounted(() => window.addEventListener('network-error', handleNetworkEvent))
+onBeforeUnmount(() => window.removeEventListener('network-error', handleNetworkEvent))
+
+async function submit() {
+  networkError.value = ''
+  successMessage.value = ''
+  try {
+    await form.post(route('password.email'), {
+      onSuccess: () => {
+        successMessage.value = 'If that email exists in our system, a password reset link has been sent.'
+      },
+    })
+  } catch (err) {
+    // Axios / network errors bubble here; show friendly message
+    networkError.value = 'Could not reach the server. Please make sure your backend is running (php artisan serve or Apache) and try again.'
+    console.error('Network error sending reset link', err)
+  }
 }
 </script>
-
-<template>
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
-    <Head title="Forgot Password" />
-
-    <form @submit.prevent="submit" class="space-y-4">
-      <div>
-        <InputLabel for="email" value="Email" />
-        <TextInput
-          id="email"
-          v-model="form.email"
-          type="email"
-          class="mt-1 block w-full"
-          required
-          autofocus
-        />
-        <InputError :message="form.errors.email" class="mt-2" />
-      </div>
-
-      <PrimaryButton class="mt-4" :disabled="form.processing">
-        Email Password Reset Link
-      </PrimaryButton>
-
-      <div v-if="status || statusMessage" class="mt-4 text-green-600 text-sm">
-        {{ status || statusMessage }}
-      </div>
-    </form>
-  </AuthenticationCard>
-</template>

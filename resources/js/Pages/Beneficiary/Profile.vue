@@ -25,11 +25,15 @@ import axios from 'axios';
 
 const ratings = ref([]);
 const average = ref(0);
-const beneficiary = ref({ id: 1, first_name: '', last_name: '' }); // replace with real data
+const beneficiary = ref({ id: 1, first_name: '', last_name: '' });
 
 onMounted(async () => {
-  const res = await axios.get(`/api/beneficiaries/${beneficiary.value.id}/ratings`);
-  ratings.value = res.data.ratings;
-  average.value = res.data.average;
+  try {
+    const res = await axios.get(`/beneficiary/ratings`);
+    ratings.value = res.data.ratings || [];
+    average.value = res.data.average || 0;
+  } catch (e) {
+    console.error('Failed to load ratings', e);
+  }
 });
 </script>

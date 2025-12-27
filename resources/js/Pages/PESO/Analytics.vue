@@ -1,90 +1,145 @@
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-6">PESO Analytics</h1>
+  <div class="relative p-6 min-h-screen bg-gray-50">
+    <!-- Logout Button in Top Right -->
+    <div class="absolute top-6 right-6">
+      <form @submit.prevent="logout">
+        <button
+          type="submit"
+          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+        >
+          Logout
+        </button>
+      </form>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Applicants per Month Chart -->
-      <div class="bg-white p-4 rounded shadow">
-        <h2 class="font-semibold mb-2">Applicants per Month</h2>
-        <canvas id="applicantsChart"></canvas>
-      </div>
+    <div class="max-w-7xl mx-auto space-y-8">
+      <!-- Header -->
+      <header class="mb-6">
+        <h1 class="text-2xl font-semibold">Officials / PESO Dashboard</h1>
+        <p class="text-sm text-gray-600">Overview of SPES Management</p>
+      </header>
 
-      <!-- Top Hiring Employers Chart -->
-      <div class="bg-white p-4 rounded shadow">
-        <h2 class="font-semibold mb-2">Top Hiring Employers</h2>
-        <canvas id="employersChart"></canvas>
-      </div>
+      <!-- Core Functions -->
+      <section>
+        <h2 class="text-lg font-medium mb-3">Core Functions</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <FeatureCard title="Official list of SPES beneficiaries" />
+          <FeatureCard title="Application status management" />
+          <FeatureCard title="Contract details" />
+          <FeatureCard title="Referral documents" />
+          <FeatureCard title="Evaluation and monitoring records" />
+        </div>
+      </section>
 
-      <!-- Performance Ratings per Employer -->
-      <div class="bg-white p-4 rounded shadow col-span-1 md:col-span-2">
-        <h2 class="font-semibold mb-2">Performance Ratings</h2>
-        <canvas id="ratingsChart"></canvas>
-      </div>
+      <!-- Analytics Section -->
+      <section>
+        <h2 class="text-lg font-medium mb-3">Analytics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Applicants by School -->
+          <div class="bg-white rounded shadow p-4">
+            <h3 class="font-medium text-gray-700 mb-3">Applicants by School</h3>
+            <canvas id="applicantsBySchoolChart"></canvas>
+          </div>
+
+          <!-- Applicant Trends -->
+          <div class="bg-white rounded shadow p-4">
+            <h3 class="font-medium text-gray-700 mb-3">Applicant Trends</h3>
+            <canvas id="applicantTrendsChart"></canvas>
+          </div>
+
+          <!-- Top Employers -->
+          <div class="bg-white rounded shadow p-4 md:col-span-2">
+            <h3 class="font-medium text-gray-700 mb-3">Top Performing Employers</h3>
+            <canvas id="topEmployersChart"></canvas>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
-import Chart from 'chart.js/auto';
-import axios from 'axios';
+import { ref, onMounted } from 'vue'
+import { Inertia } from '@inertiajs/inertia'
+import axios from 'axios'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
+
+// Feature card component
+const FeatureCard = {
+  props: ['title'],
+  template: `
+    <div class="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition">
+      <h3 class="font-medium text-gray-700">{{ title }}</h3>
+    </div>
+  `
+}
+
+// Logout
+const logout = () => {
+  Inertia.post('/logout')
+}
+
+// Chart Data
+const analyticsData = ref({
+  applicantsBySchool: [],
+  applicantTrends: { labels: [], data: [] },
+  topEmployers: []
+})
 
 onMounted(async () => {
-  // 1️⃣ Applicants per Month
-  const res1 = await axios.get('/peso/analytics/applicants-by-month');
-  const months = res1.data.map(r => r.month);
-  const totals = res1.data.map(r => r.total);
+  try {
+    const res = await axios.get('/peso/analytics/dashboard') // create this API endpoint in controller
+    analyticsData.value = res.data
 
-  new Chart(document.getElementById('applicantsChart'), {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Applicants',
-        data: totals,
-        backgroundColor: '#3B82F6'
-      }]
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-  });
+    // Applicants by School Chart
+    const ctxSchool = document.getElementById('applicantsBySchoolChart').getContext('2d')
+    new Chart(ctxSchool, {
+      type: 'bar',
+      data: {
+        labels: analyticsData.value.applicantsBySchool.map(i => i.school_name),
+        datasets: [{
+          label: 'Applicants',
+          data: analyticsData.value.applicantsBySchool.map(i => i.total),
+          backgroundColor: '#3B82F6'
+        }]
+      },
+      options: { responsive: true }
+    })
 
-  // 2️⃣ Top Hiring Employers
-  const res2 = await axios.get('/peso/analytics/top-employers');
-  const employers = res2.data.map(e => e.name);
-  const hires = res2.data.map(e => e.hires);
+    // Applicant Trends Chart
+    const ctxTrends = document.getElementById('applicantTrendsChart').getContext('2d')
+    new Chart(ctxTrends, {
+      type: 'line',
+      data: {
+        labels: analyticsData.value.applicantTrends.labels,
+        datasets: [{
+          label: 'Applicants',
+          data: analyticsData.value.applicantTrends.data,
+          borderColor: '#10B981',
+          fill: false
+        }]
+      },
+      options: { responsive: true }
+    })
 
-  new Chart(document.getElementById('employersChart'), {
-    type: 'bar',
-    data: {
-      labels: employers,
-      datasets: [{
-        label: 'Hires',
-        data: hires,
-        backgroundColor: '#10B981'
-      }]
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-  });
+    // Top Employers Chart
+    const ctxEmployers = document.getElementById('topEmployersChart').getContext('2d')
+    new Chart(ctxEmployers, {
+      type: 'bar',
+      data: {
+        labels: analyticsData.value.topEmployers.map(i => i.employer_name),
+        datasets: [{
+          label: 'Total Hires',
+          data: analyticsData.value.topEmployers.map(i => i.total),
+          backgroundColor: '#F59E0B'
+        }]
+      },
+      options: { responsive: true }
+    })
 
-  // 3️⃣ Performance Ratings per Employer
-  const res3 = await axios.get('/peso/analytics/performance-trends');
-  const employerNames = res3.data.map(r => r.employer.name);
-  const avgRatings = res3.data.map(r => r.avg_rating);
-
-  new Chart(document.getElementById('ratingsChart'), {
-    type: 'line',
-    data: {
-      labels: employerNames,
-      datasets: [{
-        label: 'Average Rating',
-        data: avgRatings,
-        borderColor: '#F59E0B',
-        backgroundColor: 'rgba(245,158,11,0.2)',
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: { responsive: true }
-  });
-});
+  } catch (error) {
+    console.error('Failed to load analytics', error)
+  }
+})
 </script>

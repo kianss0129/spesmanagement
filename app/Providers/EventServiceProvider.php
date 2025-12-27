@@ -5,8 +5,6 @@ namespace App\Providers;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use App\Listeners\AssignPatientRole;
-
 class EventServiceProvider extends ServiceProvider
 {
     /**
@@ -15,9 +13,7 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $listen = [
-        Registered::class => [
-            AssignPatientRole::class,
-        ],
+        // No automatic patient role assignment — SPES manages roles explicitly
     ];
 
     /**

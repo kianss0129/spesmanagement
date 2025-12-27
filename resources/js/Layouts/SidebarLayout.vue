@@ -18,11 +18,7 @@
             <i class="bi bi-calendar-event me-2"></i> Appointments
           </Link>
         </li>
-        <li>
-          <Link class="nav-link text-white" href="/patients">
-            <i class="bi bi-person-lines-fill me-2"></i> Patients
-          </Link>
-        </li>
+        <!-- Patients link removed — SPES system does not use Patient role -->
         <li>
           <Link class="nav-link text-white" href="/logout" method="post" as="button">
             <i class="bi bi-box-arrow-right me-2"></i> Logout

@@ -113,6 +113,81 @@ class EmployerController extends Controller
         return response()->json($recommended);
     }
 
+    // Return ratings for a specific applicant (beneficiary)
+    public function applicantRatings($beneficiaryId)
+    {
+        return EmployerRating::where('beneficiary_id', $beneficiaryId)->with('employer','application')->get();
+    }
+
+    // Choose/assign an applicant for a job (simple flag)
+    public function chooseApplicant($jobId, $applicationId)
+    {
+        $app = Application::where('job_listing_id', $jobId)->where('id', $applicationId)->firstOrFail();
+        $app->status = 'selected';
+        $app->selected_at = now();
+        $app->save();
+
+        return response()->json(['message' => 'Applicant selected', 'application' => $app]);
+    }
+
+    // List interviews for this employer
+    public function interviews()
+    {
+        return Interview::where('employer_id', auth()->id())->with(['jobListing','beneficiary'])->get();
+    }
+
+    // List attendances or beneficiaries under this employer (simple view)
+    public function listAttendance()
+    {
+        // Show recent attendance records for employer's beneficiaries
+        return Attendance::where('employer_id', auth()->id())->with('beneficiary')->orderByDesc('date')->limit(200)->get();
+    }
+
+    // Submit work output files (store under storage/app/public/work_outputs)
+    public function submitWorkOutput(Request $request)
+    {
+        $request->validate([
+            'beneficiary_id' => 'required|integer',
+            'files' => 'required|array',
+            'files.*' => 'file|max:10240'
+        ]);
+
+        $records = [];
+        foreach ($request->file('files') as $f) {
+            $path = $f->store('work_outputs', 'public');
+            $rec = \App\Models\WorkOutput::create([
+                'employer_id' => auth()->id(),
+                'beneficiary_id' => $request->input('beneficiary_id'),
+                'file_path' => $path,
+                'original_name' => $f->getClientOriginalName()
+            ]);
+            $records[] = $rec;
+        }
+
+        activity()->causedBy(auth()->user())->withProperties(['count' => count($records)])->log('Work outputs uploaded');
+
+        return response()->json(['message' => 'Work outputs uploaded', 'records' => $records]);
+    }
+
+    // Submit employer report (simple storage)
+    public function submitReport(Request $request)
+    {
+        $data = $request->validate([
+            'title' => 'required|string',
+            'body' => 'nullable|string',
+        ]);
+
+        $report = \App\Models\Report::create([
+            'employer_id' => auth()->id(),
+            'title' => $data['title'],
+            'body' => $data['body'] ?? null,
+        ]);
+
+        activity()->causedBy(auth()->user())->withProperties(['report_id' => $report->id])->log('Employer report submitted');
+
+        return response()->json(['message' => 'Report submitted', 'report' => $report]);
+    }
+
     /**
      * Schedule Interview (Employer action)
      *
@@ -188,5 +263,23 @@ class EmployerController extends Controller
     public function dashboard()
     {
         return Inertia::render('Employer/Dashboard');
+    }
+
+    // Analytics: applicants per job for this employer
+    public function applicantsPerJob()
+    {
+        $jobs = JobListing::where('employer_id', auth()->id())
+            ->withCount('applications')
+            ->get(['id', 'title', 'employer_id']);
+
+        $result = $jobs->map(function ($j) {
+            return [
+                'id' => $j->id,
+                'title' => $j->title,
+                'total' => $j->applications_count ?? 0,
+            ];
+        });
+
+        return response()->json($result);
     }
 }

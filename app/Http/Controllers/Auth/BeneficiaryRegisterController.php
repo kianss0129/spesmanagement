@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered;
+use Spatie\Permission\Models\Role;
 
 class BeneficiaryRegisterController extends Controller
 {
@@ -27,9 +28,13 @@ class BeneficiaryRegisterController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'role' => 'beneficiary', // ✅ AUTO ROLE
             'password' => Hash::make($request->password),
+            'role' => 'beneficiary',
         ]);
+
+        // Ensure Spatie role exists then assign it
+        Role::firstOrCreate(['name' => 'Beneficiary']);
+        $user->assignRole('Beneficiary');
 
         event(new Registered($user)); // ✅ Email verification
 

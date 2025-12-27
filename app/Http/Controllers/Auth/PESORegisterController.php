@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered;
+use Spatie\Permission\Models\Role;
 
 class PESORegisterController extends Controller
 {
@@ -27,9 +28,13 @@ class PESORegisterController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'role' => 'peso', // ✅ AUTO ROLE
             'password' => Hash::make($request->password),
+            'role' => 'peso',
         ]);
+
+        // Ensure Spatie role exists then assign it
+        Role::firstOrCreate(['name' => 'PESO']);
+        $user->assignRole('PESO');
 
         event(new Registered($user)); // ✅ Email verification
 

@@ -9,7 +9,7 @@ const form = useForm({
 })
 
 function submit() {
-  form.post(route('register.beneficiary'))
+  form.post(route('register.beneficiary.store'))
 }
 </script>
 

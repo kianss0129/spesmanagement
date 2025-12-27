@@ -12,31 +12,11 @@ const form = useForm({
 
 <template>
   <div class="p-4">
-    <h1 class="text-2xl font-bold mb-4">Book Appointment</h1>
-
-    <form @submit.prevent="form.post('/appointments')">
-      <div class="mb-2">
-        <label>Patient:</label>
-        <select v-model="form.patient_id" class="border rounded p-1 w-full">
-          <option value="">Select Patient</option>
-          <option v-for="p in patients" :value="p.id" :key="p.id">{{ p.name }}</option>
-        </select>
-      </div>
-
-      <div class="mb-2">
-        <label>Doctor:</label>
-        <select v-model="form.doctor_id" class="border rounded p-1 w-full">
-          <option value="">Select Doctor</option>
-          <option v-for="d in doctors" :value="d.id" :key="d.id">{{ d.name }}</option>
-        </select>
-      </div>
-
-      <div class="mb-2">
-        <label>Date:</label>
-        <input type="datetime-local" v-model="form.appointment_date" class="border rounded p-1 w-full">
-      </div>
-
-      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded mt-2">Submit</button>
-    </form>
+    <h1 class="text-2xl font-bold mb-4">Booking removed</h1>
+    <p class="text-sm text-gray-600">Appointment booking was removed as part of SPES migration.</p>
   </div>
 </template>
+
+<script setup>
+// stubbed
+</script>

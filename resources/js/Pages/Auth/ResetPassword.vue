@@ -1,83 +1,70 @@
+<template>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div class="w-full max-w-md bg-white rounded shadow p-6">
+      <h1 class="text-2xl font-semibold mb-4">Reset Password</h1>
+
+      <form @submit.prevent="submit">
+        <input type="hidden" v-model="form.token" />
+
+        <div class="mb-4">
+          <label>Email</label>
+          <input v-model="form.email" type="email" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div class="mb-4">
+          <label>Password</label>
+          <input v-model="form.password" type="password" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div class="mb-4">
+          <label>Confirm Password</label>
+          <input v-model="form.password_confirmation" type="password" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <button class="w-full bg-blue-600 text-white py-2 rounded">
+          Reset Password
+        </button>
+      </form>
+
+      <p v-if="networkError" class="text-sm text-red-600 mt-4">
+        {{ networkError }}
+      </p>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { useForm } from '@inertiajs/vue3'
-import { Head } from '@inertiajs/vue3'
-import InputLabel from '@/Components/InputLabel.vue'
-import TextInput from '@/Components/TextInput.vue'
-import InputError from '@/Components/InputError.vue'
-import PrimaryButton from '@/Components/PrimaryButton.vue'
-import AuthenticationCard from '@/Components/AuthenticationCard.vue'
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue'
+import { useForm } from '@inertiajs/inertia-vue3'
 
 const props = defineProps({
-  email: String,
   token: String,
+  email: String,
 })
 
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 const form = useForm({
   token: props.token,
-  email: props.email || '',
+  email: props.email,
   password: '',
   password_confirmation: '',
 })
 
-const submit = () => {
-  form.post(route('password.update'), {
-    onFinish: () => form.reset('password', 'password_confirmation'),
-  })
+const networkError = ref('')
+
+function handleNetworkEvent(e) {
+  networkError.value = e?.detail?.message || 'Network error. Could not reach backend.'
+}
+
+onMounted(() => window.addEventListener('network-error', handleNetworkEvent))
+onBeforeUnmount(() => window.removeEventListener('network-error', handleNetworkEvent))
+
+async function submit() {
+  networkError.value = ''
+  try {
+    await form.post(route('password.update'))
+  } catch (err) {
+    networkError.value = 'Could not reach the server. Please make sure your backend is running and try again.'
+    console.error('Network error resetting password', err)
+  }
 }
 </script>
-
-<template>
-  <AuthenticationCard>
-    <template #logo>
-      <AuthenticationCardLogo />
-    </template>
-
-    <Head title="Reset Password" />
-
-    <form @submit.prevent="submit" class="space-y-6">
-      <div>
-        <InputLabel for="email" value="Email" />
-        <TextInput
-          id="email"
-          type="email"
-          v-model="form.email"
-          class="mt-1 block w-full"
-          required
-          autofocus
-        />
-        <InputError class="mt-2" :message="form.errors.email" />
-      </div>
-
-      <div>
-        <InputLabel for="password" value="Password" />
-        <TextInput
-          id="password"
-          type="password"
-          v-model="form.password"
-          class="mt-1 block w-full"
-          required
-        />
-        <InputError class="mt-2" :message="form.errors.password" />
-      </div>
-
-      <div>
-        <InputLabel for="password_confirmation" value="Confirm Password" />
-        <TextInput
-          id="password_confirmation"
-          type="password"
-          v-model="form.password_confirmation"
-          class="mt-1 block w-full"
-          required
-        />
-        <InputError class="mt-2" :message="form.errors.password_confirmation" />
-      </div>
-
-      <div class="flex items-center justify-end">
-        <PrimaryButton :disabled="form.processing">
-          Reset Password
-        </PrimaryButton>
-      </div>
-    </form>
-  </AuthenticationCard>
-</template>

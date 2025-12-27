@@ -41,6 +41,14 @@ class NewPasswordController extends Controller
             }
         );
 
+        if ($request->wantsJson()) {
+            if ($status == Password::PASSWORD_RESET) {
+                return response()->json(['status' => __($status)]);
+            }
+
+            return response()->json(['errors' => [ 'email' => [__($status)] ]], 422);
+        }
+
         return $status == Password::PASSWORD_RESET
             ? redirect()->route('login')->with('status', __($status))
             : back()->withErrors(['email' => [__($status)]]);

@@ -13,6 +13,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
+use Inertia\Inertia;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -29,20 +30,45 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Core Fortify actions
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
+        // Login & 2FA rate limiting
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-
             return Limit::perMinute(5)->by($throttleKey);
         });
 
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
+        });
+
+        // ===================== Inertia Views =====================
+
+        // Show "Forgot Password" page
+        Fortify::requestPasswordResetLinkView(function () {
+            return Inertia::render('Auth/ForgotPassword');
+        });
+
+        // Show "Reset Password" page (from email link)
+        Fortify::resetPasswordView(function ($request) {
+            return Inertia::render('Auth/ResetPassword', [
+                'request' => $request
+            ]);
+        });
+
+        // Show login page (optional if customizing)
+        Fortify::loginView(function () {
+            return Inertia::render('Auth/Login');
+        });
+
+        // Show register page (optional)
+        Fortify::registerView(function () {
+            return Inertia::render('Auth/Register');
         });
     }
 }

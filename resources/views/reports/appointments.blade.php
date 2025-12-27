@@ -24,28 +24,8 @@
 </head>
 <body>
 
-    <h1>Appointments Report</h1>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Patient Name</th>
-                <th>Doctor Name</th>
-                <th>Appointment Date</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($appointments as $appointment)
-                <tr>
-                    <td>{{ $appointment->patient->name }}</td>
-                    <td>{{ $appointment->doctor->name }}</td>
-                    <td>{{ $appointment->appointment_date }}</td>
-                    <td>{{ $appointment->status }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <h1>Appointments Report (removed)</h1>
+    <p>This report was removed as it referenced Doctor/Patient roles which are not part of SPES.</p>
 
 </body>
 </html>

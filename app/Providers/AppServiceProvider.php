@@ -31,10 +31,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // ✅ Share auth user and CSRF token with Inertia
+        // Share a minimal auth payload with Inertia to avoid heavy DB loads
         Inertia::share([
             'auth' => fn () => [
-                'user' => Auth::user() ? Auth::user()->load('roles') : null,
+                // Only include minimal user fields to prevent expensive Eloquent loads during boot
+                'user' => Auth::check() ? array_merge(Auth::user()->only(['id','name','email','role']), ['roles' => Auth::user()->roles->pluck('name') ?? []]) : null,
                 'csrf_token' => csrf_token(),
             ],
         ]);

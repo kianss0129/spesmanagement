@@ -22,9 +22,9 @@
             Remember me
           </label>
 
-          <inertia-link :href="route('password.request')" class="text-sm text-blue-600 hover:underline">
+          <Link href="/forgot-password" class="text-sm text-blue-600 hover:underline">
             Forgot password?
-          </inertia-link>
+          </Link>
         </div>
 
         <div class="mb-4">
@@ -38,9 +38,9 @@
       <div class="text-sm text-center">
         Don't have an account?
         <!-- Use the correct named route for your beneficiary registration -->
-        <inertia-link :href="route('register.beneficiary')" class="text-blue-600 hover:underline">
+        <Link href="/register/beneficiary" class="text-blue-600 hover:underline">
           Register as Beneficiary
-        </inertia-link>
+        </Link>
       </div>
     </div>
   </div>
@@ -48,7 +48,7 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import { useForm } from '@inertiajs/inertia-vue3'
+import { useForm, Link } from '@inertiajs/inertia-vue3'
 
 const form = useForm({
   email: '',
@@ -61,7 +61,7 @@ const processing = ref(false)
 
 function submit() {
   processing.value = true
-  form.post(route('login'), {
+  form.post('/login', {
     onSuccess: () => {
       processing.value = false
     },

@@ -32,29 +32,8 @@
 </head>
 <body>
 
-    <h1>Billing Report</h1>
-    <p>Generated on: {{ now()->format('F j, Y g:i A') }}</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Invoice No</th>
-                <th>Patient Name</th>
-                <th>Amount</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($billings as $billing)
-                <tr>
-                    <td>{{ $billing->invoice_no }}</td>
-                    <td>{{ $billing->patient->name }}</td>
-                    <td>₱{{ number_format($billing->amount, 2) }}</td>
-                    <td>{{ $billing->status }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <h1>Billing Report (removed)</h1>
+    <p>This billing report referenced patients and was removed for SPES-only deployment.</p>
 
 </body>
 </html>

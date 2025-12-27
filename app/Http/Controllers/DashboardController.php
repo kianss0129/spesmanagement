@@ -1,10 +1,9 @@
 <?php
 
-// app/Http/Controllers/DashboardController.php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Redirect;
 
 class DashboardController extends Controller
 {
@@ -12,14 +11,18 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('Super Admin') || $user->hasRole('Admin')) {
-            return redirect()->route('admin.appointments');
-        } elseif ($user->hasRole('Doctor')) {
-            return redirect()->route('doctor.appointments');
-        } elseif ($user->hasRole('Patient')) {
-            return redirect()->route('patient.dashboard'); // ✅ Change here
-        } else {
-            abort(403, 'Unauthorized');
+        if (! $user) {
+            return Redirect::route('login');
         }
+
+        return match (true) {
+            $user->hasRole('Super Admin') || $user->hasRole('Admin') => Redirect::route('admin.dashboard'),
+            $user->hasRole('Employer') => Redirect::route('employer.dashboard'),
+            $user->hasRole('Beneficiary') => Redirect::route('beneficiary.dashboard'),
+            $user->hasRole('PESO') => Redirect::route('peso.dashboard'),
+
+            // ⛔ NEVER abort() in an Inertia flow
+            default => Redirect::route('login'),
+        };
     }
 }

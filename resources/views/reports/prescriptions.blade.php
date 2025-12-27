@@ -32,29 +32,8 @@
 </head>
 <body>
 
-    <h1>Prescriptions Report</h1>
-    <p>Generated on: {{ now()->format('F j, Y g:i A') }}</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Medical Record ID</th>
-                <th>Medicine Name</th>
-                <th>Dosage</th>
-                <th>Instructions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($prescriptions as $prescription)
-                <tr>
-                    <td>{{ $prescription->medical_record_id }}</td>
-                    <td>{{ $prescription->medicine_name }}</td>
-                    <td>{{ $prescription->dosage }}</td>
-                    <td>{{ $prescription->instructions }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <h1>Prescriptions Report (removed)</h1>
+    <p>This prescription report was removed — not part of SPES.</p>
 
 </body>
 </html>
