@@ -7,6 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
 use App\Models\JobListing;
 use App\Models\Application as JobApplication;
+use App\Models\Beneficiary;
+use App\Models\Employer;
 use Spatie\Permission\Models\Role;
 
 class EmployerFlowTest extends TestCase
@@ -17,14 +19,18 @@ class EmployerFlowTest extends TestCase
     {
         Role::create(['name' => 'Employer']);
         Role::create(['name' => 'Beneficiary']);
+        Role::create(['name' => 'PESO']);
 
         $employer = User::factory()->create();
         $employer->assignRole('Employer');
 
-        $beneficiary = User::factory()->create();
-        $beneficiary->assignRole('Beneficiary');
+        // Also create an Employer record for job_listings foreign key
+        $employerProfile = Employer::factory()->create();
 
-        $job = JobListing::factory()->create(['employer_id' => $employer->id]);
+        // Use Beneficiary model (applications reference beneficiaries table)
+        $beneficiary = Beneficiary::factory()->create();
+
+        $job = JobListing::factory()->create(['employer_id' => $employerProfile->id]);
 
         // Create application record directly (no factory for Application)
         $app = \App\Models\Application::create([
@@ -41,13 +47,23 @@ class EmployerFlowTest extends TestCase
         // Initialize session for CSRF token
         $this->get('/');
 
-        // Choose applicant
+        // Choosing applicants is PESO responsibility — the employer endpoint was removed.
         $this->post("/employer/jobs/{$job->id}/choose/{$app->id}", ['_token' => csrf_token()])
+            ->assertStatus(404);
+
+        // Simulate PESO assignment
+        $peso = User::factory()->create();
+        $peso->assignRole('PESO');
+        $this->actingAs($peso)
+            ->post('/peso/assign-beneficiary', [
+                'job_listing_id' => $job->id,
+                'beneficiary_id' => $beneficiary->id
+            ])
             ->assertStatus(200);
 
         $this->assertDatabaseHas('applications', [
             'id' => $app->id,
-            'status' => 'chosen',
+            'status' => 'assigned',
         ]);
     }
 

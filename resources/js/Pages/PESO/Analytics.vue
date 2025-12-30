@@ -1,6 +1,6 @@
 <template>
   <div class="relative p-6 min-h-screen bg-gray-50">
-    <!-- Logout Button in Top Right -->
+    <!-- Logout Button -->
     <div class="absolute top-6 right-6">
       <form @submit.prevent="logout">
         <button
@@ -36,22 +36,32 @@
         <h2 class="text-lg font-medium mb-3">Analytics</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Applicants by School -->
-          <div class="bg-white rounded shadow p-4">
-            <h3 class="font-medium text-gray-700 mb-3">Applicants by School</h3>
-            <canvas id="applicantsBySchoolChart"></canvas>
-          </div>
+          <Chart
+            chart-id="applicantsBySchoolChart"
+            title="Applicants by School"
+            :data="applicantsBySchool"
+            type="bar"
+            :period-options="['month','semester','year']"
+            @period-change="fetchApplicantsBySchool"
+          />
 
-          <!-- Applicant Trends -->
-          <div class="bg-white rounded shadow p-4">
-            <h3 class="font-medium text-gray-700 mb-3">Applicant Trends</h3>
-            <canvas id="applicantTrendsChart"></canvas>
-          </div>
+          <!-- Performance Trends -->
+          <Chart
+            chart-id="performanceTrendsChart"
+            title="Performance Trends"
+            :data="performanceTrends"
+            type="line"
+            :period-options="['month','semester','year']"
+            @period-change="fetchPerformanceTrends"
+          />
 
           <!-- Top Employers -->
-          <div class="bg-white rounded shadow p-4 md:col-span-2">
-            <h3 class="font-medium text-gray-700 mb-3">Top Performing Employers</h3>
-            <canvas id="topEmployersChart"></canvas>
-          </div>
+          <Chart
+            chart-id="topEmployersChart"
+            title="Top Performing Employers"
+            :data="topEmployers"
+            type="bar"
+          />
         </div>
       </section>
     </div>
@@ -62,10 +72,9 @@
 import { ref, onMounted } from 'vue'
 import { Inertia } from '@inertiajs/inertia'
 import axios from 'axios'
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+import Chart from '@/Components/Chart.vue'
 
-// Feature card component
+// Feature Card component
 const FeatureCard = {
   props: ['title'],
   template: `
@@ -76,70 +85,44 @@ const FeatureCard = {
 }
 
 // Logout
-const logout = () => {
-  Inertia.post('/logout')
+const logout = () => Inertia.post('/logout')
+
+// Reactive chart data
+const applicantsBySchool = ref({ labels: [], datasets: [{ label: 'Applicants', data: [], backgroundColor: '#3B82F6' }] })
+const performanceTrends = ref({ labels: [], datasets: [{ label: 'Average Rating', data: [], borderColor: '#10B981', fill: false }] })
+const topEmployers = ref({ labels: [], datasets: [{ label: 'Total Hires', data: [], backgroundColor: '#F59E0B' }] })
+
+// Fetch Applicants by School
+const fetchApplicantsBySchool = async (period = 'year') => {
+  try {
+    const res = await axios.get(`/peso/analytics/applicants-by-school?period=${period}`)
+    applicantsBySchool.value.labels = res.data.map(i => i.school)
+    applicantsBySchool.value.datasets[0].data = res.data.map(i => i.total)
+  } catch (e) { console.error(e) }
 }
 
-// Chart Data
-const analyticsData = ref({
-  applicantsBySchool: [],
-  applicantTrends: { labels: [], data: [] },
-  topEmployers: []
-})
-
-onMounted(async () => {
+// Fetch Performance Trends
+const fetchPerformanceTrends = async (period = 'year') => {
   try {
-    const res = await axios.get('/peso/analytics/dashboard') // create this API endpoint in controller
-    analyticsData.value = res.data
+    const res = await axios.get(`/peso/analytics/performance-trends?period=${period}`)
+    performanceTrends.value.labels = res.data.map(i => i.period)
+    performanceTrends.value.datasets[0].data = res.data.map(i => i.avg_rating)
+  } catch (e) { console.error(e) }
+}
 
-    // Applicants by School Chart
-    const ctxSchool = document.getElementById('applicantsBySchoolChart').getContext('2d')
-    new Chart(ctxSchool, {
-      type: 'bar',
-      data: {
-        labels: analyticsData.value.applicantsBySchool.map(i => i.school_name),
-        datasets: [{
-          label: 'Applicants',
-          data: analyticsData.value.applicantsBySchool.map(i => i.total),
-          backgroundColor: '#3B82F6'
-        }]
-      },
-      options: { responsive: true }
-    })
+// Fetch Top Employers
+const fetchTopEmployers = async () => {
+  try {
+    const res = await axios.get(`/peso/analytics/top-hiring-employers`)
+    topEmployers.value.labels = res.data.map(i => i.employer_name)
+    topEmployers.value.datasets[0].data = res.data.map(i => i.hires)
+  } catch (e) { console.error(e) }
+}
 
-    // Applicant Trends Chart
-    const ctxTrends = document.getElementById('applicantTrendsChart').getContext('2d')
-    new Chart(ctxTrends, {
-      type: 'line',
-      data: {
-        labels: analyticsData.value.applicantTrends.labels,
-        datasets: [{
-          label: 'Applicants',
-          data: analyticsData.value.applicantTrends.data,
-          borderColor: '#10B981',
-          fill: false
-        }]
-      },
-      options: { responsive: true }
-    })
-
-    // Top Employers Chart
-    const ctxEmployers = document.getElementById('topEmployersChart').getContext('2d')
-    new Chart(ctxEmployers, {
-      type: 'bar',
-      data: {
-        labels: analyticsData.value.topEmployers.map(i => i.employer_name),
-        datasets: [{
-          label: 'Total Hires',
-          data: analyticsData.value.topEmployers.map(i => i.total),
-          backgroundColor: '#F59E0B'
-        }]
-      },
-      options: { responsive: true }
-    })
-
-  } catch (error) {
-    console.error('Failed to load analytics', error)
-  }
+// On mounted
+onMounted(() => {
+  fetchApplicantsBySchool()
+  fetchPerformanceTrends()
+  fetchTopEmployers()
 })
 </script>

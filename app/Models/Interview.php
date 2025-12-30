@@ -12,23 +12,21 @@ class Interview extends Model
 
     public function application()
     {
-        // Older code assumed an application_id column. The interviews table uses `job_id` and `beneficiary_id`.
-        // Keep this method removed to avoid queries against a non-existent `application_id` column.
-        return null;
+        return $this->belongsTo(Application::class);
     }
 
     public function jobListing()
     {
-        return $this->belongsTo(JobListing::class, 'job_id');
+        return $this->belongsTo(JobListing::class, 'job_listing_id');
     }
 
     public function beneficiary()
     {
-        return $this->belongsTo(Beneficiary::class);
+        return $this->belongsTo(Beneficiary::class, 'beneficiary_id');
     }
 
     public function employer()
     {
-        return $this->belongsTo(\App\Models\Employer::class);
+        return $this->belongsTo(Employer::class, 'employer_id');
     }
 }

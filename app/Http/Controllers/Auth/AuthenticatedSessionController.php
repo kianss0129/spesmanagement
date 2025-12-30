@@ -30,19 +30,21 @@ class AuthenticatedSessionController extends Controller
                 $user = Auth::user();
 
                 // Role-aware redirect to avoid extra roundtrips and ensure the correct dashboard
-                if ($user->hasRole('PESO')) {
+                // Role-aware redirects. Use a case-insensitive check to handle role name casing differences.
+                // Use direct DB checks so role name casing and cached permission issues don't prevent correct redirects.
+                if ($user->hasRole('PESO') || $user->roles()->whereRaw('LOWER(name) = ?', ['peso'])->exists()) {
                     return redirect()->route('peso.dashboard');
                 }
 
-                if ($user->hasRole('Employer')) {
+                if ($user->hasRole('Employer') || $user->roles()->whereRaw('LOWER(name) = ?', ['employer'])->exists()) {
                     return redirect()->route('employer.dashboard');
                 }
 
-                if ($user->hasRole('Beneficiary')) {
+                if ($user->hasRole('Beneficiary') || $user->roles()->whereRaw('LOWER(name) = ?', ['beneficiary'])->exists()) {
                     return redirect()->route('beneficiary.dashboard');
                 }
 
-                if ($user->hasRole('Admin') || $user->hasRole('Super Admin')) {
+                if ($user->hasRole('Admin') || $user->hasRole('Super Admin') || $user->roles()->whereRaw('LOWER(name) IN (?,?)', ['admin','super admin'])->exists()) {
                     return redirect()->route('admin.dashboard');
                 }
 

@@ -2,20 +2,24 @@
 
 namespace Database\Factories;
 
+use App\Models\JobListing;
+use App\Models\Employer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class JobListingFactory extends Factory
 {
+    protected $model = JobListing::class;
+
     public function definition(): array
     {
-       return [
-    'title'       => $this->faker->jobTitle(),
-    'description' => $this->faker->paragraph(),
-    'employer_id' => null,                                     // set in seeder
-    'positions'   => $this->faker->numberBetween(1, 5),
-    'start_date'  => $this->faker->date(),
-    'end_date'    => $this->faker->date(),
-    'status'      => 'open',
-];
+        return [
+            'title' => $this->faker->jobTitle,
+            'description' => $this->faker->paragraph,
+            'location' => $this->faker->city,
+            'salary' => $this->faker->numberBetween(10000, 50000),
+
+            // ✅ Automatically create a valid employer
+            'employer_id' => Employer::factory(),
+        ];
     }
 }

@@ -22,4 +22,9 @@ class Application extends Model
     {
         return $this->hasOne(Interview::class);
     }
+
+    public function batch()
+    {
+        return $this->belongsTo(\App\Models\Batch::class);
+    }
 }

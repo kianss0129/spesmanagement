@@ -9,7 +9,7 @@ use Inertia\Inertia;
 
 class RoleController extends Controller
 {
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $users = User::select('id', 'name', 'email')
             ->with('roles')
@@ -20,6 +20,14 @@ class RoleController extends Controller
             });
 
         $roles = Role::pluck('name');
+
+        // If JS/Inertia isn't available (direct navigation), render a server-side Blade fallback
+        if (!$request->header('X-Inertia')) {
+            return view('admin.roles.index', [
+                'users' => $users,
+                'roles' => $roles
+            ]);
+        }
 
         return Inertia::render('Role/Index', [
             'users' => $users,

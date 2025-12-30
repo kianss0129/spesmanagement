@@ -49,7 +49,15 @@ class BeneficiaryController extends Controller
             $paths[] = $file->store('documents', 'public');
         }
 
-        $beneficiary = auth()->user()->beneficiary;
+        $user = auth()->user();
+        $beneficiary = null;
+        if (method_exists($user, 'beneficiary') && $user->beneficiary) {
+            $beneficiary = $user->beneficiary;
+        } else {
+            // Fallback to matching by email in case the relation is not defined on User
+            $beneficiary = \App\Models\Beneficiary::where('email', $user->email)->first();
+        }
+
         if (! $beneficiary) {
             // Don't fail the upload if beneficiary profile is missing; files were stored.
             Log::warning('upload-documents: beneficiary profile not found for user', ['user_id' => auth()->id()]);
@@ -93,10 +101,28 @@ class BeneficiaryController extends Controller
     }
 
     // Upcoming Interviews
-    public function interviews()
-    {
-        return Interview::where('beneficiary_id', auth()->id())->with('jobListing')->get();
-    }
+  public function interviews()
+{
+    $userId = auth()->id();
+
+    $interviews = \App\Models\Interview::where('beneficiary_id', $userId)
+        ->where('scheduled_at', '>=', now())
+        ->with(['jobListing.employer:id,name'])
+        ->orderBy('scheduled_at')
+        ->get()
+        ->map(function($interview) {
+            return [
+                'id' => $interview->id,
+                'job_title' => $interview->jobListing->title ?? 'Job',
+                'employer_name' => $interview->jobListing->employer->name ?? 'Employer',
+                'scheduled_at' => $interview->scheduled_at,
+                'meet_link' => $interview->meet_link,
+            ];
+        });
+
+    return response()->json($interviews);
+}
+
 
     // Return available job listings for beneficiaries
     public function jobs()
@@ -161,6 +187,91 @@ class BeneficiaryController extends Controller
         ]);
     }
 
+    // Consolidated work history for a beneficiary (timeline)
+    public function workHistory($id)
+    {
+        $beneficiary = \App\Models\Beneficiary::findOrFail($id);
+
+        $ratings = \App\Models\EmployerRating::where('beneficiary_id', $id)
+            ->with('employer','application')
+            ->get()
+            ->map(function($r){
+                return [
+                    'type' => 'rating',
+                    'date' => $r->created_at->toDateTimeString(),
+                    'data' => [
+                        'employer' => optional($r->employer)->name,
+                        'scores' => [
+                            'punctuality' => $r->punctuality,
+                            'work_attitude' => $r->work_attitude,
+                            'output_quality' => $r->output_quality,
+                            'communication' => $r->communication,
+                            'overall' => $r->overall,
+                        ],
+                        'comment' => $r->comment
+                    ]
+                ];
+            });
+
+        $workOutputs = \App\Models\WorkOutput::where('beneficiary_id', $id)
+            ->get()
+            ->map(function($w){
+                return [
+                    'type' => 'work_output',
+                    'date' => $w->created_at->toDateTimeString(),
+                    'data' => [
+                        'employer_id' => $w->employer_id,
+                        'file_path' => $w->file_path,
+                        'original_name' => $w->original_name
+                    ]
+                ];
+            });
+
+        $interviews = \App\Models\Interview::where('beneficiary_id', $id)
+            ->get()
+            ->map(function($i){
+                return [
+                    'type' => 'interview',
+                    'date' => optional($i->scheduled_at)->toDateTimeString(),
+                    'data' => [
+                        'job_id' => $i->job_id ?? $i->job_listing_id ?? null,
+                        'employer_id' => $i->employer_id,
+                        'meet_link' => $i->meet_link,
+                        'status' => $i->status
+                    ]
+                ];
+            });
+
+        $applications = \App\Models\Application::where('beneficiary_id', $id)
+            ->with('jobListing')
+            ->get()
+            ->map(function($a){
+                return [
+                    'type' => 'application',
+                    'date' => $a->created_at->toDateTimeString(),
+                    'data' => [
+                        'job_listing' => optional($a->jobListing)->title,
+                        'status' => $a->status
+                    ]
+                ];
+            });
+
+        // Merge and sort by date descending
+        $timeline = collect()->merge($ratings)->merge($workOutputs)->merge($interviews)->merge($applications)
+            ->sortByDesc(function($i){ return $i['date']; })
+            ->values();
+
+        return response()->json(['beneficiary' => $beneficiary->name, 'timeline' => $timeline]);
+    }
+
+    // Self work history
+    public function myWorkHistory()
+    {
+        $user = auth()->user();
+        $beneficiary = $user ? $user->beneficiary : null;
+        if (! $beneficiary) return response()->json(['timeline' => []]);
+        return $this->workHistory($beneficiary->id);
+    }
     // Attendance analytics (dummy example, replace with real query)
     public function attendance()
     {

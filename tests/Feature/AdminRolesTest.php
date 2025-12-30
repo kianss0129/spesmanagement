@@ -20,7 +20,8 @@ class AdminRolesTest extends TestCase
         $response = $this->actingAs($admin)->get('/admin/roles');
 
         $response->assertStatus(200);
-        $response->assertSee('users'); // Inertia payload has "users" prop
+        $response->assertSee('Assign Role'); // server-rendered fallback contains Assign Role form
+        $response->assertSee($admin->email);
     }
 
     public function test_non_admin_cannot_view_roles_index()

@@ -1,6 +1,13 @@
 import './bootstrap';
 import '../css/app.css';
 
+// Remove the frontend warning banner when the JS bundle loads successfully
+try {
+    document.getElementById('frontend-warning')?.remove();
+} catch (e) {
+    // ignore if DOM not ready
+}
+
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/inertia-vue3';
 import { Ziggy } from './ziggy.js'; // must exist
