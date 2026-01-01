@@ -12,8 +12,12 @@ use Spatie\Permission\Models\Role;
 
 class PESORegisterController extends Controller
 {
-    public function create()
+    public function create(\Illuminate\Http\Request $request)
     {
+        if (! $request->header('X-Inertia')) {
+            return view('auth.register-peso');
+        }
+
         return inertia('Auth/RegisterPESO');
     }
 

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Password;
 
 // Controllers
 use App\Http\Controllers\PageController;
@@ -217,4 +218,45 @@ Route::post('/_debug/ping', function (Request $request) {
         'headers' => array_slice(getallheaders(), 0, 20)
     ]);
     return response()->json(['ok' => true, 'received' => $request->all()]);
+});
+
+// Local debug helper: send a password reset link and return the broker status
+Route::get('/_debug/send-reset', function (Request $request) {
+    if (!app()->isLocal()) abort(404);
+
+    $email = $request->query('email');
+    if (! $email) {
+        return response('Provide ?email=you@example.com', 400);
+    }
+
+    try {
+        $status = Password::sendResetLink(['email' => $email]);
+        Log::info('Debug send-reset', ['email' => $email, 'status' => $status]);
+        return response()->json(['status' => $status]);
+    } catch (\Throwable $e) {
+        Log::error('Debug send-reset failed', ['email' => $email, 'exception' => $e->getMessage()]);
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+// Local debug helper: send a simple test email via Mail::raw to ensure SMTP works
+Route::get('/_debug/send-test-mail', function (Request $request) {
+    if (!app()->isLocal()) abort(404);
+
+    $email = $request->query('email');
+    if (! $email) {
+        return response('Provide ?email=you@example.com', 400);
+    }
+
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Test email from SPES system', function ($m) use ($email) {
+            $m->to($email)->subject('SPES Test Email');
+        });
+    } catch (\Exception $e) {
+        Log::error('Debug send-test-mail exception', ['email' => $email, 'error' => $e->getMessage()]);
+        return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+    }
+
+    Log::info('Debug send-test-mail sent', ['email' => $email]);
+    return response()->json(['ok' => true]);
 });

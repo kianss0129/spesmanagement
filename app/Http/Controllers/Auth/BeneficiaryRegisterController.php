@@ -7,23 +7,35 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Auth\Events\Registered;
 use Spatie\Permission\Models\Role;
 
 class BeneficiaryRegisterController extends Controller
 {
-    public function create()
+    public function create(\Illuminate\Http\Request $request)
     {
+        // If Inertia/JS isn't available (direct navigation / no frontend assets), render a server-side Blade fallback
+        if (! $request->header('X-Inertia')) {
+            return view('auth.register-beneficiary');
+        }
+
         return inertia('Auth/RegisterBeneficiary');
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = \Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
+
+        if ($validator->fails()) {
+            return redirect()->route('register.beneficiary')
+                ->withErrors($validator)
+                ->withInput();
+        }
 
         $user = User::create([
             'name' => $request->name,

@@ -13,7 +13,7 @@
         <!-- Assign role form -->
         <div class="mb-6 bg-white p-4 rounded shadow">
             <h2 class="font-semibold">Assign Role</h2>
-            <form method="POST" action="{{ route('roles.assign') }}">
+            <form method="POST" action="{{ route('admin.roles.assign') }}">
                 @csrf
                 <select name="user_id" class="border p-2 rounded mr-2">
                     <option value="">Select user</option>
@@ -53,7 +53,7 @@
                             <td class="p-2 border-b text-indigo-700 font-medium">{{ $user->role ?? '—' }}</td>
                             <td class="p-2 border-b">
                                 @if($user->role)
-                                    <form method="POST" action="{{ route('roles.remove', $user->id) }}" style="display:inline">
+                                    <form method="POST" action="{{ route('admin.roles.remove', $user->id) }}" style="display:inline">
                                         @csrf
                                         @method('DELETE')
                                         <button class="bg-red-600 text-white px-3 py-1 rounded">Delete Role</button>

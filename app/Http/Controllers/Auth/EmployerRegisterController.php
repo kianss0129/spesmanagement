@@ -12,8 +12,12 @@ use Spatie\Permission\Models\Role;
 
 class EmployerRegisterController extends Controller
 {
-    public function create()
+    public function create(\Illuminate\Http\Request $request)
     {
+        if (! $request->header('X-Inertia')) {
+            return view('auth.register-employer');
+        }
+
         return inertia('Auth/RegisterEmployer');
     }
 
