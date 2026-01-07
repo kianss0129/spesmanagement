@@ -286,13 +286,28 @@ class BeneficiaryController extends Controller
     }
 
     // Render profile page with beneficiary data
-    public function profilePage()
-    {
-        $user = auth()->user();
-        $beneficiary = $user ? $user->beneficiary : null;
+ public function profilePage()
+{
+    $user = auth()->user();
+    if (!$user) abort(403);
 
-        return Inertia::render('Beneficiary/Profile', [
-            'beneficiary' => $beneficiary
-        ]);
+    // Try to get beneficiary
+    $beneficiary = $user->beneficiary
+        ?? \App\Models\Beneficiary::where('email', $user->email)->first();
+
+    if ($beneficiary) {
+        $beneficiary->load(['school','pesoOffice','workHistory','ratings.employer','ratings.application.jobListing']);
+        $ratings = $beneficiary->ratings ?? collect();
+        $average = round($ratings->avg('overall') ?? 0, 1);
+    } else {
+        $ratings = collect();
+        $average = 0;
     }
+
+    return Inertia::render('Beneficiary/Profile', [
+        'beneficiary' => $beneficiary,
+        'ratings' => $ratings,
+        'average' => $average,
+    ]);
+}
 }

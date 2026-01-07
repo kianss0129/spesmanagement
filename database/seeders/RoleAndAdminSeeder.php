@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
+use App\Models\Beneficiary;
 
 class RoleAndAdminSeeder extends Seeder
 {
@@ -55,14 +56,23 @@ class RoleAndAdminSeeder extends Seeder
         );
         $employer->assignRole('Employer');
 
-        // 5️⃣ Create Beneficiary User
-        $beneficiary = User::firstOrCreate(
-            ['email' => 'beneficiary1@spes.com'],
-            [
-                'name' => 'Beneficiary 1',
-                'password' => bcrypt('beneficiary123')
-            ]
-        );
-        $beneficiary->assignRole('Beneficiary');
+        // 5️⃣ Create Beneficiary Users for ALL records in beneficiaries table
+        $beneficiaries = Beneficiary::all();
+
+        foreach ($beneficiaries as $b) {
+            $user = User::firstOrCreate(
+                ['email' => $b->email],
+                [
+                    'name' => $b->first_name . ' ' . $b->last_name,
+                    'password' => bcrypt('beneficiary123'),
+                ]
+            );
+
+            $user->assignRole('Beneficiary');
+
+            // Link user_id to beneficiary
+            $b->user_id = $user->id;
+            $b->save();
+        }
     }
 }

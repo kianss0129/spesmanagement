@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use App\Models\Rating;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -12,36 +12,16 @@ use Laravel\Jetstream\HasProfilePhoto; // ✅ Add this
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, HasProfilePhoto; // ✅ Add HasProfilePhoto
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, HasProfilePhoto;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int,string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $fillable = ['name','email','password'];
+    protected $hidden = ['password','remember_token'];
+    protected $casts = ['email_verified_at'=>'datetime','password'=>'hashed'];
 
-    /**
-     * The attributes that should be hidden for arrays / JSON.
-     *
-     * @var array<int,string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+    // Each user may have a beneficiary profile
+   public function beneficiary()
+{
+    return $this->hasOne(\App\Models\Beneficiary::class);
+}
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string,string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
 }

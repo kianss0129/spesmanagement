@@ -14,6 +14,34 @@
       </header>
 
       <!-- Stat cards -->
+       <!-- Quick Access -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <a href="/beneficiary/exams" class="bg-white p-4 rounded shadow hover:bg-indigo-50 transition">
+    <h3 class="font-semibold text-lg">Exams</h3>
+    <p class="text-sm text-gray-600">View and take assigned exams</p>
+  </a>
+
+  <a href="/beneficiary/attendance" class="bg-white p-4 rounded shadow hover:bg-indigo-50 transition">
+    <h3 class="font-semibold text-lg">Attendance (DTR)</h3>
+    <p class="text-sm text-gray-600">Time in/out with proof</p>
+  </a>
+
+  <a href="/beneficiary/work-outputs" class="bg-white p-4 rounded shadow hover:bg-indigo-50 transition">
+    <h3 class="font-semibold text-lg">Work Outputs</h3>
+    <p class="text-sm text-gray-600">Upload and track tasks</p>
+  </a>
+
+  <a href="/beneficiary/notifications" class="bg-white p-4 rounded shadow hover:bg-indigo-50 transition">
+    <h3 class="font-semibold text-lg">Notifications</h3>
+    <p class="text-sm text-gray-600">System & employer updates</p>
+  </a>
+   <!-- NEW: Profile Card -->
+  <a href="/beneficiary/profile" class="bg-white p-4 rounded shadow hover:bg-indigo-50 transition">
+    <h3 class="font-semibold text-lg">Profile</h3>
+    <p class="text-sm text-gray-600">View and update your profile</p>
+  </a>
+</div>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div class="bg-white p-4 rounded shadow">
           <div class="text-gray-500">Your Applications</div>

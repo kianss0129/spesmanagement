@@ -155,6 +155,22 @@ Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer
 */
 Route::middleware(['auth', 'role:Beneficiary'])->prefix('beneficiary')->name('beneficiary.')->group(function () {
 
+    Route::get('exams', function () {
+    return Inertia::render('Beneficiary/Exams');
+})->name('exams');
+
+Route::get('attendance', function () {
+    return Inertia::render('Beneficiary/Attendance');
+})->name('attendance');
+
+Route::get('work-outputs', function () {
+    return Inertia::render('Beneficiary/WorkOutputs');
+})->name('workOutputs');
+
+Route::get('notifications', function () {
+    return Inertia::render('Beneficiary/Notifications');
+})->name('notifications');
+
     Route::get('dashboard', [BeneficiaryController::class, 'dashboard'])->name('dashboard');
     Route::get('profile', [BeneficiaryController::class, 'profilePage'])->name('profile');
 
