@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Password;
 
+// =======================
 // Controllers
+// =======================
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\PESO\PESOController;
@@ -18,8 +20,11 @@ use App\Http\Controllers\Beneficiary\BeneficiaryController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UploadDocumentsController;
 
+// =======================
 // Auth Controllers
+// =======================
 use App\Http\Controllers\Auth\BeneficiaryRegisterController;
 use App\Http\Controllers\Auth\EmployerRegisterController;
 use App\Http\Controllers\Auth\PESORegisterController;
@@ -29,6 +34,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
+use App\Http\Controllers\Auth\LoginController; // ✅ ADDED
 
 /*
 |--------------------------------------------------------------------------
@@ -53,9 +59,39 @@ Route::middleware('guest')->group(function () {
     Route::post('register/peso', [PESORegisterController::class, 'store'])
         ->name('register.peso.store');
 
-    // LOGIN
+    // LOGIN PAGES
     Route::get('login/employer', [PageController::class, 'loginEmployer'])->name('login.employer');
     Route::get('login/peso', [PageController::class, 'loginPeso'])->name('login.peso');
+
+    // ✅ LOGIN SUBMIT (reCAPTCHA protected)
+    Route::post('/login', [LoginController::class, 'login'])
+        ->name('login')
+        ->middleware('throttle:5,1');
+});
+
+/*
+|--------------------------------------------------------------------------
+| LOGOUT
+|--------------------------------------------------------------------------
+*/
+Route::post('/logout', [LoginController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| ONBOARDING ROUTES
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/onboarding', [OnboardingController::class, 'index'])
+        ->name('onboarding');
+
+    Route::post('/onboarding/step1', [OnboardingController::class, 'step1']);
+    Route::post('/onboarding/step2', [OnboardingController::class, 'step2']);
+    Route::post('/onboarding/upload', [OnboardingController::class, 'upload']);
+    Route::post('/onboarding/submit', [OnboardingController::class, 'submit']);
 });
 
 /*
@@ -68,7 +104,11 @@ Route::get('/', [PageController::class, 'welcome'])->name('home');
 Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'redirect'])
     ->name('dashboard');
 
-// Profile management
+/*
+|--------------------------------------------------------------------------
+| PROFILE
+|--------------------------------------------------------------------------
+*/
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -82,10 +122,8 @@ Route::middleware('auth')->group(function () {
 */
 Route::middleware(['auth', 'role:PESO'])->prefix('peso')->name('peso.')->group(function () {
 
-    // Dashboard
     Route::get('dashboard', [PESOController::class, 'dashboard'])->name('dashboard');
 
-    // Analytics
     Route::get('analytics/applicants-by-school', [AnalyticsController::class, 'applicantsBySchool'])
         ->name('analytics.applicantsBySchool');
     Route::get('analytics/top-employers', [AnalyticsController::class, 'topHiringEmployers'])
@@ -97,14 +135,11 @@ Route::middleware(['auth', 'role:PESO'])->prefix('peso')->name('peso.')->group(f
     Route::get('analytics/attendance-compliance', [AnalyticsController::class, 'attendanceCompliance'])
         ->name('analytics.attendanceCompliance');
 
-    // Beneficiary assignment & interviews
     Route::post('assign-beneficiary', [PESOController::class, 'assignBeneficiary'])->name('assignBeneficiary');
     Route::post('schedule-interview', [InterviewController::class, 'schedule'])->name('scheduleInterview');
 
-    // DOLE Reports
     Route::get('reports/dole', [PESOController::class, 'exportDOLEReport'])->name('reports.dole');
 
-    // Beneficiary work history
     Route::get('beneficiaries/{id}/work-history', [BeneficiaryController::class, 'workHistory'])
         ->name('beneficiary.workHistory');
 });
@@ -118,14 +153,14 @@ Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer
 
     Route::get('dashboard', [EmployerController::class, 'dashboard'])->name('dashboard');
 
-    // Job management
     Route::resource('jobs', JobController::class);
+
     Route::post('jobs/{id}/interview', [EmployerController::class, 'scheduleInterview'])
         ->name('jobs.scheduleInterview');
+
     Route::post('jobs/{id}/rate/{beneficiary}', [EmployerController::class, 'submitRating'])
         ->name('jobs.submitRating');
 
-    // Pages
     Route::get('applicants/page', [PageController::class, 'employerApplicants'])->name('page.applicants');
     Route::get('recommended/page', [PageController::class, 'employerRecommended'])->name('page.recommended');
     Route::get('interviews/page', [PageController::class, 'employerInterviews'])->name('page.interviews');
@@ -134,70 +169,7 @@ Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer
     Route::get('reports/page', [PageController::class, 'employerReports'])->name('page.reports');
     Route::get('attendance/page', [PageController::class, 'employerAttendance'])->name('page.attendance');
 
-    // API
     Route::get('jobs/{id}/applicants', [EmployerController::class, 'applicants'])->name('jobs.applicants');
-
-    // Dashboard stats and exports
-    Route::get('stats', [EmployerController::class, 'stats'])->name('stats');
-    Route::get('jobs/{id}/export-applicants', [EmployerController::class, 'exportApplicants'])->name('jobs.exportApplicants');
-    Route::get('applicants/{id}/ratings', [EmployerController::class, 'applicantRatings'])->name('applicant.ratings');
-    Route::get('interviews', [EmployerController::class, 'interviews'])->name('interviews');
-    Route::get('attendance', [EmployerController::class, 'listAttendance'])->name('attendance.list');
-    Route::post('attendance/mark', [EmployerController::class, 'submitAttendance'])->name('attendance.mark');
-    Route::post('work-output', [EmployerController::class, 'submitWorkOutput'])->name('workOutput.submit');
-    Route::post('reports', [EmployerController::class, 'submitReport'])->name('reports.submit');
-});
-
-/*
-|--------------------------------------------------------------------------
-| BENEFICIARY ROUTES
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'role:Beneficiary'])->prefix('beneficiary')->name('beneficiary.')->group(function () {
-
-    Route::get('exams', function () {
-    return Inertia::render('Beneficiary/Exams');
-})->name('exams');
-
-Route::get('attendance', function () {
-    return Inertia::render('Beneficiary/Attendance');
-})->name('attendance');
-
-Route::get('work-outputs', function () {
-    return Inertia::render('Beneficiary/WorkOutputs');
-})->name('workOutputs');
-
-Route::get('notifications', function () {
-    return Inertia::render('Beneficiary/Notifications');
-})->name('notifications');
-
-    Route::get('dashboard', [BeneficiaryController::class, 'dashboard'])->name('dashboard');
-    Route::get('profile', [BeneficiaryController::class, 'profilePage'])->name('profile');
-
-    // Applications
-    Route::post('applications', [BeneficiaryController::class, 'apply'])->name('applications.store');
-    Route::get('applications', [BeneficiaryController::class, 'listApplications'])->name('applications.index');
-    Route::get('applications/page', [PageController::class, 'beneficiaryApplications'])->name('page.applications');
-
-    // Jobs
-    Route::get('jobs', [BeneficiaryController::class, 'jobs'])->name('jobs');
-    Route::get('jobs/page', [PageController::class, 'beneficiaryJobs'])->name('page.jobs');
-
-    // Documents
-    Route::get('upload-documents/page', [PageController::class, 'beneficiaryUploadDocuments'])->name('page.uploadDocuments');
-    Route::post('upload-documents', [BeneficiaryController::class, 'uploadDocs'])->name('uploadDocuments');
-
-    // Interviews & Attendance
-    Route::get('upcoming-interviews', [BeneficiaryController::class, 'interviews'])->name('interviews');
-    Route::get('interviews/{id}', [BeneficiaryController::class, 'viewInterview'])->name('interviews.view');
-    Route::get('analytics/attendance', [BeneficiaryController::class, 'attendance'])->name('analytics.attendance');
-    Route::post('attendance', [BeneficiaryController::class, 'submitAttendance'])->name('attendance.submit');
-
-    // Ratings
-    Route::get('ratings', [BeneficiaryController::class, 'getRatings'])->name('ratings');
-
-    // Self work history
-    Route::get('work-history', [BeneficiaryController::class, 'myWorkHistory'])->name('beneficiary.workHistory');
 });
 
 /*
@@ -211,7 +183,6 @@ Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->grou
     Route::get('stats', [AdminController::class, 'stats'])->name('stats');
     Route::get('export-users', [AdminController::class, 'exportUsers'])->name('export.users');
 
-    // Roles management
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
     Route::post('roles/assign', [RoleController::class, 'assign'])->name('roles.assign');
     Route::delete('roles/{user}', [RoleController::class, 'remove'])->name('roles.remove');
@@ -229,50 +200,74 @@ Route::get('/_debug/last-reset', function () {
 
 Route::post('/_debug/ping', function (Request $request) {
     if (!app()->isLocal()) abort(404);
+
     Log::info('debug-ping', [
         'body' => $request->all(),
         'headers' => array_slice(getallheaders(), 0, 20)
     ]);
-    return response()->json(['ok' => true, 'received' => $request->all()]);
+
+    return response()->json([
+        'ok' => true,
+        'received' => $request->all()
+    ]);
 });
 
-// Local debug helper: send a password reset link and return the broker status
 Route::get('/_debug/send-reset', function (Request $request) {
     if (!app()->isLocal()) abort(404);
 
     $email = $request->query('email');
-    if (! $email) {
+    if (!$email) {
         return response('Provide ?email=you@example.com', 400);
     }
 
     try {
         $status = Password::sendResetLink(['email' => $email]);
-        Log::info('Debug send-reset', ['email' => $email, 'status' => $status]);
+        Log::info('Debug send-reset', [
+            'email' => $email,
+            'status' => $status
+        ]);
+
         return response()->json(['status' => $status]);
     } catch (\Throwable $e) {
-        Log::error('Debug send-reset failed', ['email' => $email, 'exception' => $e->getMessage()]);
-        return response()->json(['error' => $e->getMessage()], 500);
+        Log::error('Debug send-reset failed', [
+            'email' => $email,
+            'exception' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
     }
 });
 
-// Local debug helper: send a simple test email via Mail::raw to ensure SMTP works
 Route::get('/_debug/send-test-mail', function (Request $request) {
     if (!app()->isLocal()) abort(404);
 
     $email = $request->query('email');
-    if (! $email) {
+    if (!$email) {
         return response('Provide ?email=you@example.com', 400);
     }
 
     try {
-        \Illuminate\Support\Facades\Mail::raw('Test email from SPES system', function ($m) use ($email) {
-            $m->to($email)->subject('SPES Test Email');
-        });
+        \Illuminate\Support\Facades\Mail::raw(
+            'Test email from SPES system',
+            function ($m) use ($email) {
+                $m->to($email)->subject('SPES Test Email');
+            }
+        );
     } catch (\Exception $e) {
-        Log::error('Debug send-test-mail exception', ['email' => $email, 'error' => $e->getMessage()]);
-        return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        Log::error('Debug send-test-mail exception', [
+            'email' => $email,
+            'error' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'ok' => false,
+            'error' => $e->getMessage()
+        ], 500);
     }
 
     Log::info('Debug send-test-mail sent', ['email' => $email]);
+
     return response()->json(['ok' => true]);
 });

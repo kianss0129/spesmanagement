@@ -7,51 +7,61 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Auth\Events\Registered;
 use Spatie\Permission\Models\Role;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class BeneficiaryRegisterController extends Controller
 {
-    public function create(\Illuminate\Http\Request $request)
+    public function create()
     {
-        // If Inertia/JS isn't available (direct navigation / no frontend assets), render a server-side Blade fallback
-        if (! $request->header('X-Inertia')) {
-            return view('auth.register-beneficiary');
-        }
-
-        return inertia('Auth/RegisterBeneficiary');
+        return Inertia::render('Auth/RegisterBeneficiary');
     }
 
     public function store(Request $request)
     {
-        $validator = \Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+        $validated = $request->validate([
+            'name' => ['required','string','max:255'],
+            'email' => ['required','email','max:255','unique:users,email'],
+            'password' => ['required','confirmed', Password::min(8)->letters()->numbers()],
+            'type' => ['required','in:student,osy,dependent'],
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->route('register.beneficiary')
-                ->withErrors($validator)
-                ->withInput();
-        }
+        $user = null;
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'beneficiary',
-        ]);
+        DB::transaction(function () use ($validated, &$user) {
 
-        // Ensure Spatie role exists then assign it
-        Role::firstOrCreate(['name' => 'Beneficiary']);
-        $user->assignRole('Beneficiary');
+            // 1. Create the user
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'beneficiary_type' => $validated['type'],
+            ]);
 
-        event(new Registered($user)); // ✅ Email verification
+            // 2. Assign role
+            $role = Role::firstOrCreate(['name' => 'Beneficiary']);
+            $user->assignRole($role);
 
+            // 3. Create beneficiary profile with all required fields
+            $user->beneficiary()->create([
+                'first_name' => $validated['name'], // use full name for now
+                'last_name' => '',                  // optional, leave empty
+                'email' => $validated['email'],
+                'approved' => false,
+                'approval_status' => 'pending',
+            ]);
+
+            // 4. Fire registered event
+            event(new Registered($user));
+        });
+
+        // 5. Login the user
         Auth::login($user);
 
-        return redirect()->route('beneficiary.dashboard');
+        // 6. Redirect to document upload page
+        return redirect()->route('beneficiary.page.uploadDocuments');
     }
 }

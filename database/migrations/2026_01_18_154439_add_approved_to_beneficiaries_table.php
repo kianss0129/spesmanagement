@@ -9,10 +9,11 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
 {
-    Schema::table('users', function (Blueprint $table) {
-        $table->string('role')->default('beneficiary');
+    Schema::table('beneficiaries', function (Blueprint $table) {
+        $table->boolean('approved')->default(false);
+        $table->string('temporary_password')->nullable();
     });
 }
 
@@ -22,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
+        Schema::table('beneficiaries', function (Blueprint $table) {
             //
         });
     }

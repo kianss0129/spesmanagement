@@ -31,6 +31,24 @@
           </p>
         </div>
 
+        <!-- ✅ ADDED: reCAPTCHA -->
+        <div class="mb-4">
+          <div
+            class="g-recaptcha"
+            :data-sitekey="siteKey"
+            data-callback="onRecaptchaSuccess"
+          ></div>
+
+          <p v-if="form.errors.recaptcha" class="text-xs text-red-500 mt-1">
+            {{ form.errors.recaptcha }}
+          </p>
+
+          <p v-if="recaptchaError" class="text-xs text-red-500 mt-1">
+            {{ recaptchaError }}
+          </p>
+        </div>
+        <!-- ✅ END -->
+
         <div class="flex items-center justify-between mb-4">
           <label class="flex items-center text-sm">
             <input type="checkbox" v-model="form.remember" class="mr-2" />
@@ -64,15 +82,37 @@
 
 <script setup>
 import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { onMounted, ref } from 'vue' // ✅ ADDED
+
+const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY // ✅ ADDED
+const recaptchaError = ref(null) // ✅ ADDED
 
 const form = useForm({
   email: '',
   password: '',
   remember: false,
+  recaptcha: null, // ✅ ADDED
+})
+
+onMounted(() => {
+  window.onRecaptchaSuccess = (token) => {
+    form.recaptcha = token
+    recaptchaError.value = null
+  }
 })
 
 function submit() {
-  form.post('/login')
+  if (!form.recaptcha) {
+    recaptchaError.value = 'Please verify that you are not a robot.'
+    return
+  }
+
+  form.post('/login', {
+    onFinish: () => {
+      grecaptcha.reset() // ✅ ADDED
+      form.recaptcha = null
+    },
+  })
 }
 </script>
 

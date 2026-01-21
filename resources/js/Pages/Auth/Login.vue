@@ -6,15 +6,47 @@
       <form @submit.prevent="submit">
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">Email</label>
-          <input v-model="form.email" type="email" required class="w-full border rounded px-3 py-2" />
-          <p v-if="errors.email" class="text-xs text-red-500 mt-1">{{ errors.email }}</p>
+          <input
+            v-model="form.email"
+            type="email"
+            required
+            class="w-full border rounded px-3 py-2"
+          />
+          <p v-if="errors.email" class="text-xs text-red-500 mt-1">
+            {{ errors.email }}
+          </p>
         </div>
 
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">Password</label>
-          <input v-model="form.password" type="password" required class="w-full border rounded px-3 py-2" />
-          <p v-if="errors.password" class="text-xs text-red-500 mt-1">{{ errors.password }}</p>
+          <input
+            v-model="form.password"
+            type="password"
+            required
+            class="w-full border rounded px-3 py-2"
+          />
+          <p v-if="errors.password" class="text-xs text-red-500 mt-1">
+            {{ errors.password }}
+          </p>
         </div>
+
+        <!-- ✅ ADDED: reCAPTCHA -->
+        <div class="mb-4">
+          <div
+            class="g-recaptcha"
+            :data-sitekey="siteKey"
+            data-callback="onRecaptchaSuccess"
+          ></div>
+
+          <p v-if="recaptchaError" class="text-xs text-red-500 mt-1">
+            {{ recaptchaError }}
+          </p>
+
+          <p v-if="errors.recaptcha" class="text-xs text-red-500 mt-1">
+            {{ errors.recaptcha }}
+          </p>
+        </div>
+        <!-- ✅ END reCAPTCHA -->
 
         <div class="flex items-center justify-between mb-4">
           <label class="flex items-center text-sm">
@@ -28,7 +60,11 @@
         </div>
 
         <div class="mb-4">
-          <button type="submit" :disabled="processing" class="w-full bg-blue-600 text-white py-2 rounded">
+          <button
+            type="submit"
+            :disabled="processing"
+            class="w-full bg-blue-600 text-white py-2 rounded"
+          >
             <span v-if="processing">Signing in...</span>
             <span v-else>Sign in</span>
           </button>
@@ -37,7 +73,6 @@
 
       <div class="text-sm text-center">
         Don't have an account?
-        <!-- Use the correct named route for your beneficiary registration -->
         <Link href="/register/beneficiary" class="text-blue-600 hover:underline">
           Register as Beneficiary
         </Link>
@@ -47,29 +82,50 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useForm, Link } from '@inertiajs/inertia-vue3'
+
+/* ✅ ADDED */
+const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+const recaptchaError = ref(null)
+/* ✅ END */
 
 const form = useForm({
   email: '',
   password: '',
   remember: false,
+  recaptcha: null, // ✅ ADDED
 })
 
 const errors = reactive({})
 const processing = ref(false)
 
+/* ✅ ADDED */
+onMounted(() => {
+  window.onRecaptchaSuccess = (token) => {
+    form.recaptcha = token
+    recaptchaError.value = null
+  }
+})
+/* ✅ END */
+
 function submit() {
+  if (!form.recaptcha) {
+    recaptchaError.value = 'Please verify that you are not a robot.'
+    return
+  }
+
   processing.value = true
   form.post('/login', {
     onSuccess: () => {
       processing.value = false
+      grecaptcha.reset() // ✅ ADDED
+      form.recaptcha = null
     },
-    onError: (err) => {
+    onError: () => {
       processing.value = false
-      // Inertia populates form.errors automatically, but we mirror into `errors` for display
       Object.assign(errors, form.errors)
-    }
+    },
   })
 }
 </script>

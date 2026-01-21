@@ -8,6 +8,8 @@ const form = useForm({
   doctor_id: '',
   appointment_date: '',
 });
+
+// stubbed logic can go here if needed
 </script>
 
 <template>
@@ -16,7 +18,3 @@ const form = useForm({
     <p class="text-sm text-gray-600">Appointment booking was removed as part of SPES migration.</p>
   </div>
 </template>
-
-<script setup>
-// stubbed
-</script>

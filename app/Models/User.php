@@ -14,7 +14,13 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles, HasProfilePhoto;
 
-    protected $fillable = ['name','email','password'];
+    // app/Models/User.php
+    protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'beneficiary_type',
+];
     protected $hidden = ['password','remember_token'];
     protected $casts = ['email_verified_at'=>'datetime','password'=>'hashed'];
 

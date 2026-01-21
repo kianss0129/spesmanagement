@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Auth/AuthenticatedSessionController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -7,61 +6,144 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http; // ✅ ADDED
 use Inertia\Inertia;
 
 class AuthenticatedSessionController extends Controller
 {
     public function create()
     {
-        return Inertia::render('Auth/Login'); // ✅ path to your Vue page: resources/js/Pages/Auth/Login.vue
+        return Inertia::render('Auth/Login');
     }
 
     public function store(Request $request)
     {
+        // ----------------------------------------------------
+        // ✅ VALIDATION (ADDED recaptcha)
+        // ----------------------------------------------------
         $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'email'     => 'required|email',
+            'password'  => 'required',
+            'recaptcha' => 'required',
         ]);
 
+        // ----------------------------------------------------
+        // ✅ VERIFY reCAPTCHA WITH GOOGLE
+        // ----------------------------------------------------
         try {
-            if (Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
-                $request->session()->regenerate();
+            $recaptchaResponse = Http::asForm()->post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                [
+                    'secret'   => config('services.recaptcha.secret'),
+                    'response' => $request->recaptcha,
+                    'ip'       => $request->ip(),
+                ]
+            );
 
-                $user = Auth::user();
+            if (!data_get($recaptchaResponse->json(), 'success')) {
+                return back()->withErrors([
+                    'recaptcha' => 'reCAPTCHA verification failed. Please try again.',
+                ])->withInput();
+            }
+        } catch (\Throwable $e) {
+            Log::error('reCAPTCHA error', [
+                'message' => $e->getMessage(),
+            ]);
 
-                // Role-aware redirect to avoid extra roundtrips and ensure the correct dashboard
-                // Role-aware redirects. Use a case-insensitive check to handle role name casing differences.
-                // Use direct DB checks so role name casing and cached permission issues don't prevent correct redirects.
-                if ($user->hasRole('PESO') || $user->roles()->whereRaw('LOWER(name) = ?', ['peso'])->exists()) {
-                    return redirect()->route('peso.dashboard');
-                }
+            return back()->withErrors([
+                'recaptcha' => 'Unable to verify reCAPTCHA. Please try again.',
+            ])->withInput();
+        }
 
-                if ($user->hasRole('Employer') || $user->roles()->whereRaw('LOWER(name) = ?', ['employer'])->exists()) {
-                    return redirect()->route('employer.dashboard');
-                }
-
-                if ($user->hasRole('Beneficiary') || $user->roles()->whereRaw('LOWER(name) = ?', ['beneficiary'])->exists()) {
-                    return redirect()->route('beneficiary.dashboard');
-                }
-
-                if ($user->hasRole('Admin') || $user->hasRole('Super Admin') || $user->roles()->whereRaw('LOWER(name) IN (?,?)', ['admin','super admin'])->exists()) {
-                    return redirect()->route('admin.dashboard');
-                }
-
-                // Fallback to the generic dashboard route
-                return redirect()->intended(route('dashboard'));
+        // ----------------------------------------------------
+        // AUTHENTICATION
+        // ----------------------------------------------------
+        try {
+            if (!Auth::attempt(
+                $request->only('email', 'password'),
+                $request->filled('remember')
+            )) {
+                return back()
+                    ->withErrors(['email' => 'The provided credentials do not match our records.'])
+                    ->withInput();
             }
 
-            return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->withInput();
-        } catch (\Exception $e) {
-            Log::error('Login error: '.$e->getMessage());
-            return back()->withErrors(['email' => 'An error occurred during login.']);
+            $request->session()->regenerate();
+            $user = Auth::user();
+
+            // ----------------------------------------------------
+            // ADMIN
+            // ----------------------------------------------------
+            if (
+                $user->hasRole('Admin') ||
+                $user->hasRole('Super Admin') ||
+                $user->roles()->whereRaw('LOWER(name) IN (?, ?)', ['admin', 'super admin'])->exists()
+            ) {
+                return redirect()->route('admin.dashboard');
+            }
+
+            // ----------------------------------------------------
+            // PESO
+            // ----------------------------------------------------
+            if (
+                $user->hasRole('PESO') ||
+                $user->roles()->whereRaw('LOWER(name) = ?', ['peso'])->exists()
+            ) {
+                return redirect()->route('peso.dashboard');
+            }
+
+            // ----------------------------------------------------
+            // EMPLOYER
+            // ----------------------------------------------------
+            if (
+                $user->hasRole('Employer') ||
+                $user->roles()->whereRaw('LOWER(name) = ?', ['employer'])->exists()
+            ) {
+                return redirect()->route('employer.dashboard');
+            }
+
+            // ----------------------------------------------------
+            // BENEFICIARY (NEW FLOW)
+            // ----------------------------------------------------
+            if (
+                $user->hasRole('Beneficiary') ||
+                $user->roles()->whereRaw('LOWER(name) = ?', ['beneficiary'])->exists()
+            ) {
+                if ($user->beneficiary_status !== 'approved') {
+                    return redirect()->route('onboarding');
+                }
+
+                return redirect()->route('beneficiary.dashboard');
+            }
+
+            // ----------------------------------------------------
+            // DEFAULT USER (no role yet)
+            // ----------------------------------------------------
+            if ($user->role === 'user' || empty($user->role)) {
+                return redirect()->route('onboarding');
+            }
+
+            // ----------------------------------------------------
+            // FALLBACK
+            // ----------------------------------------------------
+            return redirect()->intended('/');
+
+        } catch (\Throwable $e) {
+            Log::error('Login error', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+
+            return back()->withErrors([
+                'email' => 'An internal error occurred during login. Please try again.',
+            ]);
         }
     }
 
     public function destroy(Request $request)
     {
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
