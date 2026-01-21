@@ -9,42 +9,54 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Auth\Events\Registered;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class EmployerRegisterController extends Controller
 {
-    public function create(\Illuminate\Http\Request $request)
+    public function create(Request $request)
     {
+        // Support both Inertia & Blade (safe)
         if (! $request->header('X-Inertia')) {
             return view('auth.register-employer');
         }
 
-        return inertia('Auth/RegisterEmployer');
+        return Inertia::render('Auth/RegisterEmployer');
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+        $validated = $request->validate([
+            'name'     => ['required','string','max:255'],
+            'email'    => ['required','email','max:255','unique:users,email'],
+            'password' => ['required','confirmed','min:8'],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'employer',
-        ]);
+        $user = null;
 
-        // Ensure Spatie role exists then assign it
-        Role::firstOrCreate(['name' => 'Employer']);
-        $user->assignRole('Employer');
+        DB::transaction(function () use ($validated, &$user) {
 
-        event(new Registered($user)); // ✅ Email verification
+            // 1️⃣ Create user
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
 
+            // 2️⃣ Assign Employer role (Spatie)
+            $role = Role::firstOrCreate(['name' => 'Employer']);
+            $user->assignRole($role);
+
+            // 3️⃣ Fire email verification
+            event(new Registered($user));
+        });
+
+        // 4️⃣ Auto login
         Auth::login($user);
 
-        return redirect()->route('employer.dashboard');
+        // ✅ 5️⃣ Redirect to ONBOARDING (Employer)
+        return redirect()->route('onboarding', [
+            'category' => 'employer',
+        ]);
     }
 }
-

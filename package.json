@@ -29,6 +29,7 @@
         "dayjs": "^1.11.13",
         "lucide-vue-next": "^0.525.0",
         "vue-recaptcha-v3": "^2.0.1",
+        "vue3-recaptcha-v2": "^2.1.0",
         "ziggy-js": "^2.6.0"
     }
 }

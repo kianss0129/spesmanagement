@@ -21,6 +21,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UploadDocumentsController;
+use App\Http\Controllers\Beneficiary\OnboardingController;
+
 
 // =======================
 // Auth Controllers
@@ -84,7 +86,6 @@ Route::post('/logout', [LoginController::class, 'logout'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-
     Route::get('/onboarding', [OnboardingController::class, 'index'])
         ->name('onboarding');
 

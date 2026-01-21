@@ -33,7 +33,7 @@ class BeneficiaryRegisterController extends Controller
 
         DB::transaction(function () use ($validated, &$user) {
 
-            // 1. Create the user
+            // 1. Create user
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -41,14 +41,14 @@ class BeneficiaryRegisterController extends Controller
                 'beneficiary_type' => $validated['type'],
             ]);
 
-            // 2. Assign role
+            // 2. Assign Beneficiary role
             $role = Role::firstOrCreate(['name' => 'Beneficiary']);
             $user->assignRole($role);
 
-            // 3. Create beneficiary profile with all required fields
+            // 3. Create beneficiary profile
             $user->beneficiary()->create([
-                'first_name' => $validated['name'], // use full name for now
-                'last_name' => '',                  // optional, leave empty
+                'first_name' => $validated['name'],
+                'last_name' => '',
                 'email' => $validated['email'],
                 'approved' => false,
                 'approval_status' => 'pending',
@@ -58,10 +58,12 @@ class BeneficiaryRegisterController extends Controller
             event(new Registered($user));
         });
 
-        // 5. Login the user
+        // 5. Auto-login
         Auth::login($user);
 
-        // 6. Redirect to document upload page
-        return redirect()->route('beneficiary.page.uploadDocuments');
+        // ✅ 6. Redirect to onboarding with category
+        return redirect()->route('onboarding', [
+            'category' => $user->beneficiary_type
+        ]);
     }
 }
