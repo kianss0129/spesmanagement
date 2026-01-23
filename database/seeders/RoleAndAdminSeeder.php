@@ -6,73 +6,82 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
 use App\Models\Beneficiary;
+use Illuminate\Support\Facades\Hash;
 
 class RoleAndAdminSeeder extends Seeder
 {
     public function run()
     {
         // 1️⃣ Create Roles
-        $roles = ['Admin', 'PESO', 'Employer', 'Beneficiary'];
+        $roles = ['Admin', 'PESO', 'PESO Admin', 'Employer', 'Beneficiary'];
         foreach ($roles as $role) {
             Role::firstOrCreate(['name' => $role]);
         }
 
-        // 2️⃣ Create Admin User
-        $admin = User::firstOrCreate(
+        // 2️⃣ Create Super Admin User
+        $admin = User::updateOrCreate(
             ['email' => 'admin@spes.com'],
             [
                 'name' => 'Super Admin',
-                'password' => bcrypt('password')
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ]
         );
-        $admin->assignRole('Admin');
+        $admin->syncRoles(['PESO Admin']); // ensures only Admin role
 
         // 3️⃣ Create PESO Users
-        $peso1 = User::firstOrCreate(
+        $peso1 = User::updateOrCreate(
             ['email' => 'peso1@spes.com'],
             [
-                'name' => 'PESO Officer 1',
-                'password' => bcrypt('secret123')
+                'name' => 'PESO User 1',
+                'password' => Hash::make('secret123'),
+                'email_verified_at' => now(),
             ]
         );
-        $peso1->assignRole('PESO');
+        $peso1->syncRoles(['PESO Admin']); // ✅ must match middleware
 
-        $peso2 = User::firstOrCreate(
+        $peso2 = User::updateOrCreate(
             ['email' => 'peso2@spes.com'],
             [
-                'name' => 'PESO Officer 2',
-                'password' => bcrypt('secret123')
+                'name' => 'PESO User 2',
+                'password' => Hash::make('secret123'),
+                'email_verified_at' => now(),
             ]
         );
-        $peso2->assignRole('PESO');
+        $peso2->syncRoles(['PESO']); // ✅ must match middleware
 
         // 4️⃣ Create Employer User
-        $employer = User::firstOrCreate(
+        $employer = User::updateOrCreate(
             ['email' => 'employer1@spes.com'],
             [
                 'name' => 'Employer 1',
-                'password' => bcrypt('employer123')
+                'password' => Hash::make('employer123'),
+                'email_verified_at' => now(),
             ]
         );
-        $employer->assignRole('Employer');
+        $employer->syncRoles(['Employer']);
 
-        // 5️⃣ Create Beneficiary Users for ALL records in beneficiaries table
+        // 5️⃣ Create Beneficiary Users for all records in beneficiaries table
         $beneficiaries = Beneficiary::all();
 
         foreach ($beneficiaries as $b) {
-            $user = User::firstOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => $b->email],
                 [
                     'name' => $b->first_name . ' ' . $b->last_name,
-                    'password' => bcrypt('beneficiary123'),
+                    'password' => Hash::make('beneficiary123'),
+                    'email_verified_at' => now(),
                 ]
             );
 
-            $user->assignRole('Beneficiary');
+            $user->syncRoles(['Beneficiary']);
 
             // Link user_id to beneficiary
             $b->user_id = $user->id;
             $b->save();
         }
+
+        $this->command->info('Roles and users seeded successfully!');
+
     }
 }

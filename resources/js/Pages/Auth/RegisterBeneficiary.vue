@@ -167,18 +167,123 @@ function submit() {
       </form>
     </div>
 
-    <!-- Terms Modal -->
-    <div v-if="showTermsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl p-6 max-w-lg">
-        <h3 class="text-xl font-semibold mb-4 text-center">SPES Terms & Conditions</h3>
-        <p>1. Eligibility: Only students, OSY, dependents allowed.</p>
-        <p>2. Participation: Must follow PESO rules.</p>
-        <p>3. Conduct: Misconduct causes removal.</p>
-        <p>4. Data Privacy: Used for SPES only.</p>
-        <p>5. Agreement: Accept all policies.</p>
-        <button class="btn-primary mt-4" @click="showTermsModal = false">Close</button>
-      </div>
+    <!-- Terms & Conditions Modal -->
+<div
+  v-if="showTermsModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+>
+  <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    
+    <!-- Title -->
+    <h3 class="text-xl font-semibold mb-4 text-center">
+      TERMS AND CONDITIONS<br />
+      <span class="text-sm font-normal">
+        Special Program for the Employment of Students (SPES)
+      </span>
+    </h3>
+
+    <!-- Intro -->
+    <p class="text-sm mb-4 text-justify">
+      By registering for and participating in the Special Program for the Employment
+      of Students (SPES), the applicant agrees to comply with the following terms and
+      conditions set by the Department of Labor and Employment (DOLE) in accordance
+      with Republic Act No. 7323.
+    </p>
+
+    <!-- 1 -->
+    <h4 class="font-semibold mt-4">1. Eligibility</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>A Filipino student aged 15 to 30 years old</li>
+      <li>Currently enrolled in Senior High School, College, or Technical-Vocational education</li>
+      <li>From a low-income family, as defined by DOLE guidelines</li>
+      <li>Physically and mentally fit to work</li>
+      <li>Not a beneficiary of SPES for the same school year, unless otherwise allowed</li>
+    </ul>
+
+    <!-- 2 -->
+    <h4 class="font-semibold mt-4">2. Nature of Employment</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>SPES provides temporary employment only</li>
+      <li>Employment shall not exceed fifty-two (52) working days</li>
+      <li>Work may be assigned in government offices or private establishments</li>
+      <li>Tasks shall be safe, lawful, and appropriate to the applicant’s age and capability</li>
+    </ul>
+
+    <!-- 3 -->
+    <h4 class="font-semibold mt-4">3. Work Schedule and Conduct</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>Follow the assigned work schedule</li>
+      <li>Observe workplace rules, policies, and discipline</li>
+      <li>Perform duties honestly, responsibly, and efficiently</li>
+      <li>Maintain professional behavior at all times</li>
+    </ul>
+
+    <!-- 4 -->
+    <h4 class="font-semibold mt-4">4. Compensation</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>Wages shall be based on the prevailing regional minimum wage</li>
+      <li>60% of wages shall be paid by the employer</li>
+      <li>40% of wages shall be subsidized by DOLE</li>
+      <li>Compensation is released upon completion of the employment period</li>
+    </ul>
+
+    <!-- 5 -->
+    <h4 class="font-semibold mt-4">5. Use of Earnings</h4>
+    <p class="text-sm text-justify">
+      Earnings from SPES shall be used primarily for educational expenses, including
+      tuition fees, school supplies, and other academic needs.
+    </p>
+
+    <!-- 6 -->
+    <h4 class="font-semibold mt-4">6. Required Documents</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>Certificate of Enrollment or School ID</li>
+      <li>Barangay Certificate of Residency</li>
+      <li>Parent/Guardian Consent (for minors)</li>
+      <li>Proof of identity and income, if required</li>
+    </ul>
+
+    <!-- 7 -->
+    <h4 class="font-semibold mt-4">7. Disqualification and Termination</h4>
+    <ul class="list-disc pl-5 text-sm space-y-1">
+      <li>Providing false or misleading information</li>
+      <li>Failure to comply with work requirements</li>
+      <li>Misconduct or repeated absenteeism</li>
+      <li>Abandonment of assigned duties without valid reason</li>
+    </ul>
+    <p class="text-sm mt-2">
+      Disqualification may result in non-payment of subsidy and ineligibility for future
+      SPES participation.
+    </p>
+
+    <!-- 8 -->
+    <h4 class="font-semibold mt-4">8. Data Privacy</h4>
+    <p class="text-sm text-justify">
+      All personal information collected shall be handled in accordance with the Data
+      Privacy Act of 2012 (RA 10173) and shall be used solely for SPES implementation
+      and monitoring.
+    </p>
+
+    <!-- 9 -->
+    <h4 class="font-semibold mt-4">9. Acknowledgment and Consent</h4>
+    <p class="text-sm text-justify">
+      By submitting an application, the applicant confirms that all information provided
+      is accurate, agrees to abide by these Terms and Conditions, and understands that
+      SPES participation is subject to approval and availability of slots.
+    </p>
+
+    <!-- Close Button -->
+    <div class="text-center mt-6">
+      <button
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        @click="showTermsModal = false"
+      >
+        Close
+      </button>
     </div>
+
+  </div>
+</div>
 
   </div>
 </template>

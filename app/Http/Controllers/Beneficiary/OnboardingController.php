@@ -88,14 +88,15 @@ class OnboardingController extends Controller
     }
 
     public function submit()
-    {
-        $beneficiary = Auth::user()->beneficiary;
+{
+    $beneficiary = Auth::user()->beneficiary;
 
-        $beneficiary->update([
-            'onboarding_completed_at' => now(),
-            'approved' => false,
-        ]);
+    $beneficiary->update([
+        'onboarding_completed_at' => now(),
+        'approved' => false, // pending approval
+    ]);
 
-        return response()->json(['message' => 'Onboarding completed']);
-    }
+    return redirect()->route('onboarding.pending');
+}
+
 }

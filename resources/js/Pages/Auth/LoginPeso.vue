@@ -7,12 +7,16 @@
       </p>
 
       <form @submit.prevent="submit">
+        <!-- Email -->
         <div class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">Email</label>
+          <label for="email" class="block text-sm text-gray-600 mb-1">Email</label>
           <input
+            id="email"
+            name="email"
             v-model="form.email"
             type="email"
             required
+            autocomplete="email"
             class="w-full border rounded px-3 py-2"
           />
           <p v-if="errors.email" class="text-xs text-red-500 mt-1">
@@ -20,12 +24,16 @@
           </p>
         </div>
 
+        <!-- Password -->
         <div class="mb-4">
-          <label class="block text-sm text-gray-600 mb-1">Password</label>
+          <label for="password" class="block text-sm text-gray-600 mb-1">Password</label>
           <input
+            id="password"
+            name="password"
             v-model="form.password"
             type="password"
             required
+            autocomplete="current-password"
             class="w-full border rounded px-3 py-2"
           />
           <p v-if="errors.password" class="text-xs text-red-500 mt-1">
@@ -33,9 +41,16 @@
           </p>
         </div>
 
+        <!-- Remember Me -->
         <div class="flex items-center justify-between mb-4">
-          <label class="flex items-center text-sm">
-            <input type="checkbox" v-model="form.remember" class="mr-2" />
+          <label class="flex items-center text-sm" for="remember">
+            <input
+              id="remember"
+              name="remember"
+              type="checkbox"
+              v-model="form.remember"
+              class="mr-2"
+            />
             Remember me
           </label>
 
@@ -43,6 +58,11 @@
             Forgot password?
           </Link>
         </div>
+
+        <!-- Optional: reCAPTCHA error -->
+        <p v-if="errors.recaptcha" class="text-xs text-red-500 mb-2">
+          {{ errors.recaptcha }}
+        </p>
 
         <button
           type="submit"
@@ -72,13 +92,21 @@ const form = useForm({
   email: '',
   password: '',
   remember: false,
+  recaptcha: '', // optional, keep empty for now
 })
 
 const errors = reactive({})
 const processing = ref(false)
 
-function submit() {
+async function submit() {
   processing.value = true
+  errors.email = ''
+  errors.password = ''
+  errors.recaptcha = ''
+
+  // Optional: integrate reCAPTCHA here
+  // form.recaptcha = await executeRecaptcha('login')
+
   form.post('/login', {
     onSuccess: () => { processing.value = false },
     onError: () => {

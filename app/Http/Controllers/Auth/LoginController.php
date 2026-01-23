@@ -12,44 +12,54 @@ class LoginController extends Controller
 {
     public function login(Request $request)
     {
-        // ✅ Validate inputs
+        // Validate inputs
         $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required','email'],
             'password' => ['required'],
-            'recaptcha' => ['required'],
+            // 'recaptcha' => ['required'], // optional
         ]);
 
-        // ✅ Verify reCAPTCHA
-        $response = Http::asForm()->post(
-            'https://www.google.com/recaptcha/api/siteverify',
-            [
+        // Optional: reCAPTCHA verification
+        /*
+        if ($request->filled('recaptcha')) {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
                 'secret' => config('services.recaptcha.secret'),
                 'response' => $request->recaptcha,
                 'remoteip' => $request->ip(),
-            ]
-        );
-
-        if (!data_get($response->json(), 'success')) {
-            throw ValidationException::withMessages([
-                'recaptcha' => 'reCAPTCHA verification failed.',
             ]);
-        }
 
-        // ✅ Attempt login
-        if (!Auth::attempt(
-            $request->only('email', 'password'),
-            $request->boolean('remember')
-        )) {
+            if (! data_get($response->json(), 'success')) {
+                throw ValidationException::withMessages([
+                    'recaptcha' => 'reCAPTCHA verification failed.',
+                ]);
+            }
+        }
+        */
+
+        // Attempt login
+        if (!Auth::attempt($request->only('email','password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => 'These credentials do not match our records.',
             ]);
         }
 
-        // ✅ Regenerate session
+        // Regenerate session
         $request->session()->regenerate();
 
-        // ✅ Redirect after login
-        return redirect()->intended('/dashboard');
+        // Redirect based on role
+        $user = $request->user();
+
+        if ($user->hasRole('PESO') || $user->hasRole('PESO Admin')) {
+            return redirect()->route('peso.dashboard');
+        } elseif ($user->hasRole('Admin') || $user->hasRole('Super Admin')) {
+            return redirect()->route('admin.dashboard');
+        } elseif ($user->hasRole('Employer')) {
+            return redirect()->route('employer.dashboard');
+        } elseif ($user->hasRole('Beneficiary')) {
+            return redirect()->route('onboarding'); // or beneficiary dashboard
+        }
+
+        return redirect('/dashboard'); // fallback
     }
 
     public function logout(Request $request)
@@ -59,6 +69,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login');
+        return redirect('/');
     }
 }

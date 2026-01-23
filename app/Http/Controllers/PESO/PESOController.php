@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Interview;
 use App\Models\JobListing;
+use App\Models\Beneficiary;
+use App\Models\Employer; // <-- added
 use App\Services\ReportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class PESOController extends Controller
@@ -61,14 +64,12 @@ class PESOController extends Controller
 
         $jobListing = JobListing::findOrFail($request->job_listing_id);
 
-        // Prevent re-assignment
         if ($jobListing->assigned_beneficiary_id) {
             return response()->json(['error' => 'Job already has an assigned beneficiary'], 422);
         }
 
         $jobListing->update(['assigned_beneficiary_id' => $request->beneficiary_id]);
 
-        // Update related application status
         Application::where('job_listing_id', $jobListing->id)
             ->where('beneficiary_id', $request->beneficiary_id)
             ->update(['status' => 'assigned']);
@@ -92,5 +93,116 @@ class PESOController extends Controller
         }
 
         return $reports->generateDOLEReport($data, 'reports.dole', 'dole-report.pdf');
+    }
+
+    /**
+     * ==========================
+     * Pending Beneficiaries Flow
+     * ==========================
+     */
+
+    public function pendingBeneficiaries()
+    {
+        $beneficiaries = Beneficiary::with('user')
+            ->whereNotNull('onboarding_completed_at')
+            ->where('approved', false)
+            ->get();
+
+        return Inertia::render('PESO/PendingBeneficiaries', [
+            'beneficiaries' => $beneficiaries,
+            'canApprove' => Auth::user()->hasRole('PESO Admin'),
+        ]);
+    }
+
+    public function approveBeneficiary($id)
+    {
+        $user = Auth::user();
+
+        if (!$user->hasRole('PESO Admin')) {
+            abort(403, 'Only PESO Admin can approve beneficiaries');
+        }
+
+        $beneficiary = Beneficiary::findOrFail($id);
+
+        $beneficiary->update([
+            'approved' => true,
+            'approved_at' => now(),
+            'approved_by' => $user->id,
+        ]);
+
+        return back()->with('success', 'Beneficiary approved successfully.');
+    }
+
+    public function rejectBeneficiary($id)
+    {
+        $user = Auth::user();
+
+        if (!$user->hasRole('PESO Admin')) {
+            abort(403, 'Only PESO Admin can reject beneficiaries');
+        }
+
+        $beneficiary = Beneficiary::findOrFail($id);
+
+        $beneficiary->update([
+            'approved' => false,
+            'rejected_at' => now(),
+            'approved_by' => $user->id,
+        ]);
+
+        return back()->with('error', 'Beneficiary rejected.');
+    }
+
+    /**
+     * ==========================
+     * Pending Employers Flow
+     * ==========================
+     */
+
+    public function pendingEmployers()
+    {
+        $employers = Employer::where('approved', false)->get();
+
+        return Inertia::render('PESO/Employers/Pending', [
+            'employers' => $employers,
+            'canApprove' => Auth::user()->hasRole('PESO Admin'),
+        ]);
+    }
+
+    public function approveEmployer($id)
+    {
+        $user = Auth::user();
+
+        if (!$user->hasRole('PESO Admin')) {
+            abort(403, 'Only PESO Admin can approve employers');
+        }
+
+        $employer = Employer::findOrFail($id);
+
+        $employer->update([
+            'approved' => true,
+            'approved_at' => now(),
+            'approved_by' => $user->id,
+        ]);
+
+        return back()->with('success', 'Employer approved successfully.');
+    }
+
+    public function rejectEmployer($id)
+    {
+        $user = Auth::user();
+
+        if (!$user->hasRole('PESO Admin')) {
+            abort(403, 'Only PESO Admin can reject employers');
+        }
+
+        $employer = Employer::findOrFail($id);
+
+        $employer->update([
+            'approved' => false,
+            'rejected_at' => now(),
+            'approved_by' => $user->id,
+        ]);
+
+        return back()->with('error', 'Employer rejected.');
     }
 }
