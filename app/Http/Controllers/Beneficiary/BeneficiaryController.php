@@ -24,36 +24,30 @@ class BeneficiaryController extends Controller
     public function apply(Request $request)
     {
         $data = $request->validate([
-            'job_listing_id' => 'required'
+            'job_listing_id' => 'required|exists:job_listings,id'
         ]);
 
-        $data['beneficiary_id'] = auth()->user()->id;
+        $data['beneficiary_id'] = auth()->user()->beneficiary->id ?? auth()->id();
 
         Application::create($data);
 
         return response()->json(['message' => 'Application submitted']);
     }
 
-    // =========================
-    // UPLOAD DOCUMENTS (UPDATED)
-    // =========================
+    // Upload documents
     public function uploadDocs(Request $request)
     {
         $user = auth()->user();
-
-        $beneficiary = $user->beneficiary
-            ?? Beneficiary::where('email', $user->email)->first();
+        $beneficiary = $user->beneficiary ?? Beneficiary::where('email', $user->email)->first();
 
         if (!$beneficiary) {
             return response()->json(['message' => 'Beneficiary profile not found'], 404);
         }
 
-        // Validate dynamic document fields
+        // Validate documents
         $request->validate([
             'documents' => 'sometimes|array',
             'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
-
-            // Optional named fields
             'birth_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'school_record' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'osy_certificate' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -63,26 +57,17 @@ class BeneficiaryController extends Controller
         ]);
 
         $stored = [];
-
         $folder = "documents/beneficiaries/{$user->id}";
 
-        // Handle documents[]
+        // Multiple documents
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 $stored[] = $file->store($folder, 'public');
             }
         }
 
-        // Handle named fields
-        foreach ([
-            'birth_certificate',
-            'school_record',
-            'osy_certificate',
-            'income_proof',
-            'displacement_certificate',
-            'termination_notice',
-        ] as $field) {
-
+        // Named documents
+        foreach (['birth_certificate','school_record','osy_certificate','income_proof','displacement_certificate','termination_notice'] as $field) {
             if ($request->hasFile($field)) {
                 $stored[$field] = $request->file($field)->store($folder, 'public');
             }
@@ -92,18 +77,13 @@ class BeneficiaryController extends Controller
             return response()->json(['message' => 'No documents uploaded'], 400);
         }
 
-        // Merge with existing
         $existing = $beneficiary->documents ?? [];
-
-        if (is_string($existing)) {
-            $existing = json_decode($existing, true) ?: [];
-        }
-
+        if (is_string($existing)) $existing = json_decode($existing, true) ?: [];
         $merged = array_merge((array) $existing, (array) $stored);
 
         $beneficiary->update([
             'documents' => $merged,
-            'is_approved' => false // reset approval on new upload
+            'status' => 'pending' // reset approval status
         ]);
 
         return response()->json([
@@ -112,50 +92,44 @@ class BeneficiaryController extends Controller
         ]);
     }
 
-    // =========================
-
+    // List applications
     public function listApplications()
     {
         $user = auth()->user();
-
-        if (! $user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        $applications = Application::where('beneficiary_id', $user->id)
+        $applications = Application::where('beneficiary_id', $user->beneficiary->id ?? $user->id)
             ->with('jobListing')
             ->get();
 
         return response()->json(['applications' => $applications]);
     }
 
+    // Interviews
     public function interviews()
     {
         $userId = auth()->id();
-
         $interviews = Interview::where('beneficiary_id', $userId)
             ->where('scheduled_at', '>=', now())
-            ->with(['jobListing.employer:id,name'])
+            ->with(['jobListing.employer:id,company_name'])
             ->orderBy('scheduled_at')
             ->get()
-            ->map(function($interview) {
-                return [
-                    'id' => $interview->id,
-                    'job_title' => $interview->jobListing->title ?? 'Job',
-                    'employer_name' => $interview->jobListing->employer->name ?? 'Employer',
-                    'scheduled_at' => $interview->scheduled_at,
-                    'meet_link' => $interview->meet_link,
-                ];
-            });
+            ->map(fn($i) => [
+                'id' => $i->id,
+                'job_title' => $i->jobListing->title ?? 'Job',
+                'employer_name' => $i->jobListing->employer->company_name ?? 'Employer',
+                'scheduled_at' => $i->scheduled_at,
+                'meet_link' => $i->meet_link,
+            ]);
 
         return response()->json($interviews);
     }
 
+    // Jobs list
     public function jobs()
     {
         return \App\Models\JobListing::with('employer')->get();
     }
 
+    // Submit attendance
     public function submitAttendance(Request $request)
     {
         $data = $request->validate([
@@ -165,43 +139,33 @@ class BeneficiaryController extends Controller
         ]);
 
         $attendance = \App\Models\Attendance::create(array_merge($data, [
-            'beneficiary_id' => auth()->id()
+            'beneficiary_id' => auth()->user()->beneficiary->id ?? auth()->id()
         ]));
 
         return response()->json(['message' => 'Attendance submitted', 'attendance' => $attendance]);
     }
 
+    // Ratings
     public function getRatings($id = null)
     {
         $user = $id ? \App\Models\User::find($id) : auth()->user();
+        $beneficiary = $user->beneficiary ?? Beneficiary::where('email', $user->email)->first();
 
-        if (! $user) {
-            return response()->json(['ratings' => [], 'average' => 0]);
-        }
-
-        $beneficiary = $user->beneficiary
-            ?? Beneficiary::where('email', $user->email)->first();
-
-        if (! $beneficiary) {
-            return response()->json(['ratings' => [], 'average' => 0]);
-        }
+        if (!$beneficiary) return response()->json(['ratings' => [], 'average' => 0]);
 
         $ratings = $beneficiary->ratings()->with(['employer','application'])->get();
         $avg = $ratings->avg('overall') ?: 0;
 
-        return response()->json([
-            'ratings' => $ratings,
-            'average' => round($avg, 2)
-        ]);
+        return response()->json(['ratings' => $ratings, 'average' => round($avg,2)]);
     }
 
+    // Work history
     public function workHistory($id)
     {
         $beneficiary = Beneficiary::findOrFail($id);
-
         return response()->json([
-            'beneficiary' => $beneficiary->name,
-            'timeline' => []
+            'beneficiary' => $beneficiary->first_name . ' ' . $beneficiary->last_name,
+            'timeline' => $beneficiary->workHistory()->get()
         ]);
     }
 
@@ -209,41 +173,32 @@ class BeneficiaryController extends Controller
     {
         $user = auth()->user();
         $beneficiary = $user?->beneficiary;
-
-        if (! $beneficiary) return response()->json(['timeline' => []]);
-
+        if (!$beneficiary) return response()->json(['timeline'=>[]]);
         return $this->workHistory($beneficiary->id);
     }
 
+    // Attendance overview
     public function attendance()
     {
         $data = [];
-
-        for ($i = 0; $i < 30; $i++) {
-            $data[] = [
-                'date' => now()->subDays($i)->format('Y-m-d'),
-                'percentage' => rand(70, 100),
-            ];
+        for ($i=0;$i<30;$i++){
+            $data[] = ['date'=>now()->subDays($i)->format('Y-m-d'),'percentage'=>rand(70,100)];
         }
-
         return response()->json(array_reverse($data));
     }
 
+    // Profile page
     public function profilePage()
     {
         $user = auth()->user();
-        if (!$user) abort(403);
-
-        $beneficiary = $user->beneficiary
-            ?? Beneficiary::where('email', $user->email)->first();
-
+        $beneficiary = $user->beneficiary ?? Beneficiary::where('email', $user->email)->first();
         $ratings = $beneficiary?->ratings ?? collect();
-        $average = round($ratings->avg('overall') ?? 0, 1);
+        $average = round($ratings->avg('overall') ?? 0,1);
 
-        return Inertia::render('Beneficiary/Profile', [
-            'beneficiary' => $beneficiary,
-            'ratings' => $ratings,
-            'average' => $average,
+        return Inertia::render('Beneficiary/Profile',[
+            'beneficiary'=>$beneficiary,
+            'ratings'=>$ratings,
+            'average'=>$average
         ]);
     }
 }

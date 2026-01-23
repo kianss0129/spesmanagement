@@ -10,34 +10,33 @@ use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
+    /**
+     * Handle login request
+     */
     public function login(Request $request)
     {
-        // Validate inputs
+        // Validate inputs including reCAPTCHA
         $request->validate([
             'email' => ['required','email'],
             'password' => ['required'],
-            // 'recaptcha' => ['required'], // optional
+            'recaptcha' => ['required'], // mandatory now
         ]);
 
-        // Optional: reCAPTCHA verification
-        /*
-        if ($request->filled('recaptcha')) {
-            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => config('services.recaptcha.secret'),
-                'response' => $request->recaptcha,
-                'remoteip' => $request->ip(),
-            ]);
+        // Verify Google reCAPTCHA
+        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+            'secret' => config('services.recaptcha.secret'), // Add your secret in .env
+            'response' => $request->recaptcha,
+            'remoteip' => $request->ip(),
+        ]);
 
-            if (! data_get($response->json(), 'success')) {
-                throw ValidationException::withMessages([
-                    'recaptcha' => 'reCAPTCHA verification failed.',
-                ]);
-            }
+        if (! data_get($response->json(), 'success')) {
+            throw ValidationException::withMessages([
+                'recaptcha' => 'reCAPTCHA verification failed. Please try again.',
+            ]);
         }
-        */
 
         // Attempt login
-        if (!Auth::attempt($request->only('email','password'), $request->boolean('remember'))) {
+        if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => 'These credentials do not match our records.',
             ]);
@@ -62,6 +61,9 @@ class LoginController extends Controller
         return redirect('/dashboard'); // fallback
     }
 
+    /**
+     * Handle logout
+     */
     public function logout(Request $request)
     {
         Auth::logout();
@@ -72,3 +74,4 @@ class LoginController extends Controller
         return redirect('/');
     }
 }
+    

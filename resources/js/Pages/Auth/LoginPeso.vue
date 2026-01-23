@@ -41,6 +41,17 @@
           </p>
         </div>
 
+        <!-- ✅ reCAPTCHA -->
+        <div class="mb-4">
+          <div ref="recaptchaEl"></div>
+          <p v-if="recaptchaError" class="text-xs text-red-500 mt-1">
+            {{ recaptchaError }}
+          </p>
+          <p v-if="errors.recaptcha" class="text-xs text-red-500 mt-1">
+            {{ errors.recaptcha }}
+          </p>
+        </div>
+
         <!-- Remember Me -->
         <div class="flex items-center justify-between mb-4">
           <label class="flex items-center text-sm" for="remember">
@@ -58,11 +69,6 @@
             Forgot password?
           </Link>
         </div>
-
-        <!-- Optional: reCAPTCHA error -->
-        <p v-if="errors.recaptcha" class="text-xs text-red-500 mb-2">
-          {{ errors.recaptcha }}
-        </p>
 
         <button
           type="submit"
@@ -85,35 +91,57 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useForm, Link } from '@inertiajs/inertia-vue3'
+
+const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+
+const recaptchaEl = ref(null)
+const recaptchaWidgetId = ref(null)
+const recaptchaError = ref(null)
 
 const form = useForm({
   email: '',
   password: '',
   remember: false,
-  recaptcha: '', // optional, keep empty for now
+  recaptcha: null,
 })
 
 const errors = reactive({})
 const processing = ref(false)
 
-async function submit() {
-  processing.value = true
-  errors.email = ''
-  errors.password = ''
-  errors.recaptcha = ''
+onMounted(() => {
+  window.onRecaptchaSuccess = (token) => {
+    form.recaptcha = token
+    recaptchaError.value = null
+  }
 
-  // Optional: integrate reCAPTCHA here
-  // form.recaptcha = await executeRecaptcha('login')
+  recaptchaWidgetId.value = window.grecaptcha.render(recaptchaEl.value, {
+    sitekey: siteKey,
+    callback: window.onRecaptchaSuccess,
+  })
+})
+
+function submit() {
+  if (!form.recaptcha) {
+    recaptchaError.value = 'Please verify that you are not a robot.'
+    return
+  }
+
+  processing.value = true
 
   form.post('/login', {
-    onSuccess: () => { processing.value = false },
+    onSuccess: () => {
+      processing.value = false
+      window.grecaptcha.reset(recaptchaWidgetId.value)
+      form.recaptcha = null
+    },
     onError: () => {
       processing.value = false
       Object.assign(errors, form.errors)
+      window.grecaptcha.reset(recaptchaWidgetId.value)
+      form.recaptcha = null
     },
-    onFinish: () => { processing.value = false }
   })
 }
 </script>

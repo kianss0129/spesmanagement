@@ -12,7 +12,6 @@ use App\Models\Interview;
 use App\Services\GoogleCalendarService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 class EmployerController extends Controller
@@ -21,121 +20,84 @@ class EmployerController extends Controller
     public function storeJob(Request $request)
     {
         $data = $request->validate([
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'positions' => 'required|integer',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'title'=>'required|string',
+            'description'=>'nullable|string',
+            'positions'=>'required|integer',
+            'start_date'=>'nullable|date',
+            'end_date'=>'nullable|date',
         ]);
 
-        $data['employer_id'] = auth()->id();
+        $data['employer_id'] = auth()->user()->id;
         $job = JobListing::create($data);
 
-        activity()
-            ->causedBy(auth()->user())
-            ->performedOn($job)
-            ->withProperties($job->toArray())
-            ->log('Job created');
-
-        return response()->json(['message' => 'Job created successfully', 'job' => $job]);
+        return response()->json(['message'=>'Job created successfully','job'=>$job]);
     }
 
-    // View Applicants
+    // View applicants
     public function applicants($jobId)
     {
         return Application::with('beneficiary')
-            ->where('job_listing_id', $jobId)
+            ->where('job_listing_id',$jobId)
             ->get();
     }
 
-    // Submit DTR / Attendance
+    // Submit Attendance (batch or single)
     public function submitAttendance(Request $request)
     {
-        // Support two modes:
-        // 1) Batch: 'date' + 'records' => array of {beneficiary_id, time_in, time_out, notes}
-        // 2) Single: 'beneficiary_id', 'date', 'time_in', 'time_out', 'notes'
-
         if ($request->has('records')) {
             $data = $request->validate([
-                'date' => 'required|date',
-                'records' => 'array',
-                'records.*.beneficiary_id' => 'required|exists:beneficiaries,id',
-                'records.*.time_in' => 'nullable',
-                'records.*.time_out' => 'nullable',
-                'records.*.notes' => 'nullable|string',
+                'date'=>'required|date',
+                'records'=>'array',
+                'records.*.beneficiary_id'=>'required|exists:beneficiaries,id',
+                'records.*.time_in'=>'nullable',
+                'records.*.time_out'=>'nullable',
+                'records.*.notes'=>'nullable|string'
             ]);
-
             $created = [];
-            foreach ($data['records'] as $rec) {
-                $rec['date'] = $data['date'];
-                $rec['employer_id'] = auth()->id();
-                $created[] = Attendance::create($rec);
+            foreach ($data['records'] as $rec){
+                $rec['date']=$data['date'];
+                $rec['employer_id']=auth()->id();
+                $created[]=Attendance::create($rec);
             }
-
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties(['count' => count($created)])
-                ->log('Batch attendance submitted');
-
-            return response()->json(['message' => 'Attendance submitted', 'attendance' => $created]);
+            return response()->json(['message'=>'Attendance submitted','attendance'=>$created]);
         }
 
-        // single record mode
         $data = $request->validate([
-            'beneficiary_id' => 'required|exists:beneficiaries,id',
-            'date' => 'required|date',
-            'time_in' => 'nullable',
-            'time_out' => 'nullable',
-            'notes' => 'nullable|string',
+            'beneficiary_id'=>'required|exists:beneficiaries,id',
+            'date'=>'required|date',
+            'time_in'=>'nullable',
+            'time_out'=>'nullable',
+            'notes'=>'nullable|string'
         ]);
+        $data['employer_id']=auth()->id();
+        $attendance=Attendance::create($data);
 
-        $data['employer_id'] = auth()->id();
-        $attendance = Attendance::create($data);
-
-        activity()
-            ->causedBy(auth()->user())
-            ->performedOn($attendance)
-            ->withProperties($attendance->toArray())
-            ->log('Attendance submitted');
-
-        return response()->json(['message' => 'Attendance submitted', 'attendance' => $attendance]);
+        return response()->json(['message'=>'Attendance submitted','attendance'=>$attendance]);
     }
 
-    // Submit Rating
+    // Submit rating
     public function submitRating(Request $request)
     {
-        $payload = $request->validate([
-            'employer_id' => 'required|exists:employers,id',
-            'beneficiary_id' => 'required|exists:beneficiaries,id',
-            'application_id' => 'nullable|exists:applications,id',
-            'punctuality' => 'nullable|integer|min:1|max:5',
-            'work_attitude' => 'nullable|integer|min:1|max:5',
-            'output_quality' => 'nullable|integer|min:1|max:5',
-            'communication' => 'nullable|integer|min:1|max:5',
-            'overall' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string',
+        $data = $request->validate([
+            'employer_id'=>'required|exists:employers,id',
+            'beneficiary_id'=>'required|exists:beneficiaries,id',
+            'application_id'=>'nullable|exists:applications,id',
+            'punctuality'=>'nullable|integer|min:1|max:5',
+            'work_attitude'=>'nullable|integer|min:1|max:5',
+            'output_quality'=>'nullable|integer|min:1|max:5',
+            'communication'=>'nullable|integer|min:1|max:5',
+            'overall'=>'required|integer|min:1|max:5',
+            'comment'=>'nullable|string',
         ]);
-
-        $rating = EmployerRating::create($payload);
-
-        activity()
-            ->causedBy(auth()->user())
-            ->performedOn($rating)
-            ->withProperties($rating->toArray())
-            ->log('Employer rating submitted');
-
-        return response()->json(['message' => 'Rating submitted', 'rating' => $rating]);
+        $rating = EmployerRating::create($data);
+        return response()->json(['message'=>'Rating submitted','rating'=>$rating]);
     }
 
-    // Recommended Candidates (for employer view only)
+    // Recommended candidates
     public function recommendedCandidates()
     {
-        $recommended = Beneficiary::withAvg('ratings', 'overall')
-            ->withCount([
-                'attendances as attendance_present' => function ($q) {
-                    $q->whereNotNull('time_in');
-                }
-            ])
+        $recommended = Beneficiary::withAvg('ratings','overall')
+            ->withCount(['attendances as attendance_present'=>fn($q)=>$q->whereNotNull('time_in')])
             ->orderByDesc('ratings_avg_overall')
             ->orderByDesc('attendance_present')
             ->limit(10)
@@ -144,307 +106,62 @@ class EmployerController extends Controller
         return response()->json($recommended);
     }
 
-    // Return ratings for a specific applicant (beneficiary)
+    // Applicant ratings
     public function applicantRatings($beneficiaryId)
     {
-        return EmployerRating::where('beneficiary_id', $beneficiaryId)->with('employer','application')->get();
+        return EmployerRating::where('beneficiary_id',$beneficiaryId)->with('employer','application')->get();
     }
 
-    // Choose/assign an applicant for a job (simple flag)
-    public function chooseApplicant($jobId, $applicationId)
+    // Choose applicant
+    public function chooseApplicant($jobId,$applicationId)
     {
         $job = JobListing::findOrFail($jobId);
-        if (! (bool) $job->employer_choice) {
-            return response()->json(['message' => 'Employers are not permitted to choose beneficiaries for this job.'], 403);
-        }
-
-        $app = Application::where('job_listing_id', $jobId)->where('id', $applicationId)->firstOrFail();
-        $app->status = 'selected';
-        $app->selected_at = now();
+        $app = Application::where('job_listing_id',$jobId)->where('id',$applicationId)->firstOrFail();
+        $app->status='selected';
+        $app->selected_at=now();
         $app->save();
 
-        activity()->causedBy(auth()->user())->performedOn($app)->log('Employer selected applicant');
-
-        return response()->json(['message' => 'Applicant selected', 'application' => $app]);
+        return response()->json(['message'=>'Applicant selected','application'=>$app]);
     }
 
-    // List interviews for this employer
+    // Interviews
     public function interviews()
     {
-        return Interview::where('employer_id', auth()->id())->with(['jobListing','beneficiary'])->get();
+        return Interview::where('employer_id',auth()->id())->with(['jobListing','beneficiary'])->get();
     }
 
-    // List attendances or beneficiaries under this employer (simple view)
+    // List attendance
     public function listAttendance()
     {
-        // Show recent attendance records for employer's beneficiaries
-        return Attendance::where('employer_id', auth()->id())->with('beneficiary')->orderByDesc('date')->limit(200)->get();
+        return Attendance::where('employer_id',auth()->id())->with('beneficiary')->orderByDesc('date')->limit(200)->get();
     }
 
-    // Submit work output files (store under storage/app/public/work_outputs)
+    // Submit work outputs
     public function submitWorkOutput(Request $request)
     {
         $request->validate([
-            'beneficiary_id' => 'required|integer',
-            'files' => 'required|array',
-            'files.*' => 'file|max:10240'
+            'beneficiary_id'=>'required|integer',
+            'files'=>'required|array',
+            'files.*'=>'file|max:10240'
         ]);
 
-        $records = [];
-        foreach ($request->file('files') as $f) {
-            $path = $f->store('work_outputs', 'public');
-            $rec = \App\Models\WorkOutput::create([
-                'employer_id' => auth()->id(),
-                'beneficiary_id' => $request->input('beneficiary_id'),
-                'file_path' => $path,
-                'original_name' => $f->getClientOriginalName()
+        $records=[];
+        foreach ($request->file('files') as $f){
+            $path = $f->store('work_outputs','public');
+            $records[]= \App\Models\WorkOutput::create([
+                'employer_id'=>auth()->id(),
+                'beneficiary_id'=>$request->input('beneficiary_id'),
+                'file_path'=>$path,
+                'original_name'=>$f->getClientOriginalName()
             ]);
-            $records[] = $rec;
         }
 
-        activity()->causedBy(auth()->user())->withProperties(['count' => count($records)])->log('Work outputs uploaded');
-
-        return response()->json(['message' => 'Work outputs uploaded', 'records' => $records]);
+        return response()->json(['message'=>'Work outputs uploaded','records'=>$records]);
     }
 
-    // Submit employer report (simple storage)
-    public function submitReport(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string',
-            'body' => 'nullable|string',
-        ]);
-
-        $report = \App\Models\Report::create([
-            'employer_id' => auth()->id(),
-            'title' => $data['title'],
-            'body' => $data['body'] ?? null,
-        ]);
-
-        activity()->causedBy(auth()->user())->withProperties(['report_id' => $report->id])->log('Employer report submitted');
-
-        return response()->json(['message' => 'Report submitted', 'report' => $report]);
-    }
-
-    /**
-     * Schedule Interview (Employer action)
-     *
-     * POST /employer/jobs/{id}/interview
-     * body:
-     * - beneficiary_id
-     * - scheduled_at (ISO datetime)
-     */
-    public function scheduleInterview(Request $request, $jobId)
-    {
-        $data = $request->validate([
-            'beneficiary_id' => 'required|exists:beneficiaries,id',
-            'scheduled_at' => 'required|date',
-            'duration_minutes' => 'nullable|integer|min:15|max:480',
-        ]);
-
-        $job = JobListing::findOrFail($jobId);
-        $beneficiary = Beneficiary::findOrFail($data['beneficiary_id']);
-
-        // compute end datetime (default 1 hour)
-        $duration = $data['duration_minutes'] ?? 60;
-        $start = date('c', strtotime($data['scheduled_at']));
-        $end = date('c', strtotime($data['scheduled_at'] . " + {$duration} minutes"));
-
-        // prepare attendees (if beneficiary has email)
-        $attendees = [];
-        if (!empty($beneficiary->email)) {
-            $attendees[] = $beneficiary->email;
-        }
-        // optionally include employer email if available (assumes Employer model or auth user has email)
-        $employerEmail = auth()->user()->email ?? null;
-        if ($employerEmail) $attendees[] = $employerEmail;
-
-        // create Google Meet event
-        $calendar = new GoogleCalendarService();
-        $event = $calendar->createInterviewEvent(
-            'Interview: ' . $job->title,
-            $start,
-            $end,
-            $attendees
-        );
-
-        // Save interview record
-        $interview = Interview::create([
-            'application_id' => Application::where('job_listing_id', $job->id)
-                                            ->where('beneficiary_id', $beneficiary->id)
-                                            ->pluck('id')
-                                            ->first(),
-            'job_listing_id' => $job->id,
-            'employer_id' => auth()->id(),
-            'beneficiary_id' => $beneficiary->id,
-            'scheduled_at' => $data['scheduled_at'],
-            'meet_link' => $event->hangoutLink ?? null,
-            'status' => 'scheduled'
-        ]);
-
-        activity()
-            ->causedBy(auth()->user())
-            ->performedOn($interview)
-            ->withProperties(['job' => $job->id, 'beneficiary' => $beneficiary->id])
-            ->log('Interview scheduled');
-
-        // send notifications
-        NotificationService::sendInterviewNotification($beneficiary, $interview);
-
-        return response()->json([
-            'message' => 'Interview scheduled successfully',
-            'interview' => $interview,
-            'meet_link' => $event->hangoutLink ?? null,
-        ]);
-    }
-
+    // Employer dashboard
     public function dashboard()
     {
         return Inertia::render('Employer/Dashboard');
-    }
-
-    // Analytics: applicants per job for this employer
-    public function applicantsPerJob()
-    {
-        $jobs = JobListing::where('employer_id', auth()->id())
-            ->withCount('applications')
-            ->get(['id', 'title', 'employer_id']);
-
-        $result = $jobs->map(function ($j) {
-            return [
-                'id' => $j->id,
-                'title' => $j->title,
-                'total' => $j->applications_count ?? 0,
-            ];
-        });
-
-        return response()->json($result);
-    }
-
-    // Employer dashboard stats endpoint
-    public function stats(Request $request)
-    {
-        $days = max(1, intval($request->get('days', 30)));
-        $since = now()->subDays($days - 1)->startOfDay();
-
-        // open job listings for this employer
-        $openJobs = JobListing::where('employer_id', auth()->id())->count();
-
-        // total applicants across employer's jobs
-        $applicants = Application::whereIn('job_listing_id', function($q){
-            $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-        })->count();
-
-        // upcoming interviews
-        $upcomingInterviews = 0;
-        if (Schema::hasTable('interviews')) {
-            $upcomingInterviews = Interview::where('employer_id', auth()->id())
-                ->where('scheduled_at', '>=', now())
-                ->where('status', 'scheduled')
-                ->count();
-        }
-
-        // pending ratings: selected applications without ratings
-        $pendingRatings = 0;
-        if (Schema::hasTable('employer_ratings')) {
-            $selectedAppIds = Application::whereIn('job_listing_id', function($q){
-                $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-            })->whereNotNull('selected_at')->pluck('id');
-
-            $pendingRatings = \App\Models\Application::whereIn('id', $selectedAppIds)
-                ->whereNotIn('id', function($q){
-                    $q->select('application_id')->from('employer_ratings');
-                })->count();
-        }
-
-        // attendance today
-        $todayAttendance = 0;
-        if (Schema::hasTable('attendances')) {
-            $todayAttendance = Attendance::where('employer_id', auth()->id())
-                ->whereDate('date', now()->toDateString())
-                ->count();
-        }
-
-        // applications over time (per day)
-        $applicationsOverTime = Application::whereIn('job_listing_id', function($q){
-            $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-        })->where('created_at', '>=', $since)
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as total')
-            ->groupByRaw('DATE(created_at)')
-            ->orderByRaw('DATE(created_at)')
-            ->get();
-
-        // pipeline counts
-        $pipeline = [];
-        $pipeline['applied'] = Application::whereIn('job_listing_id', function($q){
-            $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-        })->where('status', 'applied')->count();
-        $pipeline['selected'] = Application::whereIn('job_listing_id', function($q){
-            $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-        })->where('status', 'selected')->count();
-        $pipeline['completed'] = Application::whereIn('job_listing_id', function($q){
-            $q->select('id')->from('job_listings')->where('employer_id', auth()->id());
-        })->where('status', 'completed')->count();
-
-        return response()->json([
-            'open_jobs' => $openJobs,
-            'applicants' => $applicants,
-            'upcoming_interviews' => $upcomingInterviews,
-            'pending_ratings' => $pendingRatings,
-            'today_attendance' => $todayAttendance,
-            'applications_over_time' => $applicationsOverTime,
-            'pipeline' => $pipeline,
-        ]);
-    }
-
-    // Export applicants CSV for a specific job (employer-owned)
-    public function exportApplicants($jobId)
-    {
-        $job = JobListing::where('id', $jobId)->where('employer_id', auth()->id())->firstOrFail();
-
-        $filename = "applicants-job-{$job->id}-".now()->format('YmdHis').".csv";
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ];
-
-        // For tests, return the CSV as a normal response so PHPUnit can inspect content
-        if (app()->runningUnitTests() || app()->environment('testing')) {
-            $fh = fopen('php://temp', 'r+');
-            fputcsv($fh, ['application_id','beneficiary_id','beneficiary_name','beneficiary_email','status','applied_at']);
-
-            Application::where('job_listing_id', $job->id)->with('beneficiary')->chunk(200, function($apps) use ($fh){
-                foreach ($apps as $a) {
-                    $b = $a->beneficiary;
-                    // Some beneficiary records store first/last name separately
-                    $name = ($b->first_name ?? '') . ($b->last_name ? ' ' . $b->last_name : '');
-                    fputcsv($fh, [$a->id, $b->id ?? '', trim($name) ?: ($b->name ?? ''), $b->email ?? '', $a->status, $a->created_at]);
-                }
-            });
-
-            rewind($fh);
-            $csv = stream_get_contents($fh);
-            fclose($fh);
-
-            return response($csv, 200, $headers);
-        }
-
-        // Production: stream the CSV to avoid high memory usage
-        $callback = function() use ($job) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, ['application_id','beneficiary_id','beneficiary_name','beneficiary_email','status','applied_at']);
-
-            Application::where('job_listing_id', $job->id)->with('beneficiary')->chunk(200, function($apps) use ($file){
-                foreach ($apps as $a) {
-                    $b = $a->beneficiary;
-                    $name = ($b->first_name ?? '') . ($b->last_name ? ' ' . $b->last_name : '');
-                    fputcsv($file, [$a->id, $b->id ?? '', trim($name) ?: ($b->name ?? ''), $b->email ?? '', $a->status, $a->created_at]);
-                }
-            });
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
     }
 }

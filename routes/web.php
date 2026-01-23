@@ -21,7 +21,6 @@ use App\Http\Controllers\Beneficiary\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UploadDocumentsController;
 
 // =======================
 // Auth Controllers
@@ -43,6 +42,7 @@ use App\Http\Controllers\Auth\{
 // GUEST ROUTES
 // =======================
 Route::middleware('guest')->group(function () {
+
     // Registration
     Route::get('register/beneficiary', [BeneficiaryRegisterController::class, 'create'])
         ->name('register.beneficiary');
@@ -80,11 +80,17 @@ Route::post('/logout', [LoginController::class, 'logout'])
 // ONBOARDING ROUTES
 // =======================
 Route::middleware(['auth'])->prefix('onboarding')->group(function () {
+    // Onboarding page (Vue Inertia)
     Route::get('/', [OnboardingController::class, 'index'])->name('onboarding');
+
     Route::post('/step1', [OnboardingController::class, 'step1']);
     Route::post('/step2', [OnboardingController::class, 'step2']);
     Route::post('/upload', [OnboardingController::class, 'upload']);
-    Route::post('/submit', [OnboardingController::class, 'submit']);
+
+    // Submit employer/beneficiary onboarding
+    Route::post('/submit', [OnboardingController::class, 'submit'])->name('onboarding.submit');
+
+    // Pending page
     Route::get('/pending', function () {
         return Inertia::render('Onboarding/Pending');
     })->name('onboarding.pending');
@@ -113,11 +119,11 @@ Route::middleware(['auth', 'role:PESO|Admin'])->prefix('peso')->name('peso.')->g
     // Dashboard
     Route::get('dashboard', [PESOController::class, 'dashboard'])->name('dashboard');
 
-    // Pending Beneficiaries - PESO or Admin
+    // Pending Beneficiaries
     Route::get('beneficiaries/pending', [PESOController::class, 'pendingBeneficiaries'])
         ->name('beneficiaries.pending');
 
-         // Pending Employers
+    // Pending Employers
     Route::get('employers/pending', [PESOController::class, 'pendingEmployers'])
         ->name('employers.pending');
 
@@ -133,59 +139,61 @@ Route::middleware(['auth', 'role:PESO|Admin'])->prefix('peso')->name('peso.')->g
     Route::prefix('analytics')->group(function () {
         Route::get('applicants-by-school', [AnalyticsController::class, 'applicantsBySchool'])
             ->name('analytics.applicantsBySchool');
-        Route::get('top-employers', [AnalyticsController::class, 'topHiringEmployers'])
+        Route::get('top-employers', [AnalyticsController::class, 'topEmployers'])
             ->name('analytics.topEmployers');
         Route::get('performance-trends', [AnalyticsController::class, 'performanceTrends'])
             ->name('analytics.performanceTrends');
-        Route::get('completion-rate', [AnalyticsController::class, 'completionRatePerBatch'])
+        Route::get('completion-rate', [AnalyticsController::class, 'completionRate'])
             ->name('analytics.completionRate');
         Route::get('attendance-compliance', [AnalyticsController::class, 'attendanceCompliance'])
             ->name('analytics.attendanceCompliance');
     });
 
     // Actions
-    Route::post('assign-beneficiary', [PESOController::class, 'assignBeneficiary'])->name('assignBeneficiary');
-    Route::post('schedule-interview', [InterviewController::class, 'schedule'])->name('scheduleInterview');
-    Route::get('reports/dole', [PESOController::class, 'exportDOLEReport'])->name('reports.dole');
+    Route::post('assign-beneficiary', [PESOController::class, 'assignBeneficiary'])
+        ->name('assignBeneficiary');
+    Route::post('schedule-interview', [InterviewController::class, 'schedule'])
+        ->name('scheduleInterview');
+    Route::get('reports/dole', [PESOController::class, 'exportDOLEReport'])
+        ->name('reports.dole');
 
     // Work History
     Route::get('beneficiaries/{id}/work-history', [BeneficiaryController::class, 'workHistory'])
         ->name('beneficiary.workHistory');
-
 });
-
-
-    // Pending Beneficiaries
-    Route::get('beneficiaries/pending', [PESOController::class, 'pendingBeneficiaries'])
-        ->name('beneficiaries.pending');
-
-    // Approve/Reject — PESO Admin Only
-    Route::middleware(['role:PESO Admin'])->group(function () {
-        Route::post('beneficiaries/{id}/approve', [PESOController::class, 'approveBeneficiary'])
-            ->name('beneficiaries.approve');
-        Route::post('beneficiaries/{id}/reject', [PESOController::class, 'rejectBeneficiary'])
-            ->name('beneficiaries.reject');
-    });
 
 // =======================
 // EMPLOYER ROUTES
 // =======================
 Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer.')->group(function () {
+
     Route::get('dashboard', [EmployerController::class, 'dashboard'])->name('dashboard');
 
     Route::resource('jobs', JobController::class);
-    Route::post('jobs/{id}/interview', [EmployerController::class, 'scheduleInterview'])->name('jobs.scheduleInterview');
-    Route::post('jobs/{id}/rate/{beneficiary}', [EmployerController::class, 'submitRating'])->name('jobs.submitRating');
 
-    Route::get('applicants/page', [PageController::class, 'employerApplicants'])->name('page.applicants');
-    Route::get('recommended/page', [PageController::class, 'employerRecommended'])->name('page.recommended');
-    Route::get('interviews/page', [PageController::class, 'employerInterviews'])->name('page.interviews');
-    Route::get('performance/page', [PageController::class, 'employerPerformance'])->name('page.performance');
-    Route::get('work-output/page', [PageController::class, 'employerWorkOutput'])->name('page.workOutput');
-    Route::get('reports/page', [PageController::class, 'employerReports'])->name('page.reports');
-    Route::get('attendance/page', [PageController::class, 'employerAttendance'])->name('page.attendance');
+    Route::post('jobs/{id}/interview', [EmployerController::class, 'scheduleInterview'])
+        ->name('jobs.scheduleInterview');
+    Route::post('jobs/{id}/rate/{beneficiary}', [EmployerController::class, 'submitRating'])
+        ->name('jobs.submitRating');
 
-    Route::get('jobs/{id}/applicants', [EmployerController::class, 'applicants'])->name('jobs.applicants');
+    // Employer pages (if any)
+    Route::get('applicants/page', [PageController::class, 'employerApplicants'])
+        ->name('page.applicants');
+    Route::get('recommended/page', [PageController::class, 'employerRecommended'])
+        ->name('page.recommended');
+    Route::get('interviews/page', [PageController::class, 'employerInterviews'])
+        ->name('page.interviews');
+    Route::get('performance/page', [PageController::class, 'employerPerformance'])
+        ->name('page.performance');
+    Route::get('work-output/page', [PageController::class, 'employerWorkOutput'])
+        ->name('page.workOutput');
+    Route::get('reports/page', [PageController::class, 'employerReports'])
+        ->name('page.reports');
+    Route::get('attendance/page', [PageController::class, 'employerAttendance'])
+        ->name('page.attendance');
+
+    Route::get('jobs/{id}/applicants', [EmployerController::class, 'applicants'])
+        ->name('jobs.applicants');
 });
 
 // =======================
@@ -205,9 +213,8 @@ Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->grou
 // DEV / DEBUG ROUTES
 // =======================
 Route::prefix('_debug')->middleware('local')->group(function () {
-    Route::get('last-reset', function () {
-        return \DB::table('password_resets')->latest('created_at')->first();
-    });
+
+    Route::get('last-reset', fn() => \DB::table('password_resets')->latest('created_at')->first());
 
     Route::post('ping', function (Request $request) {
         Log::info('debug-ping', [
@@ -228,22 +235,6 @@ Route::prefix('_debug')->middleware('local')->group(function () {
         } catch (\Throwable $e) {
             Log::error('Debug send-reset failed', ['email' => $email, 'exception' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
-        }
-    });
-
-    Route::get('send-test-mail', function (Request $request) {
-        $email = $request->query('email');
-        if (!$email) return response('Provide ?email=you@example.com', 400);
-
-        try {
-            \Illuminate\Support\Facades\Mail::raw('Test email from SPES system', function ($m) use ($email) {
-                $m->to($email)->subject('SPES Test Email');
-            });
-            Log::info('Debug send-test-mail sent', ['email' => $email]);
-            return response()->json(['ok' => true]);
-        } catch (\Exception $e) {
-            Log::error('Debug send-test-mail exception', ['email' => $email, 'error' => $e->getMessage()]);
-            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
         }
     });
 });

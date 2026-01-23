@@ -27,7 +27,7 @@ class RoleAndAdminSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
-        $admin->syncRoles(['PESO Admin']); // ensures only Admin role
+        $admin->syncRoles(['Admin']); // ensures only Admin role
 
         // 3️⃣ Create PESO Users
         $peso1 = User::updateOrCreate(

@@ -1,86 +1,115 @@
 <?php
 
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\School;
-use App\Models\PesoOffice;
 
 class Beneficiary extends Model
 {
     use HasFactory;
 
-   protected $fillable = [
-    'user_id', 'first_name', 'last_name', 'email', 'phone', 'school_id', 'peso_office_id', 'documents'
-];
-
+    protected $fillable = [
+        'user_id',
+        'first_name',
+        'last_name',
+        'email',
+        'phone',
+        'school_id',
+        'peso_office_id',
+        'documents',
+        'status',
+        'approved',
+        'onboarding_completed_at',
+    ];
 
     protected $casts = [
         'documents' => 'array',
+        'approved' => 'boolean',
+        'onboarding_completed_at' => 'datetime',
     ];
 
-    /**
-     * Get the applications for the beneficiary.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function applications()
     {
         return $this->hasMany(Application::class);
     }
 
-    /**
-     * Get the attendances for the beneficiary.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
     }
 
-    /**
-     * Get the employer ratings for the beneficiary.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function ratings()
     {
         return $this->hasMany(\App\Models\EmployerRating::class);
     }
 
-    /**
-     * Get the school that the beneficiary belongs to.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function school()
     {
-        return $this->belongsTo(School::class, 'school_id');
+        return $this->belongsTo(School::class);
     }
 
-    /**
-     * Get the PESO office that the beneficiary belongs to.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function pesoOffice()
-{
-    return $this->belongsTo(PesoOffice::class, 'peso_id');
-}
+    {
+        return $this->belongsTo(PesoOffice::class);
+    }
 
-    /**
-     * Get the work history for the beneficiary.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function workHistory()
     {
         return $this->hasMany(\App\Models\WorkOutput::class, 'beneficiary_id');
     }
-    public function user()
-{
-    return $this->belongsTo(\App\Models\User::class);
-}
 
+    /*
+    |--------------------------------------------------------------------------
+    | Status Helpers
+    |--------------------------------------------------------------------------
+    */
+    public function approve(): void
+    {
+        $this->update([
+            'status' => 'approved',
+            'approved' => true,
+        ]);
+    }
+
+    public function reject(): void
+    {
+        $this->update([
+            'status' => 'rejected',
+            'approved' => false,
+        ]);
+    }
+
+    public function markPending(): void
+    {
+        $this->update([
+            'status' => 'pending',
+            'approved' => false,
+        ]);
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
 }

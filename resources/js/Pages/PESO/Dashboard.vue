@@ -214,24 +214,34 @@ function renderEmployersChart(){
   })
 }
 
-// Load data
+// Load all dashboard data
 async function loadData(){
   try{
+    // Applicants & Top Employers
     const resA = await axios.get('/peso/analytics/applicants-by-school')
     applicants.value = resA.data
 
     const resE = await axios.get('/peso/analytics/top-employers')
     employers.value = resE.data
 
+    // Assigned Beneficiaries
+    const resAssigned = await axios.get('/peso/analytics/assigned-beneficiaries')
+    totals.value.assigned = resAssigned.data.total ?? 0
+
+    // Upcoming Interviews
+    const resInterviews = await axios.get('/peso/analytics/upcoming-interviews')
+    totals.value.interviews = resInterviews.data.total ?? 0
+
+    // Attendance Compliance
     const resAtt = await axios.get('/peso/analytics/attendance-compliance?required_days=20')
     const attData = resAtt.data.data || resAtt.data
     const avgAtt = attData.length ? Math.round(attData.reduce((s,n)=>s+Number(n),0)/attData.length) : 0
-
-    totals.value.applications = sum(applicants.value.data)
-    totals.value.assigned = 0
-    totals.value.interviews = 0
     totals.value.attendance = avgAtt
 
+    // Total Applications
+    totals.value.applications = sum(applicants.value.data)
+
+    // Render charts
     renderApplicantsChart()
     renderEmployersChart()
   }catch(e){

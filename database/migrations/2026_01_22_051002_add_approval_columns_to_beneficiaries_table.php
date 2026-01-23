@@ -9,19 +9,45 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
-{
-    Schema::table('beneficiaries', function (Blueprint $table) {
-        $table->unsignedBigInteger('approved_by')->nullable()->after('approved');
-        $table->timestamp('approved_at')->nullable()->after('approved_by');
-        $table->timestamp('rejected_at')->nullable()->after('approved_at');
-    });
-}
+    public function up(): void
+    {
+        Schema::table('beneficiaries', function (Blueprint $table) {
 
-public function down()
-{
-    Schema::table('beneficiaries', function (Blueprint $table) {
-        $table->dropColumn(['approved_by','approved_at','rejected_at']);
-    });
-}
+            // Add approved_by if missing
+            if (! Schema::hasColumn('beneficiaries', 'approved_by')) {
+                $table->unsignedBigInteger('approved_by')->nullable();
+            }
+
+            // Add approved_at if missing
+            if (! Schema::hasColumn('beneficiaries', 'approved_at')) {
+                $table->timestamp('approved_at')->nullable();
+            }
+
+            // Add rejected_at if missing
+            if (! Schema::hasColumn('beneficiaries', 'rejected_at')) {
+                $table->timestamp('rejected_at')->nullable();
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('beneficiaries', function (Blueprint $table) {
+
+            if (Schema::hasColumn('beneficiaries', 'rejected_at')) {
+                $table->dropColumn('rejected_at');
+            }
+
+            if (Schema::hasColumn('beneficiaries', 'approved_at')) {
+                $table->dropColumn('approved_at');
+            }
+
+            if (Schema::hasColumn('beneficiaries', 'approved_by')) {
+                $table->dropColumn('approved_by');
+            }
+        });
+    }
 };

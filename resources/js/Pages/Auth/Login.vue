@@ -4,6 +4,7 @@
       <h1 class="text-2xl font-semibold mb-4">Sign in</h1>
 
       <form @submit.prevent="submit">
+        <!-- Email -->
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">Email</label>
           <input
@@ -17,6 +18,7 @@
           </p>
         </div>
 
+        <!-- Password -->
         <div class="mb-4">
           <label class="block text-sm text-gray-600 mb-1">Password</label>
           <input
@@ -30,13 +32,9 @@
           </p>
         </div>
 
-        <!-- ✅ ADDED: reCAPTCHA -->
+        <!-- ✅ reCAPTCHA -->
         <div class="mb-4">
-          <div
-            class="g-recaptcha"
-            :data-sitekey="siteKey"
-            data-callback="onRecaptchaSuccess"
-          ></div>
+          <div ref="recaptchaEl"></div>
 
           <p v-if="recaptchaError" class="text-xs text-red-500 mt-1">
             {{ recaptchaError }}
@@ -46,8 +44,8 @@
             {{ errors.recaptcha }}
           </p>
         </div>
-        <!-- ✅ END reCAPTCHA -->
 
+        <!-- Remember -->
         <div class="flex items-center justify-between mb-4">
           <label class="flex items-center text-sm">
             <input type="checkbox" v-model="form.remember" class="mr-2" />
@@ -59,20 +57,19 @@
           </Link>
         </div>
 
-        <div class="mb-4">
-          <button
-            type="submit"
-            :disabled="processing"
-            class="w-full bg-blue-600 text-white py-2 rounded"
-          >
-            <span v-if="processing">Signing in...</span>
-            <span v-else>Sign in</span>
-          </button>
-        </div>
+        <!-- Submit -->
+        <button
+          type="submit"
+          :disabled="processing"
+          class="w-full bg-blue-600 text-white py-2 rounded"
+        >
+          <span v-if="processing">Signing in...</span>
+          <span v-else>Sign in</span>
+        </button>
       </form>
 
-      <div class="text-sm text-center">
-        Don't have an account?
+      <div class="text-sm text-center mt-4">
+        Don’t have an account?
         <Link href="/register/beneficiary" class="text-blue-600 hover:underline">
           Register as Beneficiary
         </Link>
@@ -82,32 +79,39 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useForm, Link } from '@inertiajs/inertia-vue3'
 
-/* ✅ ADDED */
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
+
+const recaptchaEl = ref(null)
+const recaptchaWidgetId = ref(null)
 const recaptchaError = ref(null)
-/* ✅ END */
+const processing = ref(false)
+const errors = reactive({})
 
 const form = useForm({
   email: '',
   password: '',
   remember: false,
-  recaptcha: null, // ✅ ADDED
+  recaptcha: null,
 })
 
-const errors = reactive({})
-const processing = ref(false)
-
-/* ✅ ADDED */
 onMounted(() => {
   window.onRecaptchaSuccess = (token) => {
     form.recaptcha = token
     recaptchaError.value = null
   }
+
+  // Render manually (SPA-safe)
+  recaptchaWidgetId.value = window.grecaptcha.render(
+    recaptchaEl.value,
+    {
+      sitekey: siteKey,
+      callback: window.onRecaptchaSuccess,
+    }
+  )
 })
-/* ✅ END */
 
 function submit() {
   if (!form.recaptcha) {
@@ -116,20 +120,19 @@ function submit() {
   }
 
   processing.value = true
+
   form.post('/login', {
     onSuccess: () => {
       processing.value = false
-      grecaptcha.reset() // ✅ ADDED
+      window.grecaptcha.reset(recaptchaWidgetId.value)
       form.recaptcha = null
     },
     onError: () => {
       processing.value = false
       Object.assign(errors, form.errors)
+      window.grecaptcha.reset(recaptchaWidgetId.value)
+      form.recaptcha = null
     },
   })
 }
 </script>
-
-<style scoped>
-/* small scoped styles if needed */
-</style>
