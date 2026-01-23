@@ -14,7 +14,12 @@
       <tbody>
         <tr v-for="e in employers" :key="e.id">
           <td class="p-2 border">{{ e.company_name }}</td>
-          <td class="p-2 border">{{ e.user.email }}</td>
+          
+          <!-- Safe access to user email -->
+          <td class="p-2 border">
+            {{ e.user?.email ?? 'No user' }}
+          </td>
+          
           <td class="p-2 border">{{ e.created_at }}</td>
           <td class="p-2 border space-x-2">
             <button
@@ -40,12 +45,21 @@
 
 <script setup>
 import { router } from '@inertiajs/vue3'
+import { ref } from 'vue'
 
+// Props from Inertia
 const props = defineProps({
-  employers: Array,
-  canApprove: Boolean
+  employers: {
+    type: Array,
+    required: true
+  },
+  canApprove: {
+    type: Boolean,
+    default: false
+  }
 })
 
+// Approve an employer
 const approve = (id) => {
   if (confirm('Approve this employer?')) {
     router.post(route('peso.employers.approve', id), {}, {
@@ -54,6 +68,7 @@ const approve = (id) => {
   }
 }
 
+// Reject an employer
 const reject = (id) => {
   if (confirm('Reject this employer?')) {
     router.post(route('peso.employers.reject', id), {}, {
@@ -62,3 +77,11 @@ const reject = (id) => {
   }
 }
 </script>
+
+<style scoped>
+/* Optional: Add nice table styling */
+table th, table td {
+  text-align: left;
+}
+</style>
+  

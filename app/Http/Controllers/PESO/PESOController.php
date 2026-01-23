@@ -7,7 +7,7 @@ use App\Models\Application;
 use App\Models\Interview;
 use App\Models\JobListing;
 use App\Models\Beneficiary;
-use App\Models\Employer; // <-- added
+use App\Models\Employer;
 use App\Services\ReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -100,7 +100,6 @@ class PESOController extends Controller
      * Pending Beneficiaries Flow
      * ==========================
      */
-
     public function pendingBeneficiaries()
     {
         $beneficiaries = Beneficiary::with('user')
@@ -110,7 +109,7 @@ class PESOController extends Controller
 
         return Inertia::render('PESO/PendingBeneficiaries', [
             'beneficiaries' => $beneficiaries,
-            'canApprove' => Auth::user()->hasRole('PESO Admin'),
+            'canApprove' => Auth::user()->hasAnyRole(['PESO Admin', 'Admin']),
         ]);
     }
 
@@ -118,8 +117,8 @@ class PESOController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('PESO Admin')) {
-            abort(403, 'Only PESO Admin can approve beneficiaries');
+        if (!$user->hasAnyRole(['PESO Admin', 'Admin'])) {
+            abort(403, 'Only PESO Admin or Admin can approve beneficiaries');
         }
 
         $beneficiary = Beneficiary::findOrFail($id);
@@ -137,8 +136,8 @@ class PESOController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('PESO Admin')) {
-            abort(403, 'Only PESO Admin can reject beneficiaries');
+        if (!$user->hasAnyRole(['PESO Admin', 'Admin'])) {
+            abort(403, 'Only PESO Admin or Admin can reject beneficiaries');
         }
 
         $beneficiary = Beneficiary::findOrFail($id);
@@ -157,23 +156,26 @@ class PESOController extends Controller
      * Pending Employers Flow
      * ==========================
      */
+  public function pendingEmployers()
+{
+    $employers = Employer::with('user') // load related User
+        ->where('approved', false)
+        ->get();
 
-    public function pendingEmployers()
-    {
-        $employers = Employer::where('approved', false)->get();
+    return Inertia::render('PESO/Employers/Pending', [
+        'employers' => $employers,
+        'canApprove' => Auth::user()->hasAnyRole(['PESO Admin', 'Admin']),
+    ]);
+}
 
-        return Inertia::render('PESO/Employers/Pending', [
-            'employers' => $employers,
-            'canApprove' => Auth::user()->hasRole('PESO Admin'),
-        ]);
-    }
+    
 
     public function approveEmployer($id)
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('PESO Admin')) {
-            abort(403, 'Only PESO Admin can approve employers');
+        if (!$user->hasAnyRole(['PESO Admin', 'Admin'])) {
+            abort(403, 'Only PESO Admin or Admin can approve employers');
         }
 
         $employer = Employer::findOrFail($id);
@@ -191,8 +193,8 @@ class PESOController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->hasRole('PESO Admin')) {
-            abort(403, 'Only PESO Admin can reject employers');
+        if (!$user->hasAnyRole(['PESO Admin', 'Admin'])) {
+            abort(403, 'Only PESO Admin or Admin can reject employers');
         }
 
         $employer = Employer::findOrFail($id);
