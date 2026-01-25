@@ -48,10 +48,8 @@ class LoginController extends Controller
         // Redirect based on role
         $user = $request->user();
 
-        if ($user->hasRole('PESO') || $user->hasRole('PESO Admin')) {
-            return redirect()->route('peso.dashboard');
-        } elseif ($user->hasRole('Admin') || $user->hasRole('Super Admin')) {
-            return redirect()->route('admin.dashboard');
+        if ($user->hasRole('PESO') || $user->hasRole('PESO Admin') || $user->hasRole('Admin') || $user->hasRole('Super Admin')) {
+            return redirect()->route('dashboard');
         } elseif ($user->hasRole('Employer')) {
             return redirect()->route('employer.dashboard');
         } elseif ($user->hasRole('Beneficiary')) {

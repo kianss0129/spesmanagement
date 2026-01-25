@@ -97,7 +97,11 @@
     // HOME & DASHBOARD
     // =======================
     Route::get('/', [PageController::class, 'welcome'])->name('home');
-    Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'redirect'])->name('dashboard');
+    Route::middleware(['auth', 'role:Admin|PESO Admin|PESO'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Redirect old dashboard routes
+    Route::middleware('auth')->get('/admin/dashboard', fn() => redirect('/dashboard'));
+    Route::middleware('auth')->get('/peso/dashboard', fn() => redirect('/dashboard'));
 
     // =======================
     // PROFILE
@@ -111,13 +115,11 @@
     // =======================
     // PESO / Admin Routes
     // =======================
-    Route::middleware(['auth', 'role:PESO|Admin'])->prefix('peso')->name('peso.')->group(function () {
-
-        // Dashboard
-        Route::get('dashboard', [PESOController::class, 'dashboard'])->name('dashboard');
+    Route::middleware(['auth', 'role:PESO Admin|PESO|Admin'])->prefix('peso')->name('peso.')->group(function () {
 
         // Pending Lists
         Route::get('beneficiaries/pending', [PESOController::class, 'pendingBeneficiaries'])->name('beneficiaries.pending');
+        Route::get('beneficiaries/monitoring', [PESOController::class, 'monitoring'])->name('beneficiaries.monitoring');
         Route::get('employers/pending', [PESOController::class, 'pendingEmployers'])->name('employers.pending');
 
         // View Applications
@@ -141,6 +143,8 @@
 
         // Analytics
         Route::prefix('analytics')->group(function () {
+            Route::get('dashboard', [AnalyticsController::class, 'dashboard'])
+                ->name('analytics.dashboard');
             Route::get('applicants-by-school', [AnalyticsController::class, 'applicantsBySchool'])
                 ->name('analytics.applicantsBySchool');
             Route::get('top-employers', [AnalyticsController::class, 'topEmployers'])
@@ -156,6 +160,8 @@
         // Actions
         Route::post('assign-beneficiary', [PESOController::class, 'assignBeneficiary'])->name('assignBeneficiary');
         Route::post('schedule-interview', [InterviewController::class, 'schedule'])->name('scheduleInterview');
+        Route::get('interviews/upcoming', [InterviewController::class, 'upcoming'])->name('interviews.upcoming');
+        Route::get('job-listings', [PESOController::class, 'jobListings'])->name('jobListings');
         Route::get('reports/dole', [PESOController::class, 'exportDOLEReport'])->name('reports.dole');
 
         // Work History
@@ -167,8 +173,6 @@
 // EMPLOYER ROUTES
 // =======================
 Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer.')->group(function () {
-
-    Route::get('dashboard', [EmployerController::class, 'dashboard'])->name('dashboard');
 
     Route::resource('jobs', JobController::class);
 
@@ -193,7 +197,6 @@ Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer
     // ADMIN ROUTES
     // =======================
     Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('stats', [AdminController::class, 'stats'])->name('stats');
         Route::get('export-users', [AdminController::class, 'exportUsers'])->name('export.users');
 

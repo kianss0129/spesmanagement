@@ -20,8 +20,17 @@ class AdminController extends Controller
         return Inertia::render('Admin/Dashboard');
     }
 
+    public function getStatsForDashboard()
+    {
+        return $this->stats(request());
+    }
+
     public function stats(Request $request)
     {
+        if (!auth()->user()->hasAnyRole(['Admin', 'PESO Admin'])) {
+            abort(403, 'Unauthorized');
+        }
+
         // Days filter for charts
         $days = max(1, (int) $request->get('days', 7));
 
@@ -95,6 +104,10 @@ class AdminController extends Controller
 
     public function exportUsers()
     {
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403, 'Unauthorized');
+        }
+
         $filename = 'users-' . now()->format('YmdHis') . '.csv';
 
         return response()->stream(function () {

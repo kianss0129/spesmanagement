@@ -41,6 +41,27 @@ class PESOController extends Controller
         ]);
     }
 
+    public function monitoring()
+    {
+        $beneficiaries = Beneficiary::with(['user', 'applications.jobListing.employer'])
+            ->where('approved', true)
+            ->get()
+            ->map(function ($beneficiary) {
+                $latestApplication = $beneficiary->applications->sortByDesc('created_at')->first();
+                $status = $latestApplication ? $latestApplication->status : 'No Application';
+                $assignedEmployer = $latestApplication && $latestApplication->jobListing ? $latestApplication->jobListing->employer->company_name : null;
+
+                return [
+                    'id' => $beneficiary->id,
+                    'name' => $beneficiary->name,
+                    'status' => $status,
+                    'assigned_employer' => $assignedEmployer,
+                ];
+            });
+
+        return response()->json($beneficiaries);
+    }
+
     public function approveBeneficiary($id)
     {
         $beneficiary = Beneficiary::findOrFail($id);
@@ -139,5 +160,22 @@ class PESOController extends Controller
             'employer' => $employer,
             'jobListings' => $employer->jobListings,
         ]);
+    }
+
+    public function jobListings()
+    {
+        $jobListings = JobListing::with(['employer', 'applications'])
+            ->get()
+            ->map(function ($job) {
+                return [
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'employer_name' => $job->employer->company_name,
+                    'applications_count' => $job->applications->count(),
+                    'status' => $job->status,
+                ];
+            });
+
+        return response()->json($jobListings);
     }
 }

@@ -59,4 +59,23 @@ class InterviewController extends Controller
 
         return response()->json(['message' => 'Interview scheduled', 'interview' => $interview, 'meet_link' => $event->hangoutLink ?? null]);
     }
+
+    public function upcoming()
+    {
+        $interviews = Interview::with(['beneficiary'])
+            ->where('scheduled_at', '>', now())
+            ->orderBy('scheduled_at')
+            ->take(10)
+            ->get()
+            ->map(function ($interview) {
+                return [
+                    'id' => $interview->id,
+                    'beneficiary_name' => $interview->beneficiary->name,
+                    'scheduled_at' => $interview->scheduled_at->format('M j, Y g:i A'),
+                    'meet_link' => $interview->meet_link,
+                ];
+            });
+
+        return response()->json($interviews);
+    }
 }
