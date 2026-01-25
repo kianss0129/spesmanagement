@@ -81,7 +81,8 @@
 </template>
 
 <script setup>
-import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { useForm, Link } from '@inertiajs/vue3'
+
 import { onMounted, ref } from 'vue' // ✅ ADDED
 
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY // ✅ ADDED

@@ -164,4 +164,37 @@ class EmployerController extends Controller
     {
         return Inertia::render('Employer/Dashboard');
     }
+
+    public function stats(Request $request) {
+    $days = $request->query('days', 30);
+    // Fetch your stats based on $days
+    return response()->json([
+        'open_jobs' => 5,
+        'applicants' => 20,
+        'upcoming_interviews' => 2,
+        'pending_ratings' => 3,
+        'today_attendance' => 10,
+        'pipeline' => [
+            'applied' => 15,
+            'selected' => 5,
+            'completed' => 2
+        ],
+        'applications_over_time' => [
+            ['date' => '2026-01-20', 'total' => 2],
+            ['date' => '2026-01-21', 'total' => 5],
+            ['date' => '2026-01-22', 'total' => 4],
+        ]
+    ]);
+}
+
+public function analyticsApplicantsPerJob() {
+    $jobs = Job::all(); // Or whatever logic you use
+    $data = $jobs->map(fn($job) => [
+        'id' => $job->id,
+        'title' => $job->title,
+        'total' => $job->applicants_count // make sure you eager load count
+    ]);
+    return response()->json($data);
+}
+
 }

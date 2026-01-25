@@ -127,7 +127,7 @@
 import { ref, computed } from 'vue'
 import StepIndicator from './StepIndicator.vue'
 import { Inertia } from '@inertiajs/inertia'
-import { usePage } from '@inertiajs/inertia-vue3'
+import { usePage } from '@inertiajs/vue3'
 
 // Get user type from query string or default to 'student'
 const { props: pageProps } = usePage()

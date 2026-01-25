@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { usePage } from '@inertiajs/inertia-vue3'
+import { usePage } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import dayjs from 'dayjs'
 

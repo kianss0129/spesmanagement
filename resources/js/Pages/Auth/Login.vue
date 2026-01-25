@@ -80,7 +80,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { useForm, Link } from '@inertiajs/inertia-vue3'
+import { useForm, Link } from '@inertiajs/vue3'
+
 
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY
 
@@ -103,7 +104,7 @@ onMounted(() => {
     recaptchaError.value = null
   }
 
-  // Render manually (SPA-safe)
+  // SPA-safe render
   recaptchaWidgetId.value = window.grecaptcha.render(
     recaptchaEl.value,
     {

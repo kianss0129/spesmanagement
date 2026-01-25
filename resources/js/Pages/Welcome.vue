@@ -49,13 +49,13 @@
 
         <div class="flex gap-3">
           <!-- Default login -->
-          <InertiaLink
+          <Link
             v-if="canLogin"
             :href="route('login')"
             class="px-6 py-3 rounded-lg bg-indigo-600 text-white"
           >
             Login
-          </InertiaLink>
+          </Link>
 
           <!-- Open registration modal -->
           <button
@@ -102,14 +102,14 @@
 <script setup>
 import { ref } from 'vue'
 import { Inertia } from '@inertiajs/inertia'
-import { route } from 'ziggy-js'
-import { Link as InertiaLink } from '@inertiajs/inertia-vue3'
+import { Link } from '@inertiajs/vue3'
 
 defineProps({
   canLogin: Boolean,
   canRegister: Boolean,
 })
 
+const route = window.route
 const showRegisterModal = ref(false)
 
 function openRegisterModal() { showRegisterModal.value = true }
@@ -117,13 +117,11 @@ function closeRegisterModal() { showRegisterModal.value = false }
 
 function selectBeneficiary() {
   closeRegisterModal()
-  // Direct to beneficiary registration
   Inertia.visit(route('register.beneficiary'))
 }
 
 function selectEmployer() {
   closeRegisterModal()
-  // Direct to employer registration
   Inertia.visit(route('register.employer'))
 }
 </script>

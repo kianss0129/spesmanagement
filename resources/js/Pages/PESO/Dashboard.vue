@@ -137,13 +137,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Inertia } from '@inertiajs/inertia'
+import { router } from '@inertiajs/vue3'
+
 import axios from 'axios'
 import { Chart, registerables } from 'chart.js'
 Chart.register(...registerables)
 
 // Logout helper
-const logout = () => Inertia.post('/logout')
+const logout = () => router.post(window.route('logout'))
 
 // Reactive variables
 const applicants = ref({ labels: [], data: [] })

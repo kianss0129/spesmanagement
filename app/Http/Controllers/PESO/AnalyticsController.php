@@ -33,7 +33,8 @@ class AnalyticsController extends Controller
         $start = $request->query('start_date');
         $end = $request->query('end_date');
 
-        $query = Application::join('beneficiaries','applications.beneficiary_id','=','beneficiaries.id');
+        $query = Application::join('beneficiaries','applications.beneficiary_id','=','beneficiaries.id')
+                            ->join('schools','beneficiaries.school_id','=','schools.id');
 
         if ($start && $end) {
             $query->whereBetween('applications.created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
@@ -53,8 +54,8 @@ class AnalyticsController extends Controller
             }
         }
 
-        $data = $query->select('beneficiaries.school', DB::raw('COUNT(*) as total'))
-                      ->groupBy('beneficiaries.school')
+        $data = $query->select('schools.name as school', DB::raw('COUNT(*) as total'))
+                      ->groupBy('schools.name')
                       ->orderByDesc('total')
                       ->get();
 
@@ -67,11 +68,10 @@ class AnalyticsController extends Controller
     // 2️⃣ Top Hiring Employers
     public function topHiringEmployers()
     {
-        $data = Employer::select('employers.id','employers.name', DB::raw('COUNT(applications.id) as hires'))
+        $data = Employer::select('employers.id','employers.company_name as name', DB::raw('COUNT(applications.id) as hires'))
             ->join('job_listings','job_listings.employer_id','=','employers.id')
             ->join('applications','applications.job_listing_id','=','job_listings.id')
-            ->where('applications.status','completed')
-            ->groupBy('employers.id','employers.name')
+            ->groupBy('employers.id','employers.company_name')
             ->orderByDesc('hires')
             ->limit(10)
             ->get();

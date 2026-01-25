@@ -4,8 +4,6 @@
       <!-- Header -->
       <header class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold">Employer Dashboard</h1>
-
-        <!-- Logout Button -->
         <button
           @click="logout"
           class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
@@ -14,7 +12,7 @@
         </button>
       </header>
 
-          <!-- Top summary cards -->
+      <!-- Top summary cards -->
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div class="bg-white p-4 rounded shadow">
           <div class="text-gray-500">Open Jobs</div>
@@ -101,12 +99,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineComponent } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Inertia } from '@inertiajs/inertia'
 import axios from 'axios'
 import Chart from 'chart.js/auto'
 
-// Canvas refs for charts
+// Import the new FeatureCard component
+import FeatureCard from '@/Components/FeatureCard.vue'
+
+// Canvas refs
 const applicantsCanvas = ref(null)
 const applicationsOverTimeCanvas = ref(null)
 
@@ -116,35 +117,34 @@ const jobs = ref([])
 const selectedDays = ref(30)
 const selectedJobForExport = ref('')
 
-async function loadStats(){
-  try{
+// Functions
+async function loadStats() {
+  try {
     const res = await axios.get('/employer/stats', { params: { days: selectedDays.value } })
     stats.value = res.data
-
-    // render charts
     renderApplicantsPerJob()
     renderApplicationsOverTime()
-  }catch(e){
+  } catch (e) {
     console.error('Failed to load employer stats', e)
   }
 }
 
-async function loadJobs(){
-  try{
+async function loadJobs() {
+  try {
     const res = await axios.get('/employer/analytics/applicants-per-job')
     jobs.value = res.data
-  }catch(e){
+  } catch (e) {
     console.error('Failed to load jobs', e)
   }
 }
 
-function exportApplicants(){
-  if(!selectedJobForExport.value) return alert('Select a job to export')
+function exportApplicants() {
+  if (!selectedJobForExport.value) return alert('Select a job to export')
   window.location.href = `/employer/jobs/${selectedJobForExport.value}/export-applicants`
 }
 
-function renderApplicantsPerJob(){
-  if(!applicantsCanvas.value) return
+function renderApplicantsPerJob() {
+  if (!applicantsCanvas.value) return
   const labels = jobs.value.map(j => j.title)
   const data = jobs.value.map(j => j.total)
   new Chart(applicantsCanvas.value.getContext('2d'), {
@@ -154,8 +154,8 @@ function renderApplicantsPerJob(){
   })
 }
 
-function renderApplicationsOverTime(){
-  if(!applicationsOverTimeCanvas.value) return
+function renderApplicationsOverTime() {
+  if (!applicationsOverTimeCanvas.value) return
   const dates = stats.value.applications_over_time?.map(r => r.date) ?? []
   const totals = stats.value.applications_over_time?.map(r => r.total) ?? []
 
@@ -176,20 +176,4 @@ onMounted(async () => {
 const logout = () => {
   Inertia.post('/logout')
 }
-
-// FeatureCard component
-const FeatureCard = defineComponent({
-  props: { title: String, href: { type: String, default: null } },
-  setup(props) {
-    const go = () => {
-      if (props.href) Inertia.visit(props.href)
-    }
-    return { go }
-  },
-  template: `
-    <div @click="go" class="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition">
-      <h3 class="font-medium text-gray-700">{{ title }}</h3>
-    </div>
-  `
-})
 </script>
