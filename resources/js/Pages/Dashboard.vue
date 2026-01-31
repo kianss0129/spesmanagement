@@ -316,7 +316,7 @@ const scheduleMessage = ref('')
 
 // Role-based computed properties
 const userRoles = computed(() => props.user?.roles || [])
-const isAdmin = computed(() => userRoles.value.some(role => role.name === 'Admin'))
+const isAdmin = computed(() => userRoles.value.some(role => ['Admin', 'Super Admin', 'PESO Admin'].includes(role.name)))
 const isPesoAdmin = computed(() => userRoles.value.some(role => role.name === 'PESO Admin'))
 const isPesoUser = computed(() => userRoles.value.some(role => role.name === 'PESO'))
 const isAdminRole = computed(() => isAdmin.value || isPesoAdmin.value)

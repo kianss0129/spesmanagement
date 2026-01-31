@@ -20,6 +20,10 @@ class Beneficiary extends Model
         'documents',
         'status',
         'approved',
+        'approval_status',
+        'approved_at',
+        'rejection_reason',
+        'resubmit_at',
         'onboarding_completed_at',
     ];
 

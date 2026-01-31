@@ -89,6 +89,13 @@
         Route::post('/submit', [OnboardingController::class, 'submit'])->name('onboarding.submit');
 
         Route::get('/pending', function () {
+            $user = auth()->user();
+            if ($user && $user->hasRole('Beneficiary')) {
+                $beneficiary = $user->beneficiary;
+                if ($beneficiary && $beneficiary->approval_status === 'approved') {
+                    return redirect()->route('dashboard');
+                }
+            }
             return Inertia::render('Onboarding/Pending');
         })->name('onboarding.pending');
     });
@@ -97,7 +104,7 @@
     // HOME & DASHBOARD
     // =======================
     Route::get('/', [PageController::class, 'welcome'])->name('home');
-    Route::middleware(['auth', 'role:Admin|PESO Admin|PESO'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::middleware(['auth', 'role:Admin|PESO Admin|PESO|Beneficiary'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Redirect old dashboard routes
     Route::middleware('auth')->get('/admin/dashboard', fn() => redirect('/dashboard'));
@@ -196,7 +203,7 @@ Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer
     // =======================
     // ADMIN ROUTES
     // =======================
-    Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware(['auth', 'role:Admin|PESO Admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('stats', [AdminController::class, 'stats'])->name('stats');
         Route::get('export-users', [AdminController::class, 'exportUsers'])->name('export.users');
 
