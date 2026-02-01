@@ -12,7 +12,18 @@ class Employer extends Model
 
     protected $fillable = [
         'user_id', 'company_name', 'email', 'status', 
-        'contact_person', 'phone', 'address'
+        'contact_person', 'phone', 'address',
+        'approved', 'approved_at', 'approved_by',
+        'rejected_at', 'rejection_reason', 'documents',
+        'onboarding_completed_at', 'approval_status'
+    ];
+
+    protected $casts = [
+        'documents' => 'array',
+        'approved' => 'boolean',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'onboarding_completed_at' => 'datetime',
     ];
 
     // Employer belongs to a User

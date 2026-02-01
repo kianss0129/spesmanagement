@@ -19,12 +19,12 @@
           <td class="p-2 border">{{ b.onboarding_completed_at ?? 'N/A' }}</td>
 
           <td class="p-2 border space-x-2">
-            <!-- VIEW APPLICATIONS -->
+            <!-- VIEW ONBOARDING -->
             <Link
               :href="route('peso.beneficiaries.applications', { beneficiary: b.id })"
               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
             >
-              View Applications
+              View Onboarding
             </Link>
 
             <!-- APPROVE -->
@@ -40,7 +40,7 @@
             <button
               v-if="canApprove"
               class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-              @click="reject(b.id)"
+              @click="openRejectDialog(b.id)"
             >
               Reject
             </button>
@@ -54,12 +54,41 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Rejection Reason Dialog -->
+    <div v-if="showRejectDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-bold mb-4">Reject Beneficiary</h3>
+        <textarea
+          v-model="rejectionReason"
+          class="w-full border rounded px-3 py-2 mb-4"
+          rows="4"
+          placeholder="Enter reason for rejection..."
+        ></textarea>
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="showRejectDialog = false"
+            class="px-4 py-2 border rounded hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            @click="confirmReject"
+            :disabled="!rejectionReason.trim()"
+            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+          >
+            Reject
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
-import { route } from 'ziggy-js' // ✅ named import, NOT default
+import { route } from 'ziggy-js'
 
 defineProps({
   beneficiaries: {
@@ -72,6 +101,10 @@ defineProps({
   }
 })
 
+const showRejectDialog = ref(false)
+const rejectionReason = ref('')
+let rejectId = null
+
 // Approve beneficiary
 const approve = (id) => {
   if (confirm('Approve this beneficiary?')) {
@@ -81,13 +114,30 @@ const approve = (id) => {
   }
 }
 
-// Reject beneficiary
-const reject = (id) => {
-  if (confirm('Reject this beneficiary?')) {
-    router.post(route('peso.beneficiaries.reject', { id }), {}, {
-      onSuccess: () => router.reload()
-    })
+// Open rejection dialog
+const openRejectDialog = (id) => {
+  rejectId = id
+  rejectionReason.value = ''
+  showRejectDialog.value = true
+}
+
+// Confirm rejection
+const confirmReject = () => {
+  if (!rejectionReason.value.trim()) {
+    alert('Please enter a reason for rejection')
+    return
   }
+
+  router.post(
+    route('peso.beneficiaries.reject', { id: rejectId }),
+    { rejection_reason: rejectionReason.value },
+    {
+      onSuccess: () => {
+        showRejectDialog.value = false
+        router.reload()
+      }
+    }
+  )
 }
 </script>
 

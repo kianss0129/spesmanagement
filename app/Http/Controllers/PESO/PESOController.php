@@ -68,20 +68,30 @@ class PESOController extends Controller
 
         $beneficiary->update([
             'approved' => true,
+            'approval_status' => 'approved',
             'approved_at' => now(),
             'approved_by' => Auth::id(),
         ]);
 
+        // Assign beneficiary role to the user
+        $beneficiary->user()->update(['role' => 'beneficiary']);
+
         return back()->with('success', 'Beneficiary approved');
     }
 
-    public function rejectBeneficiary($id)
+    public function rejectBeneficiary($id, Request $request)
     {
         $beneficiary = Beneficiary::findOrFail($id);
 
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
         $beneficiary->update([
             'approved' => false,
+            'approval_status' => 'rejected',
             'rejected_at' => now(),
+            'rejection_reason' => $request->rejection_reason,
             'approved_by' => Auth::id(),
         ]);
 
@@ -111,20 +121,30 @@ class PESOController extends Controller
 
         $employer->update([
             'approved' => true,
+            'approval_status' => 'approved',
             'approved_at' => now(),
             'approved_by' => Auth::id(),
         ]);
 
+        // Assign employer role to the user
+        $employer->user()->update(['role' => 'employer']);
+
         return back()->with('success', 'Employer approved');
     }
 
-    public function rejectEmployer($id)
+    public function rejectEmployer($id, Request $request)
     {
         $employer = Employer::findOrFail($id);
 
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
         $employer->update([
             'approved' => false,
+            'approval_status' => 'rejected',
             'rejected_at' => now(),
+            'rejection_reason' => $request->rejection_reason,
             'approved_by' => Auth::id(),
         ]);
 
@@ -133,32 +153,41 @@ class PESOController extends Controller
 
     /**
      * ==========================
-     * VIEW APPLICATIONS
+     * ONBOARDING VERIFICATION
      * ==========================
      */
     public function viewBeneficiaryApplications(Beneficiary $beneficiary)
     {
-        $beneficiary->load([
-            'user',
-            'applications.jobListing.employer.user'
-        ]);
+        // This now shows onboarding verification instead of job applications
+        $beneficiary->load('user', 'school');
 
         return Inertia::render('PESO/Beneficiaries/Applications', [
             'beneficiary' => $beneficiary,
-            'applications' => $beneficiary->applications,
+            'documents' => $beneficiary->documents ?? [],
+            'submission_date' => $beneficiary->onboarding_completed_at,
+            'approval_status' => $beneficiary->approval_status,
+            'rejection_reason' => $beneficiary->rejection_reason,
         ]);
     }
 
     public function viewEmployerApplications(Employer $employer)
     {
-        $employer->load([
-            'user',
-            'jobListings.applications.beneficiary.user'
-        ]);
+        // This now shows onboarding verification instead of job applications
+        $employer->load('user');
 
         return Inertia::render('PESO/Employers/Applications', [
             'employer' => $employer,
-            'jobListings' => $employer->jobListings,
+            'documents' => $employer->documents ?? [],
+            'submission_date' => $employer->onboarding_completed_at,
+            'company_details' => [
+                'company_name' => $employer->company_name,
+                'contact_person' => $employer->contact_person,
+                'email' => $employer->email,
+                'phone' => $employer->phone,
+                'address' => $employer->address,
+            ],
+            'approval_status' => $employer->approval_status,
+            'rejection_reason' => $employer->rejection_reason,
         ]);
     }
 

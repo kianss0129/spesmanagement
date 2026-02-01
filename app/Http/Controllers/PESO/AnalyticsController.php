@@ -219,4 +219,101 @@ class AnalyticsController extends Controller
             ];
         });
     }
+
+    // 4️⃣ Completion Rate (Overall)
+    public function completionRate(Request $request)
+   {
+       try {
+           $batchId = $request->query('batch_id');
+           $period = $request->query('period', 'month');
+           $start = $request->query('start_date');
+           $end = $request->query('end_date');
+
+           // Build base query for applications
+           $query = Application::query();
+
+           // Filter by batch if provided
+           if ($batchId) {
+               $query->where('batch_id', $batchId);
+           }
+
+           // Apply date filters
+           if ($start && $end) {
+               $query->whereBetween('created_at', [
+                   Carbon::parse($start)->startOfDay(),
+                   Carbon::parse($end)->endOfDay()
+               ]);
+           } else {
+               // Default period filters
+               if ($period === 'month') {
+                   $query->whereMonth('created_at', now()->month)
+                         ->whereYear('created_at', now()->year);
+               } elseif ($period === 'week') {
+                   $query->whereBetween('created_at', [
+                       now()->startOfWeek(),
+                       now()->endOfWeek()
+                   ]);
+               }
+           }
+
+           // Verify that required columns exist before using them
+           $applications = $query->select('id', 'status', 'created_at', 'approved_at')
+                                   ->get();
+
+           // Handle empty dataset
+           if ($applications->isEmpty()) {
+               return response()->json([
+                   'labels' => [],
+                   'data' => [],
+                   'message' => 'No applications found for the given criteria'
+               ], 200);
+           }
+
+           // Group by period
+           $grouped = [];
+           $labels = [];
+
+           foreach ($applications as $app) {
+               $dateKey = $period === 'month'
+                   ? $app->created_at->format('Y-m')
+                   : $app->created_at->format('Y-m-d');
+
+               if (!isset($grouped[$dateKey])) {
+                   $grouped[$dateKey] = ['total' => 0, 'completed' => 0];
+               }
+
+               $grouped[$dateKey]['total']++;
+               if ($app->status === 'completed' || $app->status === 'approved') {
+                   $grouped[$dateKey]['completed']++;
+               }
+           }
+
+           // Generate labels and data
+           foreach ($grouped as $dateKey => $counts) {
+               $labels[] = $dateKey;
+               // Prevent division by zero
+               $rate = $counts['total'] > 0 
+                   ? round(($counts['completed'] / $counts['total']) * 100, 2) 
+                   : 0;
+               $data[] = $rate;
+           }
+
+           return response()->json([
+               'labels' => $labels,
+               'data' => $data
+           ], 200);
+
+       } catch (\Exception $e) {
+           \Log::error('Error in completionRate method: ' . $e->getMessage(), [
+               'exception' => $e,
+               'request' => $request->all()
+           ]);
+
+           return response()->json([
+               'labels' => [],
+               'data' => [],
+               'error' => 'An error occurred while fetching completion rate data'
+           ], 200);
+       }
+   }
 }
