@@ -120,13 +120,21 @@
     Route::middleware('auth')->get('/dashboard', function () {
         $user = auth()->user();
         
+        // Beneficiaries go to their dedicated dashboard
+        if ($user->hasRole('Beneficiary')) {
+            return Inertia::render('Beneficiary/Dashboard', [
+                'user' => $user,
+                'beneficiary' => $user->beneficiary,
+            ]);
+        }
+        
         // Employers go to their dedicated dashboard
         if ($user->hasRole('Employer')) {
             return redirect()->route('employer.dashboard');
         }
         
-        // Admin, PESO Admin, PESO, and Beneficiary use the unified dashboard
-        if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO', 'Beneficiary'])) {
+        // Admin, PESO Admin, PESO use the unified dashboard
+        if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO'])) {
             return app(DashboardController::class)->index(request());
         }
         
