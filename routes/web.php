@@ -90,12 +90,23 @@
 
         Route::get('/pending', function () {
             $user = auth()->user();
+            
+            // Check if employer is approved
+            if ($user && $user->hasRole('Employer')) {
+                $employer = $user->employer;
+                if ($employer && $employer->approval_status === 'approved') {
+                    return redirect()->route('employer.dashboard');
+                }
+            }
+            
+            // Check if beneficiary is approved
             if ($user && $user->hasRole('Beneficiary')) {
                 $beneficiary = $user->beneficiary;
                 if ($beneficiary && $beneficiary->approval_status === 'approved') {
                     return redirect()->route('dashboard');
                 }
             }
+            
             return Inertia::render('Onboarding/Pending');
         })->name('onboarding.pending');
     });
@@ -104,7 +115,24 @@
     // HOME & DASHBOARD
     // =======================
     Route::get('/', [PageController::class, 'welcome'])->name('home');
-    Route::middleware(['auth', 'role:Admin|PESO Admin|PESO|Beneficiary'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Smart dashboard redirect for all authenticated users
+    Route::middleware('auth')->get('/dashboard', function () {
+        $user = auth()->user();
+        
+        // Employers go to their dedicated dashboard
+        if ($user->hasRole('Employer')) {
+            return redirect()->route('employer.dashboard');
+        }
+        
+        // Admin, PESO Admin, PESO, and Beneficiary use the unified dashboard
+        if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO', 'Beneficiary'])) {
+            return app(DashboardController::class)->index(request());
+        }
+        
+        // Fallback to login
+        return redirect()->route('login');
+    })->name('dashboard');
 
     // Redirect old dashboard routes
     Route::middleware('auth')->get('/admin/dashboard', fn() => redirect('/dashboard'));
@@ -186,6 +214,10 @@
 // EMPLOYER ROUTES
 // =======================
 Route::middleware(['auth', 'role:Employer'])->prefix('employer')->name('employer.')->group(function () {
+
+    // Employer dashboard
+    Route::get('/', [EmployerController::class, 'dashboard'])->name('dashboard');
+    Route::get('dashboard', [EmployerController::class, 'dashboard'])->name('dashboard');
 
     Route::resource('jobs', JobController::class);
 

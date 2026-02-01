@@ -231,6 +231,7 @@ class PESOController extends Controller
             'submission_date' => $beneficiary->onboarding_completed_at,
             'approval_status' => $beneficiary->approval_status ?? 'pending',
             'rejection_reason' => $beneficiary->rejection_reason,
+            'beneficiary_type' => $beneficiary->user->beneficiary_type ?? 'student',
         ]);
     }
 

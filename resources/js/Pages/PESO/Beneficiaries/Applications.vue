@@ -28,8 +28,21 @@
           <p class="font-semibold">{{ beneficiary.phone || 'Not provided' }}</p>
         </div>
         <div>
+          <p class="text-gray-600 text-sm">Category</p>
+          <p class="font-semibold capitalize">{{ beneficiary_type || 'student' }}</p>
+        </div>
+        <!-- Conditionally show category-specific field -->
+        <div v-if="beneficiary_type === 'student'">
           <p class="text-gray-600 text-sm">School</p>
           <p class="font-semibold">{{ beneficiary.school?.name || 'Not provided' }}</p>
+        </div>
+        <div v-else-if="beneficiary_type === 'osy'">
+          <p class="text-gray-600 text-sm">Skills</p>
+          <p class="font-semibold">{{ beneficiary.skills || 'Not provided' }}</p>
+        </div>
+        <div v-else-if="beneficiary_type === 'dependent'">
+          <p class="text-gray-600 text-sm">Parent/Guardian Name</p>
+          <p class="font-semibold">{{ beneficiary.parent_name || 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Submission Date</p>
@@ -121,6 +134,10 @@ const props = defineProps({
   rejection_reason: {
     type: String,
     default: null
+  },
+  beneficiary_type: {
+    type: String,
+    default: 'student'
   }
 })
 

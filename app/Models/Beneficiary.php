@@ -25,6 +25,8 @@ class Beneficiary extends Model
         'rejection_reason',
         'resubmit_at',
         'onboarding_completed_at',
+        'skills',
+        'parent_name',
     ];
 
     protected $casts = [
