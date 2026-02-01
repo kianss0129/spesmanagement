@@ -54,7 +54,11 @@
           </template>
 
           <template v-else-if="userType === 'employer'">
-            <textarea placeholder="Pledge of Commitment" v-model="form.pledge" class="border p-2 w-full mb-3 rounded"></textarea>
+            <label class="block text-sm font-medium mb-2">Contact Person</label>
+            <input type="text" placeholder="Contact Person Name" v-model="form.contactPerson" class="border p-2 w-full mb-3 rounded"/>
+            
+            <label class="block text-sm font-medium mb-2">Company Address</label>
+            <textarea placeholder="Company Address" v-model="form.address" class="border p-2 w-full mb-3 rounded"></textarea>
           </template>
         </div>
 
@@ -95,7 +99,9 @@
           <div v-else-if="userType === 'employer'">
             <p><strong>Company Name:</strong> {{ form.companyName }}</p>
             <p><strong>Email:</strong> {{ form.email }}</p>
-            <p><strong>Pledge:</strong> {{ form.pledge }}</p>
+            <p><strong>Contact Person:</strong> {{ form.contactPerson }}</p>
+            <p><strong>Phone:</strong> {{ form.phone }}</p>
+            <p><strong>Address:</strong> {{ form.address }}</p>
           </div>
 
           <div class="mb-4">
@@ -147,7 +153,8 @@ const form = ref({
   parentName: '',
   displacementReason: '',
   companyName: '',
-  pledge: '',
+  contactPerson: '',
+  address: '',
   documents: []
 })
 
@@ -195,7 +202,13 @@ function submitForm() {
   Object.keys(form.value).forEach(key => {
     if(key === 'documents') {
       form.value.documents.forEach((file, idx) => payload.append(`documents[${idx}]`, file))
-    } else payload.append(key, form.value[key])
+    } else if(form.value[key] !== '' && form.value[key] !== null && form.value[key] !== undefined) {
+      // Map camelCase form keys to snake_case for Laravel
+      let fieldName = key
+      if(key === 'companyName') fieldName = 'company_name'
+      if(key === 'contactPerson') fieldName = 'contact_person'
+      payload.append(fieldName, form.value[key])
+    }
   })
   Inertia.post('/onboarding/submit', payload)
 }

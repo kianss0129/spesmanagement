@@ -24,29 +24,22 @@ class OnboardingController extends Controller
         ]);
     }
 
-    /**
-     * STEP 1: Basic info
-     */
     public function step1(Request $request)
     {
         $user = Auth::user();
-
         $validated = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
         ]);
 
-        // Update user
         $user->update($validated);
 
-        // Split name safely
         $firstName = Str::before($validated['name'], ' ');
         $lastName  = Str::contains($validated['name'], ' ')
             ? Str::after($validated['name'], ' ')
             : '-';
 
-        // Create or update beneficiary
         $beneficiary = $user->beneficiary ?? Beneficiary::create([
             'user_id'    => $user->id,
             'first_name' => $firstName,
@@ -65,17 +58,12 @@ class OnboardingController extends Controller
         return response()->json(['message' => 'Step 1 saved']);
     }
 
-    /**
-     * STEP 2: Category-specific info
-     */
     public function step2(Request $request)
     {
         $beneficiary = Auth::user()->beneficiary;
-
         abort_if(! $beneficiary, 404);
 
         $category = $request->input('category');
-
         $rules = match ($category) {
             'student'   => ['school' => 'required|string|max:255'],
             'osy'       => ['skills' => 'required|string|max:255'],
@@ -85,97 +73,100 @@ class OnboardingController extends Controller
 
         $validated = $request->validate($rules);
 
-        // If student provided a school name, find or create School and save school_id
         if ($category === 'student' && isset($validated['school'])) {
             $schoolName = trim($validated['school']);
-            $school = \App\Models\School::firstOrCreate([
-                'name' => $schoolName,
-            ], [
-                'name' => $schoolName,
-            ]);
-
-            $beneficiary->update([
-                'school_id' => $school->id,
-            ]);
+            $school = \App\Models\School::firstOrCreate(['name' => $schoolName]);
+            $beneficiary->update(['school_id' => $school->id]);
         } else {
-            // other categories store raw fields on beneficiary
             $beneficiary->update($validated);
         }
 
         return response()->json(['message' => 'Step 2 saved']);
     }
 
-    /**
-     * Upload documents
-     */
     public function upload(Request $request)
     {
         $user = Auth::user();
-
         $request->validate([
-            'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:1024000',
+            'files.*'     => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:1024000',
         ]);
 
-        $files = [];
+        $uploadedDocs = [];
+        $incomingFiles = [];
 
         if ($request->hasFile('documents')) {
-            // Determine upload folder based on user type
-            $folder = $user->hasRole('Employer') ? 'documents/employers' : 'documents/users';
-            $uploadDir = $folder . '/' . Auth::id();
+            $incomingFiles = array_merge($incomingFiles, (array) $request->file('documents'));
+        }
+        if ($request->hasFile('files')) {
+            $incomingFiles = array_merge($incomingFiles, (array) $request->file('files'));
+        }
 
-            foreach ($request->file('documents') as $file) {
-                // Store file to public disk with relative path
-                $storedPath = $file->store($uploadDir, 'public');
+        if (!empty($incomingFiles)) {
+            $folder = $user->hasRole('Employer')
+                ? 'documents/employers'
+                : 'documents/users';
+
+            foreach ($incomingFiles as $file) {
+                if (! $file) continue;
+
+                // Save to public disk so accessible via /storage/...
+                $storedPath = $file->store($folder . '/' . Auth::id(), 'public');
+
                 if ($storedPath) {
-                    $files[] = $storedPath;
+                    $uploadedDocs[] = [
+                        'path'        => $storedPath,
+                        'name'        => $file->getClientOriginalName(),
+                        'uploaded_at' => now()->toIso8601String(),
+                    ];
                 }
             }
         }
 
-        // Handle both employer and beneficiary uploads
+        $savedDocuments = [];
+
         if ($user->hasRole('Employer') || $request->filled('employer_upload')) {
-            // Save to employer
             $employer = $user->employer ?? $user->employer()->create([]);
-
-            $employer->documents = array_merge(
-                $employer->documents ?? [],
-                $files
-            );
-
+            $existingDocs = is_array($employer->documents) ? $employer->documents : ($employer->documents ? [$employer->documents] : []);
+            $employer->documents = array_merge($existingDocs, $uploadedDocs);
             $employer->save();
+            $savedDocuments = $employer->documents ?? [];
         } else {
-            // Save to beneficiary (default)
             $beneficiary = $user->beneficiary;
-
             abort_if(! $beneficiary, 404);
-
-            $beneficiary->documents = array_merge(
-                $beneficiary->documents ?? [],
-                $files
-            );
-
+            $existingDocs = is_array($beneficiary->documents) ? $beneficiary->documents : ($beneficiary->documents ? [$beneficiary->documents] : []);
+            $beneficiary->documents = array_merge($existingDocs, $uploadedDocs);
             $beneficiary->save();
+            $savedDocuments = $beneficiary->documents ?? [];
         }
 
-        return response()->json(['message' => 'Documents uploaded']);
+        return response()->json([
+            'message'   => 'Documents uploaded',
+            'documents' => $savedDocuments,
+        ]);
     }
 
-    /**
-     * FINAL SUBMIT
-     */
     public function submit(Request $request)
     {
         $user = Auth::user();
+        $request->validate([
+            'documents.*' => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:1024000',
+            'files.*'     => 'file|mimes:pdf,doc,docx,jpg,jpeg,png|max:1024000',
+        ]);
 
-        /**
-         * EMPLOYER ONBOARDING
-         */
+        $incomingFiles = [];
+        if ($request->hasFile('documents')) {
+            $incomingFiles = array_merge($incomingFiles, (array) $request->file('documents'));
+        }
+        if ($request->hasFile('files')) {
+            $incomingFiles = array_merge($incomingFiles, (array) $request->file('files'));
+        }
+
         if ($request->filled('company_name')) {
-
             $validated = $request->validate([
                 'company_name'  => 'required|string|max:255',
                 'email'         => 'nullable|email|max:255',
-                'contact_person' => 'nullable|string|max:255',
+                'contact_person'=> 'nullable|string|max:255',
                 'phone'         => 'required|string|max:20',
                 'address'       => 'nullable|string|max:255',
             ]);
@@ -184,17 +175,26 @@ class OnboardingController extends Controller
                 $user->assignRole('Employer');
             }
 
-            $user->update([
-                'name' => $validated['company_name'],
-            ]);
+            $user->update(['name' => $validated['company_name']]);
 
             $employer = $user->employer ?? $user->employer()->create([]);
 
-            // Get uploaded documents from user's temporary documents field if it exists
-            $documents = [];
-            if ($request->filled('documents')) {
-                $documents = is_array($request->input('documents')) ? $request->input('documents') : [];
+            $uploadedDocs = [];
+            if (!empty($incomingFiles)) {
+                foreach ($incomingFiles as $file) {
+                    $storedPath = $file->store('documents/employers/' . Auth::id(), 'public');
+                    if ($storedPath) {
+                        $uploadedDocs[] = [
+                            'path' => $storedPath,
+                            'name' => $file->getClientOriginalName(),
+                            'uploaded_at' => now()->toIso8601String(),
+                        ];
+                    }
+                }
             }
+
+            $existing = is_array($employer->documents) ? $employer->documents : ($employer->documents ? [$employer->documents] : []);
+            $employer->documents = array_merge($existing, $uploadedDocs);
 
             $employer->update([
                 'company_name'            => $validated['company_name'],
@@ -202,9 +202,10 @@ class OnboardingController extends Controller
                 'contact_person'          => $validated['contact_person'] ?? null,
                 'phone'                   => $validated['phone'],
                 'address'                 => $validated['address'],
-                'documents'               => $documents,
+                'documents'               => $employer->documents,
                 'onboarding_completed_at' => now(),
                 'approved'                => false,
+                'approval_status'         => 'pending',
             ]);
 
             return redirect()
@@ -212,18 +213,12 @@ class OnboardingController extends Controller
                 ->with('success', 'Employer onboarding submitted successfully!');
         }
 
-        /**
-         * BENEFICIARY ONBOARDING
-         */
         $beneficiary = $user->beneficiary;
-
-        // Ensure beneficiary exists (safety net)
         if (! $beneficiary) {
             $firstName = Str::before($user->name, ' ');
             $lastName  = Str::contains($user->name, ' ')
                 ? Str::after($user->name, ' ')
                 : '-';
-
             $beneficiary = Beneficiary::create([
                 'user_id'    => $user->id,
                 'first_name' => $firstName,
@@ -233,35 +228,46 @@ class OnboardingController extends Controller
             ]);
         }
 
-        // Final validation: accept optional phone and school fields and handle documents
         $validated = $request->validate([
-            'phone' => 'nullable|string|max:20',
+            'phone'  => 'nullable|string|max:20',
             'school' => 'nullable|string|max:255',
-            'documents' => 'nullable', // expecting array of stored paths if present
         ]);
 
-        // If school provided on final submit, try to find/create and save school_id
         if (!empty($validated['school'])) {
             $schoolName = trim($validated['school']);
-            $school = \App\Models\School::firstOrCreate(['name' => $schoolName], ['name' => $schoolName]);
+            $school = \App\Models\School::firstOrCreate(['name' => $schoolName]);
             $beneficiary->school_id = $school->id;
         }
 
-        // Update phone if provided
         if (!empty($validated['phone'])) {
             $beneficiary->phone = $validated['phone'];
         }
 
-        // Merge documents if passed as input (don't overwrite existing stored documents)
-        if ($request->filled('documents')) {
-            $incoming = is_array($request->input('documents')) ? $request->input('documents') : [];
-            $beneficiary->documents = array_values(array_unique(array_merge($beneficiary->documents ?? [], $incoming)));
+        $uploadedDocs = [];
+        if (!empty($incomingFiles)) {
+            foreach ($incomingFiles as $file) {
+                $storedPath = $file->store('documents/users/' . Auth::id(), 'public');
+                if ($storedPath) {
+                    $uploadedDocs[] = [
+                        'path' => $storedPath,
+                        'name' => $file->getClientOriginalName(),
+                        'uploaded_at' => now()->toIso8601String(),
+                    ];
+                }
+            }
         }
 
-        $beneficiary->status = 'pending';
-        $beneficiary->onboarding_completed_at = now();
-        $beneficiary->approved = false;
-        $beneficiary->save();
+        $existing = is_array($beneficiary->documents) ? $beneficiary->documents : ($beneficiary->documents ? [$beneficiary->documents] : []);
+        $beneficiary->documents = array_merge($existing, $uploadedDocs);
+
+        $beneficiary->update([
+            'status'                  => 'pending',
+            'onboarding_completed_at' => now(),
+            'approved'                => false,
+            'approval_status'         => 'pending',
+            'phone'                   => $beneficiary->phone,
+            'school_id'               => $beneficiary->school_id,
+        ]);
 
         return redirect()
             ->route('onboarding.pending')

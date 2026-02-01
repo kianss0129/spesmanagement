@@ -18,11 +18,8 @@ class EmployerRegisterController extends Controller
     // Show registration page
     public function create(Request $request)
     {
-        // Support both Inertia & Blade
-        if (!$request->header('X-Inertia')) {
-            return view('auth.register-employer');
-        }
-
+        // Always render the Inertia page so initial requests include the
+        // Inertia page payload (avoids client-side null `component` errors).
         return Inertia::render('Auth/RegisterEmployer');
     }
 

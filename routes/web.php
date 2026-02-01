@@ -146,6 +146,12 @@
                 ->name('employers.approve');
             Route::post('employers/{id}/reject', [PESOController::class, 'rejectEmployer'])
                 ->name('employers.reject');
+
+            // Verification page and actions
+            Route::get('beneficiaries/{beneficiary}/verify', [BeneficiaryController::class, 'showVerification'])
+                ->name('beneficiaries.verify.show');
+            Route::post('beneficiaries/{beneficiary}/verify', [BeneficiaryController::class, 'verify'])
+                ->name('beneficiaries.verify');
         });
 
         // Analytics

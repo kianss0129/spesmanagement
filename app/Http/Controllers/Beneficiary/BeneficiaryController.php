@@ -201,4 +201,122 @@ class BeneficiaryController extends Controller
             'average'=>$average
         ]);
     }
+
+    /**
+     * Show verification page for PESO admin to review beneficiary onboarding
+     */
+    public function showVerification(Beneficiary $beneficiary)
+    {
+        // Load related data
+        $beneficiary->load('user', 'school');
+
+        // Build documents array from stored file paths
+        $documents = [];
+        if ($beneficiary->documents) {
+            $raw = is_array($beneficiary->documents) ? $beneficiary->documents : [$beneficiary->documents];
+            foreach ($raw as $entry) {
+                $entryPath = null;
+                $entryName = null;
+                $entryUploadedAt = null;
+
+                if (is_string($entry)) {
+                    $entryPath = $entry;
+                } elseif (is_array($entry)) {
+                    $entryPath = $entry['path'] ?? $entry['file'] ?? null;
+                    $entryName = $entry['name'] ?? $entry['filename'] ?? null;
+                    $entryUploadedAt = $entry['uploaded_at'] ?? $entry['created_at'] ?? null;
+                } elseif (is_object($entry)) {
+                    $entryPath = $entry->path ?? $entry->file ?? null;
+                    $entryName = $entry->name ?? $entry->filename ?? null;
+                    $entryUploadedAt = $entry->uploaded_at ?? $entry->created_at ?? null;
+                }
+
+                if (!$entryPath) {
+                    continue;
+                }
+
+                // Check if file exists on public disk
+                $exists = Storage::disk('public')->exists((string) $entryPath);
+
+                // Build URL for storage path
+                $url = null;
+                if ($exists) {
+                    try {
+                        $url = Storage::disk('public')->url((string) $entryPath);
+                    } catch (\Throwable $e) {
+                        $url = null;
+                    }
+                }
+
+                // Determine uploaded at timestamp
+                $uploadedAt = $entryUploadedAt;
+                if (!$uploadedAt && $exists) {
+                    try {
+                        $fullPath = storage_path('app/public/' . ltrim((string) $entryPath, '/'));
+                        if (file_exists($fullPath)) {
+                            $uploadedAt = date('c', filemtime($fullPath));
+                        }
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                }
+
+                $documents[] = [
+                    'path' => $entryPath,
+                    'url' => $url,
+                    'name' => $entryName ?? basename((string) $entryPath),
+                    'uploaded_at' => $uploadedAt,
+                    'exists' => $exists,
+                ];
+            }
+        }
+
+        return view('beneficiaries.verify', [
+            'beneficiary' => $beneficiary,
+            'documents' => $documents,
+        ]);
+    }
+
+    /**
+     * Handle verification action (approve/reject) for beneficiary
+     */
+    public function verify(Request $request, Beneficiary $beneficiary)
+    {
+        $validated = $request->validate([
+            'action' => 'required|in:approve,reject',
+            'rejection_reason' => 'required_if:action,reject|nullable|string|max:1000',
+        ]);
+
+        if ($validated['action'] === 'approve') {
+            $beneficiary->update([
+                'approval_status' => 'approved',
+                'approved_at' => now(),
+                'approved' => true,
+                'rejection_reason' => null,
+                'rejected_at' => null,
+            ]);
+
+            Log::info("Beneficiary {$beneficiary->id} approved by " . auth()->user()->name);
+
+            return redirect()
+                ->route('beneficiaries.verify', $beneficiary->id)
+                ->with('success', 'Beneficiary has been approved successfully.');
+        }
+
+        if ($validated['action'] === 'reject') {
+            $beneficiary->update([
+                'approval_status' => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'rejected_at' => now(),
+                'approved' => false,
+                'approved_at' => null,
+            ]);
+
+            Log::info("Beneficiary {$beneficiary->id} rejected by " . auth()->user()->name . ". Reason: {$validated['rejection_reason']}");
+
+            return redirect()
+                ->route('beneficiaries.verify', $beneficiary->id)
+                ->with('success', 'Beneficiary has been rejected. A notification will be sent to the beneficiary.');
+        }
+    }
 }

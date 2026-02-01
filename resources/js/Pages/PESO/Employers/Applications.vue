@@ -167,8 +167,10 @@ const formatDate = (date) => {
 }
 
 const viewDocument = (doc) => {
-  if (doc.path || doc.url) {
-    window.open(doc.path || doc.url, '_blank')
+  if (doc.url) {
+    window.open(doc.url, '_blank')
+  } else if (doc.path) {
+    window.open(doc.path, '_blank')
   }
 }
 
