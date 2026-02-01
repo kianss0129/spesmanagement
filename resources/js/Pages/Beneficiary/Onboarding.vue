@@ -25,12 +25,14 @@
 
           <template v-if="userType === 'student' || userType === 'osy' || userType === 'dependent'">
             <input type="text" placeholder="Full Name" v-model="form.name" class="border p-2 w-full mb-3 rounded"/>
-            <input type="email" placeholder="Email" v-model="form.email" class="border p-2 w-full mb-3 rounded"/>
+            <input type="email" placeholder="Email" v-model="form.email" name="email" class="border p-2 w-full mb-3 rounded"/>
+            <input type="tel" placeholder="Phone Number" v-model="form.phone" name="phone" class="border p-2 w-full mb-3 rounded"/>
           </template>
 
           <template v-else-if="userType === 'employer'">
             <input type="text" placeholder="Company Name" v-model="form.companyName" class="border p-2 w-full mb-3 rounded"/>
-            <input type="email" placeholder="Company Email" v-model="form.email" class="border p-2 w-full mb-3 rounded"/>
+            <input type="email" placeholder="Company Email" v-model="form.email" name="email" class="border p-2 w-full mb-3 rounded"/>
+            <input type="tel" placeholder="Phone Number" v-model="form.phone" name="phone" class="border p-2 w-full mb-3 rounded"/>
           </template>
         </div>
 
@@ -139,6 +141,7 @@ const userType = ref(category)
 const form = ref({
   name: '',
   email: '',
+  phone: '',
   school: '',
   skills: '',
   parentName: '',

@@ -52,19 +52,20 @@
       <div v-else class="space-y-3">
         <div v-for="(doc, index) in documents" :key="index" class="border rounded-lg p-4 flex items-center justify-between">
           <div class="flex-1">
-            <p class="font-semibold">{{ doc.type || doc.name || 'Document ' + (index + 1) }}</p>
+            <p class="font-semibold">{{ doc.name || 'Document ' + (index + 1) }}</p>
             <p class="text-sm text-gray-600">{{ doc.description || '' }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ doc.uploaded_at ? 'Uploaded: ' + formatDate(doc.uploaded_at) : 'Uploaded: ' + formatDate(doc.created_at) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ doc.uploaded_at ? 'Uploaded: ' + formatDate(doc.uploaded_at) : '' }}</p>
+            <p v-if="!doc.exists" class="text-xs text-red-600 mt-1">❌ File missing or deleted</p>
           </div>
           <div class="flex gap-2">
             <button 
-              v-if="doc.path || doc.url"
+              v-if="doc.exists && doc.url"
               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
               @click="viewDocument(doc)"
             >
-              View/Download
+              View
             </button>
-            <span v-else class="text-gray-400 text-sm">No file</span>
+            <span v-else class="text-gray-400 text-sm">Unavailable</span>
           </div>
         </div>
       </div>

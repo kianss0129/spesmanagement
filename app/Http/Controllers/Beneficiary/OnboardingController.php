@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Beneficiary;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\Beneficiary;
 
@@ -33,6 +34,7 @@ class OnboardingController extends Controller
         $validated = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
         ]);
 
         // Update user
@@ -57,6 +59,7 @@ class OnboardingController extends Controller
             'first_name' => $firstName,
             'last_name'  => $lastName,
             'email'      => $validated['email'],
+            'phone'      => $validated['phone'] ?? $beneficiary->phone ?? null,
         ]);
 
         return response()->json(['message' => 'Step 1 saved']);
@@ -82,7 +85,22 @@ class OnboardingController extends Controller
 
         $validated = $request->validate($rules);
 
-        $beneficiary->update($validated);
+        // If student provided a school name, find or create School and save school_id
+        if ($category === 'student' && isset($validated['school'])) {
+            $schoolName = trim($validated['school']);
+            $school = \App\Models\School::firstOrCreate([
+                'name' => $schoolName,
+            ], [
+                'name' => $schoolName,
+            ]);
+
+            $beneficiary->update([
+                'school_id' => $school->id,
+            ]);
+        } else {
+            // other categories store raw fields on beneficiary
+            $beneficiary->update($validated);
+        }
 
         return response()->json(['message' => 'Step 2 saved']);
     }
@@ -101,11 +119,16 @@ class OnboardingController extends Controller
         $files = [];
 
         if ($request->hasFile('documents')) {
+            // Determine upload folder based on user type
+            $folder = $user->hasRole('Employer') ? 'documents/employers' : 'documents/users';
+            $uploadDir = $folder . '/' . Auth::id();
+
             foreach ($request->file('documents') as $file) {
-                $files[] = $file->store(
-                    'documents/users/' . Auth::id(),
-                    'public'
-                );
+                // Store file to public disk with relative path
+                $storedPath = $file->store($uploadDir, 'public');
+                if ($storedPath) {
+                    $files[] = $storedPath;
+                }
             }
         }
 
@@ -113,12 +136,12 @@ class OnboardingController extends Controller
         if ($user->hasRole('Employer') || $request->filled('employer_upload')) {
             // Save to employer
             $employer = $user->employer ?? $user->employer()->create([]);
-            
+
             $employer->documents = array_merge(
                 $employer->documents ?? [],
                 $files
             );
-            
+
             $employer->save();
         } else {
             // Save to beneficiary (default)
@@ -210,16 +233,35 @@ class OnboardingController extends Controller
             ]);
         }
 
-        // Final validation if needed
+        // Final validation: accept optional phone and school fields and handle documents
         $validated = $request->validate([
-            // add required fields before submission if needed
+            'phone' => 'nullable|string|max:20',
+            'school' => 'nullable|string|max:255',
+            'documents' => 'nullable', // expecting array of stored paths if present
         ]);
 
-        $beneficiary->update($validated + [
-            'status'                     => 'pending',
-            'onboarding_completed_at'    => now(),
-            'approved'                   => false,
-        ]);
+        // If school provided on final submit, try to find/create and save school_id
+        if (!empty($validated['school'])) {
+            $schoolName = trim($validated['school']);
+            $school = \App\Models\School::firstOrCreate(['name' => $schoolName], ['name' => $schoolName]);
+            $beneficiary->school_id = $school->id;
+        }
+
+        // Update phone if provided
+        if (!empty($validated['phone'])) {
+            $beneficiary->phone = $validated['phone'];
+        }
+
+        // Merge documents if passed as input (don't overwrite existing stored documents)
+        if ($request->filled('documents')) {
+            $incoming = is_array($request->input('documents')) ? $request->input('documents') : [];
+            $beneficiary->documents = array_values(array_unique(array_merge($beneficiary->documents ?? [], $incoming)));
+        }
+
+        $beneficiary->status = 'pending';
+        $beneficiary->onboarding_completed_at = now();
+        $beneficiary->approved = false;
+        $beneficiary->save();
 
         return redirect()
             ->route('onboarding.pending')

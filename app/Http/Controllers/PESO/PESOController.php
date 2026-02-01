@@ -12,6 +12,7 @@ use App\Services\ReportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
 
 class PESOController extends Controller
 {
@@ -161,10 +162,67 @@ class PESOController extends Controller
         // This now shows onboarding verification instead of job applications
         $beneficiary->load('user', 'school');
 
-        // Ensure documents is an array, handle both JSON array and null
+        // Build documents array from stored file paths (if any)
         $documents = [];
         if ($beneficiary->documents) {
-            $documents = is_array($beneficiary->documents) ? $beneficiary->documents : [$beneficiary->documents];
+            $raw = is_array($beneficiary->documents) ? $beneficiary->documents : [$beneficiary->documents];
+            foreach ($raw as $entry) {
+                // Entry may be a plain path string, or an array/object with keys like 'path','name','uploaded_at'
+                $entryPath = null;
+                $entryName = null;
+                $entryUploadedAt = null;
+
+                if (is_string($entry)) {
+                    $entryPath = $entry;
+                } elseif (is_array($entry)) {
+                    $entryPath = $entry['path'] ?? $entry['file'] ?? null;
+                    $entryName = $entry['name'] ?? $entry['filename'] ?? null;
+                    $entryUploadedAt = $entry['uploaded_at'] ?? $entry['created_at'] ?? null;
+                } elseif (is_object($entry)) {
+                    $entryPath = $entry->path ?? $entry->file ?? null;
+                    $entryName = $entry->name ?? $entry->filename ?? null;
+                    $entryUploadedAt = $entry->uploaded_at ?? $entry->created_at ?? null;
+                }
+
+                if (! $entryPath) {
+                    // skip malformed entry
+                    continue;
+                }
+
+                // Check if file exists on public disk
+                $exists = Storage::disk('public')->exists((string) $entryPath);
+
+                // Build URL for storage path using Storage disk
+                $url = null;
+                if ($exists) {
+                    try {
+                        $url = Storage::disk('public')->url((string) $entryPath);
+                    } catch (\Throwable $e) {
+                        $url = null;
+                    }
+                }
+
+                // Determine uploaded at timestamp from file system if not provided
+                $uploadedAt = $entryUploadedAt;
+                if (! $uploadedAt && $exists) {
+                    try {
+                        $fullPath = storage_path('app/public/' . ltrim((string) $entryPath, '/'));
+                        if (file_exists($fullPath)) {
+                            $uploadedAt = date('c', filemtime($fullPath));
+                        }
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                }
+
+                $documents[] = [
+                    'path' => $entryPath,
+                    'url' => $url,
+                    'name' => $entryName ?? basename((string) $entryPath),
+                    'uploaded_at' => $uploadedAt,
+                    'exists' => $exists,
+                ];
+            }
         }
 
         return Inertia::render('PESO/Beneficiaries/Applications', [
@@ -181,10 +239,67 @@ class PESOController extends Controller
         // This now shows onboarding verification instead of job applications
         $employer->load('user');
 
-        // Ensure documents is an array, handle both JSON array and null
+        // Build documents array from stored file paths (if any)
         $documents = [];
         if ($employer->documents) {
-            $documents = is_array($employer->documents) ? $employer->documents : [$employer->documents];
+            $raw = is_array($employer->documents) ? $employer->documents : [$employer->documents];
+            foreach ($raw as $entry) {
+                // Entry may be a plain path string, or an array/object with keys like 'path','name','uploaded_at'
+                $entryPath = null;
+                $entryName = null;
+                $entryUploadedAt = null;
+
+                if (is_string($entry)) {
+                    $entryPath = $entry;
+                } elseif (is_array($entry)) {
+                    $entryPath = $entry['path'] ?? $entry['file'] ?? null;
+                    $entryName = $entry['name'] ?? $entry['filename'] ?? null;
+                    $entryUploadedAt = $entry['uploaded_at'] ?? $entry['created_at'] ?? null;
+                } elseif (is_object($entry)) {
+                    $entryPath = $entry->path ?? $entry->file ?? null;
+                    $entryName = $entry->name ?? $entry->filename ?? null;
+                    $entryUploadedAt = $entry->uploaded_at ?? $entry->created_at ?? null;
+                }
+
+                if (! $entryPath) {
+                    // skip malformed entry
+                    continue;
+                }
+
+                // Check if file exists on public disk
+                $exists = Storage::disk('public')->exists((string) $entryPath);
+
+                // Build URL for storage path using Storage disk
+                $url = null;
+                if ($exists) {
+                    try {
+                        $url = Storage::disk('public')->url((string) $entryPath);
+                    } catch (\Throwable $e) {
+                        $url = null;
+                    }
+                }
+
+                // Determine uploaded at timestamp from file system if not provided
+                $uploadedAt = $entryUploadedAt;
+                if (! $uploadedAt && $exists) {
+                    try {
+                        $fullPath = storage_path('app/public/' . ltrim((string) $entryPath, '/'));
+                        if (file_exists($fullPath)) {
+                            $uploadedAt = date('c', filemtime($fullPath));
+                        }
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                }
+
+                $documents[] = [
+                    'path' => $entryPath,
+                    'url' => $url,
+                    'name' => $entryName ?? basename((string) $entryPath),
+                    'uploaded_at' => $uploadedAt,
+                    'exists' => $exists,
+                ];
+            }
         }
 
         return Inertia::render('PESO/Employers/Applications', [

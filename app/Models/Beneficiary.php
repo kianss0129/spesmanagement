@@ -31,6 +31,8 @@ class Beneficiary extends Model
         'documents' => 'array',
         'approved' => 'boolean',
         'onboarding_completed_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'resubmit_at' => 'datetime',
     ];
 
     /*
