@@ -92,9 +92,7 @@ class OnboardingController extends Controller
      */
     public function upload(Request $request)
     {
-        $beneficiary = Auth::user()->beneficiary;
-
-        abort_if(! $beneficiary, 404);
+        $user = Auth::user();
 
         $request->validate([
             'documents.*' => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -105,18 +103,36 @@ class OnboardingController extends Controller
         if ($request->hasFile('documents')) {
             foreach ($request->file('documents') as $file) {
                 $files[] = $file->store(
-                    'documents/beneficiaries/' . Auth::id(),
+                    'documents/users/' . Auth::id(),
                     'public'
                 );
             }
         }
 
-        $beneficiary->documents = array_merge(
-            $beneficiary->documents ?? [],
-            $files
-        );
+        // Handle both employer and beneficiary uploads
+        if ($user->hasRole('Employer') || $request->filled('employer_upload')) {
+            // Save to employer
+            $employer = $user->employer ?? $user->employer()->create([]);
+            
+            $employer->documents = array_merge(
+                $employer->documents ?? [],
+                $files
+            );
+            
+            $employer->save();
+        } else {
+            // Save to beneficiary (default)
+            $beneficiary = $user->beneficiary;
 
-        $beneficiary->save();
+            abort_if(! $beneficiary, 404);
+
+            $beneficiary->documents = array_merge(
+                $beneficiary->documents ?? [],
+                $files
+            );
+
+            $beneficiary->save();
+        }
 
         return response()->json(['message' => 'Documents uploaded']);
     }
@@ -134,9 +150,11 @@ class OnboardingController extends Controller
         if ($request->filled('company_name')) {
 
             $validated = $request->validate([
-                'company_name' => 'required|string|max:255',
-                'phone'        => 'required|string|max:20',
-                'address'      => 'nullable|string|max:255',
+                'company_name'  => 'required|string|max:255',
+                'email'         => 'nullable|email|max:255',
+                'contact_person' => 'nullable|string|max:255',
+                'phone'         => 'required|string|max:20',
+                'address'       => 'nullable|string|max:255',
             ]);
 
             if (! $user->hasRole('Employer')) {
@@ -149,10 +167,19 @@ class OnboardingController extends Controller
 
             $employer = $user->employer ?? $user->employer()->create([]);
 
+            // Get uploaded documents from user's temporary documents field if it exists
+            $documents = [];
+            if ($request->filled('documents')) {
+                $documents = is_array($request->input('documents')) ? $request->input('documents') : [];
+            }
+
             $employer->update([
                 'company_name'            => $validated['company_name'],
+                'email'                   => $validated['email'] ?? null,
+                'contact_person'          => $validated['contact_person'] ?? null,
                 'phone'                   => $validated['phone'],
                 'address'                 => $validated['address'],
+                'documents'               => $documents,
                 'onboarding_completed_at' => now(),
                 'approved'                => false,
             ]);

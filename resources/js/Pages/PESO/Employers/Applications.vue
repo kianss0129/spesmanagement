@@ -17,23 +17,23 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <p class="text-gray-600 text-sm">Company Name</p>
-          <p class="font-semibold">{{ company_details.company_name }}</p>
+          <p class="font-semibold">{{ company_details?.company_name !== 'N/A' ? company_details?.company_name : 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Contact Person</p>
-          <p class="font-semibold">{{ company_details.contact_person || 'N/A' }}</p>
+          <p class="font-semibold">{{ company_details?.contact_person !== 'N/A' ? company_details?.contact_person : 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Email</p>
-          <p class="font-semibold">{{ company_details.email || 'N/A' }}</p>
+          <p class="font-semibold">{{ company_details?.email !== 'N/A' ? company_details?.email : 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Phone</p>
-          <p class="font-semibold">{{ company_details.phone || 'N/A' }}</p>
+          <p class="font-semibold">{{ company_details?.phone !== 'N/A' ? company_details?.phone : 'Not provided' }}</p>
         </div>
         <div class="col-span-2">
           <p class="text-gray-600 text-sm">Address</p>
-          <p class="font-semibold">{{ company_details.address || 'N/A' }}</p>
+          <p class="font-semibold">{{ company_details?.address !== 'N/A' ? company_details?.address : 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Submission Date</p>
@@ -46,7 +46,7 @@
     <div class="bg-white shadow-md rounded-lg p-6 mb-6">
       <h2 class="text-xl font-bold mb-4">Required Documents</h2>
       <p class="text-gray-600 text-sm mb-4">Verify the following documents:</p>
-      <div v-if="documents.length === 0" class="text-gray-500">
+      <div v-if="!documents || documents.length === 0" class="text-gray-500">
         <p>No documents submitted</p>
       </div>
       <div v-else class="space-y-3">
@@ -54,7 +54,7 @@
           <div class="flex-1">
             <p class="font-semibold">{{ doc.type || doc.name || 'Document ' + (index + 1) }}</p>
             <p class="text-sm text-gray-600">{{ doc.description || '' }}</p>
-            <p class="text-xs text-gray-500 mt-1">{{ doc.uploaded_at ? 'Uploaded: ' + formatDate(doc.uploaded_at) : '' }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ doc.uploaded_at ? 'Uploaded: ' + formatDate(doc.uploaded_at) : 'Uploaded: ' + formatDate(doc.created_at) }}</p>
           </div>
           <div class="flex gap-2">
             <button 

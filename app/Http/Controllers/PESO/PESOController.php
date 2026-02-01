@@ -161,11 +161,17 @@ class PESOController extends Controller
         // This now shows onboarding verification instead of job applications
         $beneficiary->load('user', 'school');
 
+        // Ensure documents is an array, handle both JSON array and null
+        $documents = [];
+        if ($beneficiary->documents) {
+            $documents = is_array($beneficiary->documents) ? $beneficiary->documents : [$beneficiary->documents];
+        }
+
         return Inertia::render('PESO/Beneficiaries/Applications', [
             'beneficiary' => $beneficiary,
-            'documents' => $beneficiary->documents ?? [],
+            'documents' => $documents,
             'submission_date' => $beneficiary->onboarding_completed_at,
-            'approval_status' => $beneficiary->approval_status,
+            'approval_status' => $beneficiary->approval_status ?? 'pending',
             'rejection_reason' => $beneficiary->rejection_reason,
         ]);
     }
@@ -175,18 +181,24 @@ class PESOController extends Controller
         // This now shows onboarding verification instead of job applications
         $employer->load('user');
 
+        // Ensure documents is an array, handle both JSON array and null
+        $documents = [];
+        if ($employer->documents) {
+            $documents = is_array($employer->documents) ? $employer->documents : [$employer->documents];
+        }
+
         return Inertia::render('PESO/Employers/Applications', [
             'employer' => $employer,
-            'documents' => $employer->documents ?? [],
+            'documents' => $documents,
             'submission_date' => $employer->onboarding_completed_at,
             'company_details' => [
-                'company_name' => $employer->company_name,
-                'contact_person' => $employer->contact_person,
-                'email' => $employer->email,
-                'phone' => $employer->phone,
-                'address' => $employer->address,
+                'company_name' => $employer->company_name ?? 'N/A',
+                'contact_person' => $employer->contact_person ?? 'N/A',
+                'email' => $employer->email ?? 'N/A',
+                'phone' => $employer->phone ?? 'N/A',
+                'address' => $employer->address ?? 'N/A',
             ],
-            'approval_status' => $employer->approval_status,
+            'approval_status' => $employer->approval_status ?? 'pending',
             'rejection_reason' => $employer->rejection_reason,
         ]);
     }

@@ -4,6 +4,8 @@ import { route } from 'ziggy-js'
 
 const form = useForm({
   company_name: '',
+  email: '',
+  contact_person: '',
   phone: '',
   address: ''
 })
@@ -29,6 +31,34 @@ const submit = () => {
         class="input"
       />
       <p v-if="form.errors.company_name" class="error">{{ form.errors.company_name }}</p>
+    </div>
+
+    <!-- Email -->
+    <div>
+      <label for="email">Company Email</label>
+      <input
+        v-model="form.email"
+        name="email"
+        id="email"
+        type="email"
+        autocomplete="email"
+        class="input"
+      />
+      <p v-if="form.errors.email" class="error">{{ form.errors.email }}</p>
+    </div>
+
+    <!-- Contact Person -->
+    <div>
+      <label for="contact_person">Contact Person</label>
+      <input
+        v-model="form.contact_person"
+        name="contact_person"
+        id="contact_person"
+        type="text"
+        autocomplete="name"
+        class="input"
+      />
+      <p v-if="form.errors.contact_person" class="error">{{ form.errors.contact_person }}</p>
     </div>
 
     <!-- Phone -->

@@ -25,11 +25,11 @@
         </div>
         <div>
           <p class="text-gray-600 text-sm">Phone</p>
-          <p class="font-semibold">{{ beneficiary.phone || 'N/A' }}</p>
+          <p class="font-semibold">{{ beneficiary.phone || 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">School</p>
-          <p class="font-semibold">{{ beneficiary.school?.name || 'N/A' }}</p>
+          <p class="font-semibold">{{ beneficiary.school?.name || 'Not provided' }}</p>
         </div>
         <div>
           <p class="text-gray-600 text-sm">Submission Date</p>
@@ -41,14 +41,15 @@
     <!-- Documents -->
     <div class="bg-white shadow-md rounded-lg p-6 mb-6">
       <h2 class="text-xl font-bold mb-4">Submitted Documents</h2>
-      <div v-if="documents.length === 0" class="text-gray-500">
+      <div v-if="!documents || documents.length === 0" class="text-gray-500">
         <p>No documents submitted</p>
       </div>
       <div v-else class="space-y-3">
         <div v-for="(doc, index) in documents" :key="index" class="border rounded-lg p-4 flex items-center justify-between">
-          <div>
+          <div class="flex-1">
             <p class="font-semibold">{{ doc.type || doc.name || 'Document' }}</p>
             <p class="text-sm text-gray-600">{{ doc.description || '' }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ doc.uploaded_at ? 'Uploaded: ' + formatDate(doc.uploaded_at) : (doc.created_at ? 'Uploaded: ' + formatDate(doc.created_at) : '') }}</p>
           </div>
           <button 
             v-if="doc.path || doc.url"
