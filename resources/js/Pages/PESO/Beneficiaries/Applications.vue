@@ -1,5 +1,6 @@
 <template>
   <div class="p-6">
+    <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold">Onboarding Verification - {{ beneficiary.user.name }}</h1>
       <p class="text-gray-500 mt-1">Review beneficiary onboarding submissions</p>
@@ -31,7 +32,6 @@
           <p class="text-gray-600 text-sm">Category</p>
           <p class="font-semibold capitalize">{{ beneficiary_type || 'student' }}</p>
         </div>
-        <!-- Conditionally show category-specific field -->
         <div v-if="beneficiary_type === 'student'">
           <p class="text-gray-600 text-sm">School</p>
           <p class="font-semibold">{{ beneficiary.school?.name || 'Not provided' }}</p>
@@ -68,7 +68,7 @@
           <button 
             v-if="doc.exists && doc.url"
             class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
-            @click="viewDocument(doc)"
+            @click="openModal(doc)"
           >
             View
           </button>
@@ -83,29 +83,76 @@
       <div class="space-y-4">
         <button
           class="w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-semibold"
-          @click="approveBeneficiary"
+          @click="showApproveModal = true"
         >
           Approve Beneficiary
         </button>
 
-        <div class="border rounded-lg p-4">
-          <label class="block text-sm font-semibold mb-2">Reject with Reason (optional)</label>
-          <textarea
-            v-model="rejectionReason"
-            class="w-full border rounded px-3 py-2 mb-2 text-sm"
-            rows="3"
-            placeholder="Enter reason for rejection..."
-          ></textarea>
-          <button
-            class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-semibold"
-            @click="rejectBeneficiary"
-            :disabled="!rejectionReason.trim()"
-          >
-            Reject Beneficiary
-          </button>
-        </div>
+        <button
+          class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 font-semibold"
+          @click="showRejectModal = true"
+        >
+          Reject Beneficiary
+        </button>
       </div>
     </div>
+
+    <!-- ========== DOCUMENT MODAL ========== -->
+    <Teleport to="body">
+      <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-3xl w-full p-6 relative">
+          <button @click="modalOpen = false" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✖</button>
+          <h3 class="font-bold mb-4">{{ currentDocument.name }}</h3>
+          
+          <iframe
+            v-if="isPDF(currentDocument.url)"
+            :src="currentDocument.url"
+            class="w-full h-[500px] border"
+          ></iframe>
+          
+          <img v-else-if="isImage(currentDocument.url)" :src="currentDocument.url" class="w-full h-auto" />
+          
+          <p v-else class="text-gray-500">Preview not available. <a :href="currentDocument.url" target="_blank" class="text-blue-600 underline">Download</a></p>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ========== APPROVE MODAL ========== -->
+    <Teleport to="body">
+      <div v-if="showApproveModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+          <button @click="showApproveModal = false" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✖</button>
+          <h3 class="text-lg font-bold mb-4">Approve Beneficiary</h3>
+          <p class="mb-4">Are you sure you want to approve this beneficiary?</p>
+          <div class="flex justify-end gap-2">
+            <button class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400" @click="showApproveModal = false">Cancel</button>
+            <button class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700" @click="confirmApprove">Approve</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ========== REJECT MODAL ========== -->
+    <Teleport to="body">
+      <div v-if="showRejectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6 relative">
+          <button @click="showRejectModal = false" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700">✖</button>
+          <h3 class="text-lg font-bold mb-4">Reject Beneficiary</h3>
+          <label class="block text-sm font-semibold mb-2">Reason for rejection</label>
+          <textarea
+            v-model="rejectionReason"
+            rows="3"
+            class="w-full border rounded px-3 py-2 mb-4"
+            placeholder="Enter reason..."
+          ></textarea>
+          <div class="flex justify-end gap-2">
+            <button class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400" @click="showRejectModal = false">Cancel</button>
+            <button class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700" :disabled="!rejectionReason.trim()" @click="confirmReject">Reject</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
@@ -115,48 +162,32 @@ import { router } from '@inertiajs/vue3'
 import { route } from 'ziggy-js'
 
 const props = defineProps({
-  beneficiary: {
-    type: Object,
-    required: true
-  },
-  documents: {
-    type: Array,
-    default: () => []
-  },
-  submission_date: {
-    type: String,
-    default: null
-  },
-  approval_status: {
-    type: String,
-    default: 'pending'
-  },
-  rejection_reason: {
-    type: String,
-    default: null
-  },
-  beneficiary_type: {
-    type: String,
-    default: 'student'
-  }
+  beneficiary: Object,
+  documents: Array,
+  submission_date: String,
+  approval_status: String,
+  rejection_reason: String,
+  beneficiary_type: String
 })
 
 const rejectionReason = ref('')
+const modalOpen = ref(false)
+const currentDocument = ref({})
 
+const showApproveModal = ref(false)
+const showRejectModal = ref(false)
+
+// ========== HELPERS ==========
 const formatStatus = (status) => {
-  const statusMap = {
-    'pending': 'Pending Review',
-    'approved': 'Approved',
-    'rejected': 'Rejected'
-  }
+  const statusMap = { pending: 'Pending Review', approved: 'Approved', rejected: 'Rejected' }
   return statusMap[status] || status
 }
 
 const getStatusClass = (status) => {
   const classMap = {
-    'pending': 'bg-yellow-100 border border-yellow-300',
-    'approved': 'bg-green-100 border border-green-300',
-    'rejected': 'bg-red-100 border border-red-300'
+    pending: 'bg-yellow-100 border border-yellow-300',
+    approved: 'bg-green-100 border border-green-300',
+    rejected: 'bg-red-100 border border-red-300'
   }
   return classMap[status] || 'bg-gray-100'
 }
@@ -164,52 +195,29 @@ const getStatusClass = (status) => {
 const formatDate = (date) => {
   if (!date) return 'Not submitted'
   return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit'
   })
 }
 
-const viewDocument = (doc) => {
-  if (doc.url) {
-    window.open(doc.url, '_blank')
-  } else if (doc.path) {
-    window.open(doc.path, '_blank')
-  }
+// ========== DOCUMENT MODAL ==========
+const openModal = (doc) => {
+  currentDocument.value = doc
+  modalOpen.value = true
 }
 
-const approveBeneficiary = () => {
-  if (confirm('Are you sure you want to approve this beneficiary?')) {
-    router.post(
-      route('peso.beneficiaries.approve', { id: props.beneficiary.id }),
-      {},
-      {
-        onSuccess: () => {
-          // Page will reload
-        }
-      }
-    )
-  }
+const isPDF = (url) => url?.toLowerCase().endsWith('.pdf')
+const isImage = (url) => ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => url?.toLowerCase().endsWith(ext))
+
+// ========== APPROVE ==========
+const confirmApprove = () => {
+  showApproveModal.value = false
+  router.post(route('peso.beneficiaries.approve', { id: props.beneficiary.id }))
 }
 
-const rejectBeneficiary = () => {
-  if (!rejectionReason.value.trim()) {
-    alert('Please provide a rejection reason')
-    return
-  }
-
-  if (confirm('Are you sure you want to reject this beneficiary?')) {
-    router.post(
-      route('peso.beneficiaries.reject', { id: props.beneficiary.id }),
-      { rejection_reason: rejectionReason.value },
-      {
-        onSuccess: () => {
-          // Page will reload
-        }
-      }
-    )
-  }
+// ========== REJECT ==========
+const confirmReject = () => {
+  showRejectModal.value = false
+  router.post(route('peso.beneficiaries.reject', { id: props.beneficiary.id }), { rejection_reason: rejectionReason.value })
 }
 </script>

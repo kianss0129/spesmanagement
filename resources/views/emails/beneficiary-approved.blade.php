@@ -6,15 +6,19 @@
 <body>
     <h2>Hello, {{ $name }}!</h2>
 
-    <p>Congratulations! Your SPES beneficiary account has been approved.</p>
+    <p>🎉 Congratulations! Your SPES beneficiary account has been approved.</p>
 
-    @if($password)
-        <p>Your temporary password is: <strong>{{ $password }}</strong></p>
-        <p>We recommend that you change it after your first login.</p>
-    @endif
+    <p><strong>Your temporary password:</strong></p>
+    <p style="font-size:18px; font-weight:bold;">
+        {{ $password }}
+    </p>
 
-    <p>You can now access your full dashboard here: <a href="{{ $dashboardUrl }}">Go to Dashboard</a></p>
+    <p>⚠️ Please change your password after your first login.</p>
 
-    <p>Thank you for using SPES Management System.</p>
+    <p>
+        👉 <a href="{{ $loginUrl }}">Click here to login</a>
+    </p>
+
+    <p>Thank you for using the SPES Management System.</p>
 </body>
 </html>

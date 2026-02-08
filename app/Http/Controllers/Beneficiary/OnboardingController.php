@@ -197,7 +197,6 @@ class OnboardingController extends Controller
             $employer->documents = array_merge($existing, $uploadedDocs);
 
             $employer->update([
-                'company_name'            => $validated['company_name'],
                 'email'                   => $validated['email'] ?? null,
                 'contact_person'          => $validated['contact_person'] ?? null,
                 'phone'                   => $validated['phone'],

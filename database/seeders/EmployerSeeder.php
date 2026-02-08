@@ -2,22 +2,25 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\User;
 use App\Models\Employer;
-use App\Models\JobListing;
+use Illuminate\Database\Seeder;
 
 class EmployerSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Create 10 employers without job listings
-        Employer::factory(10)->create();
+        $user = User::factory()->create([
+            'role' => 'employer', // adjust if you use roles
+        ]);
 
-        // Create 5 employers WITH job listings
-        Employer::factory(5)->create()->each(function ($employer) {
-            JobListing::factory(rand(1, 3))->create([
-                'employer_id' => $employer->id,
-            ]);
-        });
+        Employer::create([
+            'user_id' => $user->id,
+            'company_name' => fake()->company(),
+            'address' => fake()->address(),
+            'contact_person' => fake()->name(),
+            'phone' => fake()->phoneNumber(),
+            'email' => fake()->companyEmail(),
+        ]);
     }
 }

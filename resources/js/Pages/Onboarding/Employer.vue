@@ -19,20 +19,6 @@ const submit = () => {
   <div class="space-y-4 p-6">
     <h1 class="text-2xl font-bold">Employer Onboarding</h1>
 
-    <!-- Company Name -->
-    <div>
-      <label for="company_name">Company Name</label>
-      <input
-        v-model="form.company_name"
-        name="company_name"
-        id="company_name"
-        type="text"
-        autocomplete="organization"
-        class="input"
-      />
-      <p v-if="form.errors.company_name" class="error">{{ form.errors.company_name }}</p>
-    </div>
-
     <!-- Email -->
     <div>
       <label for="email">Company Email</label>
