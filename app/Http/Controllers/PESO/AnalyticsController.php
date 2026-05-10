@@ -1,6 +1,8 @@
 <?php
 
+
 namespace App\Http\Controllers\PESO;
+
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -10,20 +12,120 @@ use App\Models\Employer;
 use App\Models\Application;
 use App\Models\EmployerRating;
 use App\Models\Batch;
+use App\Models\User;
 use Carbon\Carbon;
+
 
 class AnalyticsController extends Controller
 {
+
+
+public function applicationsAssignedByPESO()
+{
+    $data = Application::where('is_assigned', 1) // or status = 'assigned'
+        ->select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(*) as total')
+        )
+        ->groupBy('date')
+        ->orderBy('date')
+        ->get();
+
+
+    return [
+        'labels' => $data->pluck('date'),
+        'data' => $data->pluck('total')
+    ];
+}
+
+
     // Dashboard JSON response
     public function dashboard(Request $request)
-    {
+{
+    try {
         return response()->json([
-            'applicantsBySchool' => $this->applicantsBySchool($request),
-            'topEmployers' => $this->topHiringEmployers(),
-            'performanceTrends' => $this->performanceTrends($request),
-            'completionRate' => $this->completionRatePerBatch(),
-            'attendanceCompliance' => $this->attendanceCompliance(),
+    'applicantsBySchool' => $this->applicantsBySchool($request),
+    'topEmployers' => $this->topHiringEmployers(),
+    'performanceTrends' => $this->performanceTrends($request),
+    'completionRate' => $this->completionRatePerBatch(),
+    'attendanceCompliance' => $this->attendanceCompliance($request),
+
+    'stats' => $this->dashboardStats($request)
+]);
+    } catch (\Exception $e) {
+        \Log::error('Dashboard analytics error: '.$e->getMessage());
+        return response()->json([
+            'applicantsBySchool' => ['labels'=>[], 'data'=>[]],
+            'topEmployers' => ['labels'=>[], 'data'=>[]],
+            'performanceTrends' => ['labels'=>[], 'series'=>[]],
+            'completionRate' => ['labels'=>[], 'data'=>[]],
+            'attendanceCompliance' => ['labels'=>[], 'data'=>[]],
         ]);
+    }
+}
+
+    private function dashboardStats(Request $request)
+    {
+        [$startDate, $endDate] = $this->resolveDateRange($request);
+
+        $dates = [];
+        $cursor = $startDate->copy();
+        while ($cursor->lte($endDate)) {
+            $dates[] = $cursor->format('Y-m-d');
+            $cursor->addDay();
+        }
+
+        $users = User::whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('COUNT(*) as total'))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->pluck('total', 'date')
+            ->toArray();
+
+        $userGrowth = array_map(fn($date) => $users[$date] ?? 0, $dates);
+
+        return [
+            'chart_dates' => $dates,
+            'users_growth' => $userGrowth,
+            'applications_by_peso' => []
+        ];
+    }
+
+    private function resolveDateRange(Request $request)
+    {
+        $filter = $request->query('date_filter', 'last_7_days');
+        $start = $request->query('start_date');
+        $end = $request->query('end_date');
+
+        if ($filter === 'custom' && $start && $end) {
+            $startDate = Carbon::parse($start)->startOfDay();
+            $endDate = Carbon::parse($end)->endOfDay();
+            return [$startDate, $endDate];
+        }
+
+        $now = Carbon::now();
+        switch ($filter) {
+            case 'today':
+                return [Carbon::today(), Carbon::today()];
+            case 'yesterday':
+                return [Carbon::yesterday(), Carbon::yesterday()];
+            case 'last_3_days':
+                return [Carbon::today()->subDays(2), Carbon::today()];
+            case 'this_week':
+                return [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()];
+            case 'last_week':
+                return [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()];
+            case 'this_month':
+                return [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()];
+            case 'last_month':
+                return [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()];
+            case 'ytd':
+                return [$now->copy()->startOfYear(), $now->copy()->endOfYear()];
+            case 'last_7_days':
+            default:
+                return [Carbon::today()->subDays(6), Carbon::today()];
+        }
     }
 
     // 1️⃣ Applicants by School
@@ -33,8 +135,10 @@ class AnalyticsController extends Controller
         $start = $request->query('start_date');
         $end = $request->query('end_date');
 
+
         $query = Application::join('beneficiaries','applications.beneficiary_id','=','beneficiaries.id')
                             ->join('schools','beneficiaries.school_id','=','schools.id');
+
 
         if ($start && $end) {
             $query->whereBetween('applications.created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
@@ -54,16 +158,19 @@ class AnalyticsController extends Controller
             }
         }
 
+
         $data = $query->select('schools.name as school', DB::raw('COUNT(*) as total'))
                       ->groupBy('schools.name')
                       ->orderByDesc('total')
                       ->get();
+
 
         return [
             'labels' => $data->pluck('school')->toArray(),
             'data' => $data->pluck('total')->toArray()
         ];
     }
+
 
     // 2️⃣ Top Hiring Employers
     public function topHiringEmployers()
@@ -76,11 +183,13 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
+
         return [
             'labels' => $data->pluck('name'),
             'data' => $data->pluck('hires')
         ];
     }
+
 
     // 3️⃣ Performance Rating Trends
     public function performanceTrends(Request $request)
@@ -88,6 +197,7 @@ class AnalyticsController extends Controller
         $start = $request->query('start_date');
         $end = $request->query('end_date');
         $period = $request->query('period', 'year');
+
 
         if ($start && $end) {
             $startDate = Carbon::parse($start)->startOfMonth();
@@ -113,6 +223,7 @@ class AnalyticsController extends Controller
             }
         }
 
+
         // build months between
         $periodMonths = [];
         $cursor = $startDate->copy()->startOfMonth();
@@ -121,7 +232,9 @@ class AnalyticsController extends Controller
             $cursor->addMonth();
         }
 
+
         $labels = array_map(function($ym){ return Carbon::parse($ym.'-01')->format('M Y'); }, $periodMonths);
+
 
         // query averages grouped by employer + ym
         $ratings = EmployerRating::select('employer_id', DB::raw('AVG(overall) as avg_rating'), DB::raw('DATE_FORMAT(created_at, "%Y-%m") as ym'))
@@ -129,12 +242,15 @@ class AnalyticsController extends Controller
             ->groupBy('employer_id', 'ym')
             ->get();
 
-        $employers = Employer::pluck('name','id')->toArray();
+
+        $employers = Employer::pluck('company_name','id')->toArray();
+
 
         $grouped = [];
         foreach ($ratings as $r) {
             $grouped[$r->employer_id][$r->ym] = round((float)$r->avg_rating, 2);
         }
+
 
         $series = [];
         foreach ($employers as $id => $name) {
@@ -145,8 +261,10 @@ class AnalyticsController extends Controller
             $series[] = ['name' => $name, 'data' => $data];
         }
 
+
         return ['labels' => $labels, 'series' => $series];
     }
+
 
     // 4️⃣ Completion Rate per Batch
     public function completionRatePerBatch()
@@ -155,13 +273,16 @@ class AnalyticsController extends Controller
             $q->where('status','completed');
         }])->withCount('applications')->get();
 
+
         $labels = $batches->pluck('name')->toArray();
         $data = $batches->map(function($batch){
             return $batch->applications_count ? round($batch->completed_count / $batch->applications_count * 100, 2) : 0;
         })->toArray();
 
+
         return ['labels' => $labels, 'data' => $data];
     }
+
 
     // 5️⃣ Attendance Compliance
     public function attendanceCompliance(Request $request)
@@ -171,18 +292,23 @@ class AnalyticsController extends Controller
         $end = $request->query('end_date');
         $requiredDays = (int) $request->query('required_days', 20);
 
+
         $beneficiaryIds = [];
         if ($batchId) {
             $beneficiaryIds = Application::where('batch_id', $batchId)->pluck('beneficiary_id')->unique()->toArray();
         }
 
+
         $query = Beneficiary::query();
         if (!empty($beneficiaryIds)) $query->whereIn('id', $beneficiaryIds);
 
+
         $beneficiaries = $query->get();
+
 
         $labels = [];
         $data = [];
+
 
         foreach ($beneficiaries as $b) {
             $attQuery = $b->attendances();
@@ -192,12 +318,15 @@ class AnalyticsController extends Controller
             $count = $attQuery->count();
             $percent = $requiredDays ? round($count / $requiredDays * 100, 2) : 0;
 
+
             $labels[] = $b->name;
             $data[] = $percent;
         }
 
+
         return ['labels' => $labels, 'data' => $data];
     }
+
 
     // 6️⃣ High-Rated Beneficiaries
     public function highRatedBeneficiaries(Request $request)
@@ -208,10 +337,11 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
+
         return $top->map(function($b){
             $beneficiary = Beneficiary::find($b->beneficiary_id);
             $feedback = EmployerRating::where('beneficiary_id',$b->beneficiary_id)
-                        ->get(['punctuality','attitude','output','communication','overall']);
+                        ->get(['punctuality','attitude','work_quality','communication','overall']);
             return [
                 'beneficiary_name' => $beneficiary->name,
                 'average_rating' => round($b->avg_rating,2),
@@ -219,6 +349,24 @@ class AnalyticsController extends Controller
             ];
         });
     }
+
+    public function averageBeneficiaryRatings(Request $request)
+    {
+        $submittedCount = EmployerRating::count();
+        $averages = EmployerRating::selectRaw(
+            'AVG(punctuality) as punctuality, AVG(work_quality) as work_quality, AVG(attitude) as attitude, AVG(communication) as communication, AVG(overall) as overall'
+        )->first();
+
+        return [
+            'punctuality' => round($averages->punctuality ?? 0, 2),
+            'work_quality' => round($averages->work_quality ?? 0, 2),
+            'attitude' => round($averages->attitude ?? 0, 2),
+            'communication' => round($averages->communication ?? 0, 2),
+            'overall' => round($averages->overall ?? 0, 2),
+            'submitted_count' => $submittedCount,
+        ];
+    }
+
 
     // 4️⃣ Completion Rate (Overall)
     public function completionRate(Request $request)
@@ -229,13 +377,16 @@ class AnalyticsController extends Controller
            $start = $request->query('start_date');
            $end = $request->query('end_date');
 
+
            // Build base query for applications
            $query = Application::query();
+
 
            // Filter by batch if provided
            if ($batchId) {
                $query->where('batch_id', $batchId);
            }
+
 
            // Apply date filters
            if ($start && $end) {
@@ -256,9 +407,11 @@ class AnalyticsController extends Controller
                }
            }
 
+
            // Verify that required columns exist before using them
            $applications = $query->select('id', 'status', 'created_at', 'approved_at')
                                    ->get();
+
 
            // Handle empty dataset
            if ($applications->isEmpty()) {
@@ -269,18 +422,22 @@ class AnalyticsController extends Controller
                ], 200);
            }
 
+
            // Group by period
            $grouped = [];
            $labels = [];
+
 
            foreach ($applications as $app) {
                $dateKey = $period === 'month'
                    ? $app->created_at->format('Y-m')
                    : $app->created_at->format('Y-m-d');
 
+
                if (!isset($grouped[$dateKey])) {
                    $grouped[$dateKey] = ['total' => 0, 'completed' => 0];
                }
+
 
                $grouped[$dateKey]['total']++;
                if ($app->status === 'completed' || $app->status === 'approved') {
@@ -288,26 +445,30 @@ class AnalyticsController extends Controller
                }
            }
 
+
            // Generate labels and data
            foreach ($grouped as $dateKey => $counts) {
                $labels[] = $dateKey;
                // Prevent division by zero
-               $rate = $counts['total'] > 0 
-                   ? round(($counts['completed'] / $counts['total']) * 100, 2) 
+               $rate = $counts['total'] > 0
+                   ? round(($counts['completed'] / $counts['total']) * 100, 2)
                    : 0;
                $data[] = $rate;
            }
+
 
            return response()->json([
                'labels' => $labels,
                'data' => $data
            ], 200);
 
+
        } catch (\Exception $e) {
            \Log::error('Error in completionRate method: ' . $e->getMessage(), [
                'exception' => $e,
                'request' => $request->all()
            ]);
+
 
            return response()->json([
                'labels' => [],
@@ -317,3 +478,6 @@ class AnalyticsController extends Controller
        }
    }
 }
+
+
+

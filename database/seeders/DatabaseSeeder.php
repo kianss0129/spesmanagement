@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
             //RoleSeeder::class,
             RoleAndAdminSeeder::class,
             EmployerSeeder::class,
-            BeneficiarySeeder::class,
+            // BeneficiarySeeder::class,
             ApplicationSeeder::class,
 
             AttendanceSeeder::class

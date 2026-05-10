@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,13 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Add any custom gates or additional services if needed
+        // 🔥 FORCE email verification to send immediately (no queue)
+        VerifyEmail::toMailUsing(function ($notifiable, $url) {
+            return (new MailMessage)
+                ->subject('Verify Your Email Address')
+                ->line('Please verify your email address by clicking the button below.')
+                ->action('Verify Email', $url)
+                ->line('If you did not create an account, no further action is required.');
+        });
     }
 }

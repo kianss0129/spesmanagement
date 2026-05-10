@@ -7,17 +7,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
+use App\Mail\WelcomeEmail;
 
 class EmployerRegisterController extends Controller
 {
     // Show registration page
-    public function create(Request $request)
+    public function create()
     {
-        // Always render the Inertia page so initial requests include the
-        // Inertia page payload (avoids client-side null `component` errors).
         return Inertia::render('Auth/RegisterEmployer');
     }
 
@@ -27,23 +28,25 @@ class EmployerRegisterController extends Controller
         $validated = $request->validate([
             'name'          => ['required', 'string', 'max:255'],
             'company_name'  => ['required', 'string', 'max:255'],
-            'email'         => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password'      => ['required', 'confirmed', 'min:8'],
+            'email'         => ['required', 'email', 'max:255','unique:users,email'],
+            'password'      => ['required','confirmed','min:8'],
         ]);
 
         $user = null;
 
         DB::transaction(function () use ($validated, &$user) {
+            // 1. Create user
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
 
-            // Assign Employer role
-            $user->assignRole('Employer');
+            // 2. Assign Employer role
+            $role = Role::firstOrCreate(['name' => 'Employer']);
+            $user->assignRole($role);
 
-            // Create employer profile
+            // 3. Create employer profile
             $user->employer()->create([
                 'company_name'            => $validated['company_name'],
                 'phone'                   => null,
@@ -52,13 +55,17 @@ class EmployerRegisterController extends Controller
                 'approved'                => false,
             ]);
 
+            // 4. Fire registered event (triggers verification email if configured)
             event(new Registered($user));
         });
 
-        // Log in the user
+        // 5. Auto-login
         Auth::login($user);
 
-        // ✅ FIXED: Proper route parameter
+        // 6. Send welcome email using Mailable
+        Mail::to($user->email)->send(new WelcomeEmail($user));
+
+        // 7. Redirect to onboarding
         return redirect()->route('onboarding', ['category' => 'employer']);
     }
 }

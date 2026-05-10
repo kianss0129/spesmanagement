@@ -50,16 +50,7 @@ class FortifyServiceProvider extends ServiceProvider
         // ===================== Inertia Views =====================
 
         // Show "Forgot Password" page
-        Fortify::requestPasswordResetLinkView(function () {
-            return Inertia::render('Auth/ForgotPassword');
-        });
-
-        // Show "Reset Password" page (from email link)
-        Fortify::resetPasswordView(function ($request) {
-            return Inertia::render('Auth/ResetPassword', [
-                'request' => $request
-            ]);
-        });
+       
 
         // Show login page (optional if customizing)
         Fortify::loginView(function () {

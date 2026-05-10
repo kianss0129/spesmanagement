@@ -27,6 +27,14 @@ class Beneficiary extends Model
         'onboarding_completed_at',
         'skills',
         'parent_name',
+        'birthdate',
+        'gender',
+        'address',
+        'program',
+        'year_level',
+        'employer_id',
+        'job_id',
+        'employment_status',
     ];
 
     protected $casts = [
@@ -42,6 +50,7 @@ class Beneficiary extends Model
     | Relationships
     |--------------------------------------------------------------------------
     */
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -59,7 +68,12 @@ class Beneficiary extends Model
 
     public function ratings()
     {
-        return $this->hasMany(\App\Models\EmployerRating::class);
+        return $this->hasMany(\App\Models\EmployerRating::class, 'beneficiary_id');
+    }
+
+    public function evaluations()
+    {
+        return $this->hasMany(\App\Models\EmployerRating::class, 'beneficiary_id');
     }
 
     public function school()
@@ -72,9 +86,19 @@ class Beneficiary extends Model
         return $this->belongsTo(PesoOffice::class);
     }
 
+    public function employer()
+    {
+        return $this->belongsTo(\App\Models\Employer::class);
+    }
+
     public function workHistory()
     {
         return $this->hasMany(\App\Models\WorkOutput::class, 'beneficiary_id');
+    }
+
+    public function workSchedules()
+    {
+        return $this->hasMany(\App\Models\WorkSchedule::class, 'beneficiary_id');
     }
 
     /*
@@ -82,19 +106,22 @@ class Beneficiary extends Model
     | Status Helpers
     |--------------------------------------------------------------------------
     */
+
     public function approve(): void
     {
         $this->update([
             'status' => 'approved',
             'approved' => true,
+            'approved_at' => now(),
         ]);
     }
 
-    public function reject(): void
+    public function reject($reason = null): void
     {
         $this->update([
             'status' => 'rejected',
             'approved' => false,
+            'rejection_reason' => $reason,
         ]);
     }
 
@@ -119,5 +146,23 @@ class Beneficiary extends Model
     public function isPending(): bool
     {
         return $this->status === 'pending';
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors
+    |--------------------------------------------------------------------------
+    */
+
+    public function getFullNameAttribute(): string
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
+
+    public function getProfilePhotoUrlAttribute()
+    {
+        return $this->user && $this->user->profile_photo_path
+            ? asset('storage/' . $this->user->profile_photo_path)
+            : asset('images/default-profile.png');
     }
 }

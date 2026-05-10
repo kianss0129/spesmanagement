@@ -1,9 +1,17 @@
 <template>
   <div class="p-6">
     <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold">Onboarding Verification - {{ beneficiary.user.name }}</h1>
-      <p class="text-gray-500 mt-1">Review beneficiary onboarding submissions</p>
+    <div class="mb-6 flex items-center justify-between gap-4">
+      <button
+        @click="goBack"
+        class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        ← Back
+      </button>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-2xl font-bold truncate">Verification of Applicants- {{ beneficiary.user.name }}</h1>
+        <p class="text-gray-500 mt-1">Review beneficiary onboarding submissions</p>
+      </div>
     </div>
 
     <!-- Status Badge -->
@@ -208,6 +216,10 @@ const openModal = (doc) => {
 
 const isPDF = (url) => url?.toLowerCase().endsWith('.pdf')
 const isImage = (url) => ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].some(ext => url?.toLowerCase().endsWith(ext))
+
+const goBack = () => {
+  window.history.back()
+}
 
 // ========== APPROVE ==========
 const confirmApprove = () => {

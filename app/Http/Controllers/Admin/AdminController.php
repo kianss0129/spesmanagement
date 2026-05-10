@@ -8,13 +8,39 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Beneficiary;
 use App\Models\Employer;
+use App\Models\Announcement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
+use App\Models\Application;
+use App\Models\Interview;
 
 class AdminController extends Controller
 {
+
+
+
+ public function notifications()
+{
+    $announcements = Announcement::latest()->get();
+
+    return Inertia::render('PESO/Notifications', [
+        'announcements' => $announcements
+    ]);
+}
+
+    public function settings()
+{
+   $sessions = DB::table('sessions')
+    ->where('user_id', auth()->id())
+    ->orderByDesc('last_activity')
+    ->get();
+    return Inertia::render('Admin/Settings', [
+        'sessions' => $sessions
+    ]);
+}
+
     public function dashboard()
     {
         return Inertia::render('Admin/Dashboard');
@@ -34,32 +60,77 @@ class AdminController extends Controller
         // Days filter for charts
         $days = max(1, (int) $request->get('days', 7));
 
-        $dates = collect(range($days - 1, 0))->map(fn ($i) =>
-            Carbon::today()->subDays($i)->toDateString()
-        );
+        $dates = collect(range($days - 1, 0))->map(function ($i) {
+            return Carbon::today()->subDays($i)->toDateString();
+        });
 
-        // Growth charts
-        $usersGrowth = $dates->map(fn ($date) => User::whereDate('created_at', $date)->count());
-        $beneficiariesGrowth = $dates->map(fn ($date) => Beneficiary::whereDate('created_at', $date)->count());
-        $employersGrowth = $dates->map(fn ($date) => Employer::whereDate('created_at', $date)->count());
+        /*
+        |--------------------------------------------------------------------------
+        | Growth Charts (Daily Created Records)
+        |--------------------------------------------------------------------------
+        */
 
-        // Pending counts
-        $pendingBeneficiaries = Beneficiary::where('status', 'pending')->count();
-        $pendingEmployers     = Employer::where('approved', false)->count();
-        $pendingApplications  = $pendingBeneficiaries + $pendingEmployers;
+        $usersGrowth = $dates->map(function ($date) {
+            return User::whereDate('created_at', $date)->count();
+        });
 
-        // PESO users count safely
+        $beneficiariesGrowth = $dates->map(function ($date) {
+            return Beneficiary::whereDate('created_at', $date)->count();
+        });
+
+        $employersGrowth = $dates->map(function ($date) {
+            return Employer::whereDate('created_at', $date)->count();
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pending Counts (FIXED & CONSISTENT)
+        |--------------------------------------------------------------------------
+        */
+
+        // ONLY use approval_status for beneficiaries
+        $pendingBeneficiaries = Beneficiary::where('approval_status', 'pending')->count();
+
+        // Employers pending (assuming approved = false means pending)
+        $pendingEmployers = Employer::where('approved', false)->count();
+
+        $pendingApplications = $pendingBeneficiaries + $pendingEmployers;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Counts (OPTIONAL: approved-only logic)
+        |--------------------------------------------------------------------------
+        */
+
+        $totalBeneficiaries = Beneficiary::count();
+        // If you want approved only, use this instead:
+        // $totalBeneficiaries = Beneficiary::where('approval_status', 'approved')->count();
+
+        $totalEmployers = Employer::count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | PESO Users Count
+        |--------------------------------------------------------------------------
+        */
+
         $pesoUsers = 0;
         try {
             if (Role::where('name', 'PESO')->exists()) {
                 $pesoUsers = Role::findByName('PESO')->users()->count();
             }
         } catch (\Throwable $e) {
-            $pesoUsers = 0; // fallback if role/table missing
+            $pesoUsers = 0;
         }
 
-        // Recent Activity safely
+        /*
+        |--------------------------------------------------------------------------
+        | Recent Activity (Safe Check)
+        |--------------------------------------------------------------------------
+        */
+
         $recentActivity = [];
+
         if (Schema::hasTable('activity_log')) {
             $recentActivity = DB::table('activity_log')
                 ->leftJoin('users', 'activity_log.causer_id', '=', 'users.id')
@@ -75,29 +146,42 @@ class AdminController extends Controller
                 ->get();
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Final Response
+        |--------------------------------------------------------------------------
+        */
+
         return response()->json([
-            // Stats cards
+            // Main stats
             'users'                  => User::count(),
-            'beneficiaries'          => Beneficiary::count(),
-            'employers'              => Employer::count(),
+            'beneficiaries'          => $totalBeneficiaries,
+            'employers'              => $totalEmployers,
             'peso_users'             => $pesoUsers,
 
-            // Pending applications
+            // Pending
             'pending_beneficiaries'  => $pendingBeneficiaries,
             'pending_employers'      => $pendingEmployers,
             'pending_applications'   => $pendingApplications,
 
-            // Other dashboard data
-            'assigned_beneficiaries' => 0,
-            'upcoming_interviews'    => 0,
+            // Other dashboard placeholders
+          'assigned_beneficiaries' => Application::where('status', 'assigned')->count(),
 
-            // Tables & charts
-            'latest_users'           => User::latest()->take(5)->get(['id', 'name', 'email']),
+'upcoming_interviews' => Interview::where('scheduled_at', '>=', now())->count(),
+
+            // Tables
+            'latest_users'           => User::latest()
+                                            ->take(5)
+                                            ->get(['id', 'name', 'email']),
+
+            // Charts
             'chart_dates'            => $dates,
             'users_growth'           => $usersGrowth,
             'beneficiaries_growth'   => $beneficiariesGrowth,
             'employers_growth'       => $employersGrowth,
             'applications_by_peso'   => [],
+
+            // Activity
             'recent_activity'        => $recentActivity,
         ]);
     }
@@ -111,10 +195,13 @@ class AdminController extends Controller
         $filename = 'users-' . now()->format('YmdHis') . '.csv';
 
         return response()->stream(function () {
+
             $file = fopen('php://output', 'w');
+
             fputcsv($file, ['ID', 'Name', 'Email', 'Roles', 'Created At']);
 
             User::with('roles')->chunk(200, function ($users) use ($file) {
+
                 foreach ($users as $user) {
                     fputcsv($file, [
                         $user->id,
@@ -124,9 +211,11 @@ class AdminController extends Controller
                         $user->created_at,
                     ]);
                 }
+
             });
 
             fclose($file);
+
         }, 200, [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename={$filename}",

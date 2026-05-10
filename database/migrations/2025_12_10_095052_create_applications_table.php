@@ -9,13 +9,13 @@ return new class extends Migration {
     Schema::create('applications', function (Blueprint $t) {
       $t->id();
       $t->unsignedBigInteger('beneficiary_id');
-      $t->unsignedBigInteger('job_listing_id');
+      $t->unsignedBigInteger('job_listing_id')->nullable();
       $t->string('status')->default('applied');
       $t->timestamps();
 
       $t->foreign('beneficiary_id')->references('id')->on('beneficiaries');
       $t->foreign('job_listing_id')->references('id')->on('job_listings');
-    });
+    }); 
   }
 
   public function down(): void {

@@ -7,25 +7,44 @@ use Illuminate\Http\Request;
 
 class EnsureEmployerApproved
 {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next)
     {
         $user = auth()->user();
 
-        // Make sure the user is an employer
-        if ($user->role !== 'employer') {
-            return redirect()->route('onboarding')->with('error', 'Access denied.');
+        if (!$user) {
+            return redirect()->route('login');
         }
 
-        // Check if the employer is approved
-        // Assuming you have an `approvals` table with `status`
-        $latestApproval = $user->approvals()->latest()->first();
+        // Check Spatie role
+        if (!$user->hasRole('Employer')) {
+            return redirect()->route('onboarding')
+                ->with('error', 'Access denied.');
+        }
 
-        if ($user->role !== 'employer' || $user->approvals()->latest()->first()?->status !== 'approved') {
-    return redirect()->route('upload.documents')->with('error', 'Your account is not approved yet.');
-}
+        $employer = $user->employer;
+
+        if (!$employer) {
+            return redirect()->route('onboarding')
+                ->with('error', 'Please complete your employer profile.');
+        }
+
+        // If rejected
+        if ($employer->approval_status === 'rejected') {
+            auth()->logout();
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Your account was rejected by PESO.']);
+        }
+
+        // If pending
+        if ($employer->approval_status === 'pending') {
+            return redirect()->route('onboarding.pending')
+                ->with('error', 'Your account is still pending approval.');
+        }
+
+        // Allow only approved
+        if ($employer->approval_status !== 'approved') {
+            return redirect()->route('onboarding');
+        }
 
         return $next($request);
     }

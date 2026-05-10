@@ -49,7 +49,7 @@ const stepsByType = {
   student: ['Personal Info', 'School Info', 'Documents', 'Review', 'Submit'],
   osy: ['Personal Info', 'Skills/Training', 'Documents', 'Review', 'Submit'],
   dependent: ['Personal Info', 'Parent Info', 'Documents', 'Review', 'Submit'],
-  employer: ['Company Info', 'Pledge Submission', 'Documents', 'Review', 'Submit']
+  employer: ['Company Info', ' Contact Person', 'Documents', 'Review', 'Submit']
 }
 
 // Computed current steps

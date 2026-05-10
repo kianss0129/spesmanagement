@@ -1,6 +1,18 @@
 <template>
   <div class="p-6 min-h-screen bg-gray-50">
-    <h1 class="text-2xl font-bold mb-4">Pending Beneficiaries</h1>
+
+    <!-- TOP BAR -->
+    <div class="flex items-center gap-4 mb-4">
+      <!-- BACK BUTTON -->
+      <button
+        @click="goBack"
+        class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+      >
+        ← Back
+      </button>
+
+      <h1 class="text-2xl font-bold">Pending Beneficiaries</h1>
+    </div>
 
     <table class="w-full border rounded">
       <thead class="bg-gray-100">
@@ -19,19 +31,20 @@
           <td class="p-2 border">{{ b.onboarding_completed_at ?? 'N/A' }}</td>
 
           <td class="p-2 border space-x-2">
+
             <!-- VIEW ONBOARDING -->
             <Link
               :href="route('peso.beneficiaries.applications', { beneficiary: b.id })"
               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
             >
-              View Onboarding
+              View applicant
             </Link>
 
             <!-- APPROVE -->
             <button
               v-if="canApprove"
               class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-              @click="approve(b.id)"
+              @click="openApproveDialog(b.id)"
             >
               Approve
             </button>
@@ -55,16 +68,51 @@
       </tbody>
     </table>
 
-    <!-- Rejection Reason Dialog -->
-    <div v-if="showRejectDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <!-- APPROVE MODAL -->
+    <div
+      v-if="showApproveDialog"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+        <h3 class="text-lg font-bold mb-4">Approve Beneficiary</h3>
+
+        <p class="text-gray-700 mb-6">
+          Are you sure you want to approve this beneficiary?
+        </p>
+
+        <div class="flex justify-end gap-2">
+          <button
+            @click="showApproveDialog = false"
+            class="px-4 py-2 border rounded hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+
+          <button
+            @click="confirmApprove"
+            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Approve
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REJECT MODAL -->
+    <div
+      v-if="showRejectDialog"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
         <h3 class="text-lg font-bold mb-4">Reject Beneficiary</h3>
+
         <textarea
           v-model="rejectionReason"
           class="w-full border rounded px-3 py-2 mb-4"
           rows="4"
           placeholder="Enter reason for rejection..."
         ></textarea>
+
         <div class="flex gap-2 justify-end">
           <button
             @click="showRejectDialog = false"
@@ -72,6 +120,7 @@
           >
             Cancel
           </button>
+
           <button
             @click="confirmReject"
             :disabled="!rejectionReason.trim()"
@@ -101,27 +150,50 @@ defineProps({
   }
 })
 
+/**
+ * BACK BUTTON
+ */
+const goBack = () => {
+  window.history.back()
+}
+
+/**
+ * APPROVE MODAL
+ */
+const showApproveDialog = ref(false)
+let approveId = null
+
+const openApproveDialog = (id) => {
+  approveId = id
+  showApproveDialog.value = true
+}
+
+const confirmApprove = () => {
+  router.post(
+    route('peso.beneficiaries.approve', { id: approveId }),
+    {},
+    {
+      onSuccess: () => {
+        showApproveDialog.value = false
+        router.reload()
+      }
+    }
+  )
+}
+
+/**
+ * REJECT MODAL
+ */
 const showRejectDialog = ref(false)
 const rejectionReason = ref('')
 let rejectId = null
 
-// Approve beneficiary
-const approve = (id) => {
-  if (confirm('Approve this beneficiary?')) {
-    router.post(route('peso.beneficiaries.approve', { id }), {}, {
-      onSuccess: () => router.reload()
-    })
-  }
-}
-
-// Open rejection dialog
 const openRejectDialog = (id) => {
   rejectId = id
   rejectionReason.value = ''
   showRejectDialog.value = true
 }
 
-// Confirm rejection
 const confirmReject = () => {
   if (!rejectionReason.value.trim()) {
     alert('Please enter a reason for rejection')
@@ -130,7 +202,9 @@ const confirmReject = () => {
 
   router.post(
     route('peso.beneficiaries.reject', { id: rejectId }),
-    { rejection_reason: rejectionReason.value },
+    {
+      rejection_reason: rejectionReason.value
+    },
     {
       onSuccess: () => {
         showRejectDialog.value = false

@@ -11,9 +11,21 @@ use App\Models\Beneficiary;
 
 class OnboardingController extends Controller
 {
-    public function index(Request $request)
+        public function index(Request $request)
     {
         $user = Auth::user();
+
+        // Prevent approved beneficiary from re-entering onboarding
+        if ($user->hasRole('Beneficiary') &&
+            optional($user->beneficiary)->approval_status === 'approved') {
+            return redirect()->route('dashboard');
+        }
+
+        // Prevent approved employer from re-entering onboarding
+        if ($user->hasRole('Employer') &&
+            optional($user->employer)->approval_status === 'approved') {
+            return redirect()->route('employer.dashboard');
+        }
 
         return inertia('Beneficiary/Onboarding', [
             'user'     => $user,
@@ -23,6 +35,7 @@ class OnboardingController extends Controller
             ),
         ]);
     }
+
 
     public function step1(Request $request)
     {
@@ -103,6 +116,25 @@ class OnboardingController extends Controller
         }
 
         if (!empty($incomingFiles)) {
+            // Check for video files
+            $videoExtensions = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'webm', 'm4v'];
+            $videoMimeTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-matroska', 'video/x-flv', 'video/x-ms-wmv', 'video/webm', 'video/x-m4v'];
+
+            foreach ($incomingFiles as $file) {
+                if (!$file) continue;
+
+                $fileExtension = strtolower($file->getClientOriginalExtension());
+                $fileMimeType = $file->getMimeType();
+
+                // Reject video files
+                if (in_array($fileExtension, $videoExtensions) || in_array($fileMimeType, $videoMimeTypes)) {
+                    return response()->json([
+                        'error' => "❌ Video files ({$file->getClientOriginalName()}) are not allowed. Please upload only PDF, DOC, DOCX, JPG, JPEG, or PNG files.",
+                        'success' => false,
+                    ], 422);
+                }
+            }
+
             $folder = $user->hasRole('Employer')
                 ? 'documents/employers'
                 : 'documents/users';

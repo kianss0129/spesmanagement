@@ -34,9 +34,9 @@ class Employer extends Model
 
     // Job listings
     public function jobListings()
-    {
-        return $this->hasMany(JobListing::class);
-    }
+{
+    return $this->hasMany(\App\Models\JobListing::class);
+}
 
     // Ratings
     public function ratings()

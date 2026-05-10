@@ -32,7 +32,7 @@ class Kernel extends HttpKernel
         ],
     ];
 
-    protected $routeMiddleware = [
+    protected $middlewareAliases = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -51,7 +51,7 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
 
         // Approval middlewares
-        'beneficiary.approved' => \App\Http\Middleware\ApprovedBeneficiary::class,
+        'beneficiary.approved' => \App\Http\Middleware\EnsureBeneficiaryApproved::class,
         'employer.approved' => \App\Http\Middleware\EnsureEmployerApproved::class,
     ];
 }

@@ -1,58 +1,129 @@
 <template>
-  <div class="p-6 max-w-5xl mx-auto">
-    <h1 class="text-2xl font-semibold mb-4">Exams & Qualification</h1>
+  <div class="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-6 relative">
 
-    <div v-if="exams.length === 0" class="text-gray-500">
-      No exams or screenings assigned yet.
-    </div>
+    <!-- BACK BUTTON -->
+    <button
+      @click="goBack"
+      class="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-xl shadow-md hover:bg-white hover:shadow-lg transition group"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg"
+           class="w-5 h-5 text-gray-600 group-hover:text-indigo-600 transform group-hover:-translate-x-1 transition"
+           fill="none"
+           viewBox="0 0 24 24"
+           stroke="currentColor">
+        <path stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7" />
+      </svg>
 
-    <div v-for="e in exams" :key="e.id" class="bg-white p-4 rounded shadow mb-4">
-      <div class="flex justify-between">
-        <div>
-          <h2 class="font-semibold">{{ e.title }}</h2>
-          <p class="text-sm text-gray-600">
-            {{ formatDate(e.exam_date) }} • {{ e.location }}
-          </p>
-        </div>
-        <span
-          class="px-2 py-1 rounded text-xs"
-          :class="statusClass(e.status)"
+      <span class="text-sm font-medium text-gray-700 group-hover:text-indigo-600">
+        Back
+      </span>
+    </button>
+
+    <div class="max-w-4xl mx-auto">
+
+      <!-- HEADER -->
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">
+          Exams & Qualification
+        </h1>
+        <p class="text-gray-500 text-sm">
+          View your scheduled exams and screening details
+        </p>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div
+        v-if="!exams || exams.length === 0"
+        class="bg-white p-8 rounded-2xl shadow text-center"
+      >
+        <div class="text-5xl mb-3">📄</div>
+        <p class="text-gray-600 font-medium">
+          No exams or screenings assigned yet
+        </p>
+        <p class="text-gray-400 text-sm mt-1">
+          Check back later for updates
+        </p>
+      </div>
+
+      <!-- EXAMS LIST -->
+      <div v-else class="space-y-4">
+
+        <div
+          v-for="exam in exams"
+          :key="exam.id"
+          class="bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition flex justify-between items-center"
         >
-          {{ e.status }}
-        </span>
+
+          <!-- LEFT INFO -->
+          <div class="space-y-1">
+            <div class="text-lg font-semibold text-gray-800">
+              Qualification Exam
+            </div>
+
+            <div class="text-sm text-gray-500">
+              📍 {{ exam.location || 'No location provided' }}
+            </div>
+
+            <div class="text-sm text-gray-500">
+              🗓 {{ formatDate(exam.exam_date) }}
+            </div>
+          </div>
+
+          <!-- RIGHT STATUS BADGE -->
+          <div>
+            <span
+              class="px-3 py-1 text-xs rounded-full font-semibold"
+              :class="{
+                'bg-yellow-100 text-yellow-700': !exam.result || exam.result === 'pending',
+                'bg-green-100 text-green-700': exam.result === 'passed',
+                'bg-red-100 text-red-700': exam.result === 'failed',
+                'bg-indigo-100 text-indigo-700': exam.result === 'scheduled'
+              }"
+            >
+              {{ exam.result ? exam.result.toUpperCase() : 'SCHEDULED' }}
+            </span>
+          </div>
+
+        </div>
+
       </div>
 
-      <div v-if="e.result" class="mt-3 text-sm">
-        <strong>Result:</strong> {{ e.result }}
-      </div>
-
-      <div v-if="e.work_start_date" class="mt-2 text-sm text-green-700">
-        Work Start: {{ formatDate(e.work_start_date) }}
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { defineProps } from 'vue'
 
-const exams = ref([])
-
-function formatDate(d){
-  return new Date(d).toLocaleString()
-}
-
-function statusClass(s){
-  return {
-    Qualified: 'bg-green-100 text-green-700',
-    Failed: 'bg-red-100 text-red-700',
-    Pending: 'bg-yellow-100 text-yellow-700'
-  }[s] || 'bg-gray-100 text-gray-700'
-}
-
-onMounted(async () => {
-  const res = await axios.get('/beneficiary/exams')
-  exams.value = res.data ?? []
+const props = defineProps({
+  exams: {
+    type: Array,
+    default: () => []
+  }
 })
+
+/* BACK BUTTON */
+function goBack(){
+  window.history.back()
+}
+
+/* FORMAT DATE */
+function formatDate(date) {
+  if (!date) return 'No date available'
+
+  const d = new Date(date)
+  if (isNaN(d)) return 'Invalid Date'
+
+  return d.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 </script>
+

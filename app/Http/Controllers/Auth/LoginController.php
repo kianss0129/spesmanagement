@@ -45,18 +45,8 @@ class LoginController extends Controller
         // Regenerate session
         $request->session()->regenerate();
 
-        // Redirect based on role
-        $user = $request->user();
-
-        if ($user->hasRole('PESO') || $user->hasRole('PESO Admin') || $user->hasRole('Admin') || $user->hasRole('Super Admin')) {
-            return redirect()->route('dashboard');
-        } elseif ($user->hasRole('Employer')) {
-            return redirect()->route('employer.dashboard');
-        } elseif ($user->hasRole('Beneficiary')) {
-            return redirect()->route('onboarding'); // or beneficiary dashboard
-        }
-
-        return redirect('/dashboard'); // fallback
+        // Redirect based on role (fallback handled by authenticated())
+        return $this->authenticated($request, $request->user());
     }
 
     /**
@@ -71,5 +61,26 @@ class LoginController extends Controller
 
         return redirect('/');
     }
+
+    /**
+     * Redirect user after login if temporary password
+     */
+    protected function authenticated(Request $request, $user)
+    {
+        if ($user->is_temporary_password) {
+            return redirect()->route('password.change')
+                             ->with('warning', 'Please change your temporary password.');
+        }
+
+        // Fallback redirect based on role
+        if ($user->hasRole('PESO') || $user->hasRole('PESO Admin') || $user->hasRole('Admin') || $user->hasRole('Super Admin')) {
+            return redirect()->route('dashboard');
+        } elseif ($user->hasRole('Employer')) {
+            return redirect()->route('employer.dashboard');
+        } elseif ($user->hasRole('Beneficiary')) {
+            return redirect()->route('onboarding');
+        }
+
+        return redirect('/dashboard'); // fallback
+    }
 }
-    

@@ -30,7 +30,7 @@ class EnsureBeneficiaryApproved
         }
 
         // Must be approved
-        if (!$beneficiary->approved || $beneficiary->approval_status !== 'approved') {
+        if ($beneficiary->approval_status !== 'approved') {
 
             // If rejected and waiting period
             if ($beneficiary->approval_status === 'rejected' && $beneficiary->resubmit_at && now()->lt($beneficiary->resubmit_at)) {

@@ -68,7 +68,7 @@
           <h2 class="font-semibold mb-2">Step 2: {{ steps[currentStep - 1] }}</h2>
 
           <template v-if="userType === 'student'">
-            <input type="text" placeholder="School Name" v-model="form.school" class="border p-2 w-full mb-1 rounded"/>
+            <input type="text" placeholder="Full Address Of Your School" v-model="form.school" @input="formatSchoolName" class="border p-2 w-full mb-1 rounded"/>
             <p v-if="errors.school" class="text-red-600 text-sm mb-3">{{ errors.school }}</p>
           </template>
 
@@ -91,7 +91,7 @@
             <p v-if="errors.contactPerson" class="text-red-600 text-sm mb-3">{{ errors.contactPerson }}</p>
             
             <label class="block text-sm font-medium mb-2">Company Address</label>
-            <textarea placeholder="Company Address" v-model="form.address" class="border p-2 w-full mb-1 rounded"></textarea>
+            <textarea placeholder="Company Address" v-model="form.address" @input="formatAddress" class="border p-2 w-full mb-1 rounded"></textarea>
             <p v-if="errors.address" class="text-red-600 text-sm mb-3">{{ errors.address }}</p>
           </template>
         </div>
@@ -99,20 +99,28 @@
         <!-- Step 3: Upload Documents -->
         <div v-else-if="currentStep === 3">
           <h2 class="font-semibold mb-2">Step 3: Upload Documents</h2>
+          
+          <!-- Video Upload Error Message -->
+          <div v-if="videoUploadError" class="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded">
+            <p class="font-semibold">File Upload Error</p>
+            <p>{{ videoUploadError }}</p>
+          </div>
+          
           <div class="mb-4 bg-gray-100 p-4 rounded">
-            <h3 class="font-semibold mb-2">Required Documents:</h3>
 
             <div v-for="(doc, i) in requiredDocuments" :key="i" class="flex items-center justify-between mb-1">
               <span class="font-medium">{{ doc }}</span>
               <label class="cursor-pointer">
-                <input type="file" class="hidden" @change="handleSingleFileUpload($event, i)" />
-                <div class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v4h16v-4M12 12v8m0-8l-4 4m4-4l4 4" />
-                  </svg>
-                  Upload
-                </div>
-              </label>
+  <input type="file" class="hidden" @change="handleSingleFileUpload($event, i)" />
+  <div
+    class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v4h16v-4M12 12v8m0-8l-4 4m4-4l4 4" />
+    </svg>
+    {{ form.documents[i] ? form.documents[i].name : 'Upload' }}
+  </div>
+</label>
             </div>
             <p v-for="(doc, i) in requiredDocuments" :key="'error-'+i" v-if="errors[`documents_${i}`]" class="text-red-600 text-sm mb-2">
               {{ errors[`documents_${i}`] }}
@@ -214,12 +222,13 @@ const form = ref({
 })
 
 const errors = ref({})
+const videoUploadError = ref('')
 
 const stepsByType = {
   student: ['Personal Info', 'School Info', 'Documents', 'Review', 'Submit'],
   osy: ['Personal Info', 'Skills / Training', 'Documents', 'Review', 'Submit'],
   dependent: ['Personal Info', 'Parent Info / Displacement Info', 'Documents', 'Review', 'Submit'],
-  employer: ['Company Info', 'Pledge Submission', 'Documents', 'Review', 'Submit']
+  employer: ['Company Info', 'Contact  Person', 'Documents', 'Review', 'Submit'],
 }
 
 const currentStep = ref(1)
@@ -249,6 +258,14 @@ function formatPhone() {
   form.value.phone = form.value.phone.replace(/\D/g, '').slice(0,10)
 }
 
+function formatSchoolName() {
+  form.value.school = form.value.school.toUpperCase().replace(/[^A-Z ]+/g, '')
+}
+
+function formatAddress() {
+  form.value.address = form.value.address.toUpperCase().replace(/[^A-Z0-9\s\-,.#]+/g, '')
+}
+
 // --- VALIDATION ---
 function validateStep(step) {
   errors.value = {}
@@ -270,7 +287,15 @@ function validateStep(step) {
 
   // Other steps...
   if(step === 2) {
-    if(userType.value === 'student' && !form.value.school) { errors.value.school = 'School Name is required'; valid = false }
+    if(userType.value === 'student') {
+      if(!form.value.school) {
+        errors.value.school = 'School Name is required'; valid = false
+      } else if(!/^[A-Z ]+$/.test(form.value.school.trim())) {
+        errors.value.school = 'School Name must be uppercase letters only'; valid = false
+      } else if(form.value.school.trim().split(/\s+/).length < 2) {
+        errors.value.school = 'Please enter the full school name in uppercase'; valid = false
+      }
+    }
     if(userType.value === 'osy' && !form.value.skills) { errors.value.skills = 'Skills/Training is required'; valid = false }
     if(userType.value === 'dependent') {
       if(!form.value.parentName) { errors.value.parentName = 'Parent/Guardian Name is required'; valid = false }
@@ -278,7 +303,11 @@ function validateStep(step) {
     }
     if(userType.value === 'employer') {
       if(!form.value.contactPerson) { errors.value.contactPerson = 'Contact Person is required'; valid = false }
-      if(!form.value.address) { errors.value.address = 'Company Address is required'; valid = false }
+      if(!form.value.address) {
+        errors.value.address = 'Company Address is required'; valid = false
+      } else if(!/^[A-Z0-9\s\-,.#]+$/.test(form.value.address.trim())) {
+        errors.value.address = 'Address must be uppercase and may include numbers, spaces, commas, periods, dashes, or #'; valid = false
+      }
     }
   }
 
@@ -306,6 +335,24 @@ function prevStep() {
 
 function handleSingleFileUpload(event, index) {
   const file = event.target.files[0] || null
+  videoUploadError.value = ''
+  
+  if (file) {
+    // Check if file is a video
+    const videoExtensions = ['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'webm', 'm4v']
+    const videoMimeTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-matroska', 'video/x-flv', 'video/x-ms-wmv', 'video/webm', 'video/x-m4v']
+    
+    const fileExtension = file.name.split('.').pop().toLowerCase()
+    const isVideoByExtension = videoExtensions.includes(fileExtension)
+    const isVideoByMimeType = videoMimeTypes.includes(file.type)
+    
+    if (isVideoByExtension || isVideoByMimeType) {
+      videoUploadError.value = `❌ Video files (${file.name}) are not allowed. Please upload only PDF, DOC, DOCX, JPG, JPEG, or PNG files.`
+      form.value.documents[index] = null
+      return
+    }
+  }
+  
   form.value.documents[index] = file
 }
 

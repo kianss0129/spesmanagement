@@ -1,8 +1,10 @@
 <?php
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\Verified;
+use Inertia\Inertia; // ✅ Add this line
 
 class EmailVerificationPromptController extends Controller
 {
@@ -12,6 +14,9 @@ class EmailVerificationPromptController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('auth.verify-email');
+        // Use Inertia instead of Blade
+        return Inertia::render('Auth/VerifyEmail', [
+            'status' => session('status'),
+        ]);
     }
 }

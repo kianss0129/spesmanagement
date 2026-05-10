@@ -1,6 +1,18 @@
 <template>
   <div class="p-6 min-h-screen bg-gray-50">
-    <h1 class="text-2xl font-bold mb-4">Pending Employers</h1>
+
+    <!-- TOP BAR -->
+    <div class="flex items-center gap-4 mb-4">
+      <!-- BACK BUTTON -->
+      <button
+        @click="goBack"
+        class="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+      >
+        ← Back
+      </button>
+
+      <h1 class="text-2xl font-bold">Pending Employers</h1>
+    </div>
 
     <table class="w-full border rounded">
       <thead class="bg-gray-100">
@@ -24,14 +36,14 @@
               :href="route('peso.employers.applications', { employer: e.id })"
               class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
             >
-              View Onboarding
+              View applicant
             </Link>
 
             <!-- APPROVE -->
             <button
               v-if="canApprove"
               class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-              @click="approve(e.id)"
+              @click="openApproveDialog(e.id)"
             >
               Approve
             </button>
@@ -55,16 +67,51 @@
       </tbody>
     </table>
 
-    <!-- Rejection Reason Dialog -->
-    <div v-if="showRejectDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <!-- APPROVE MODAL -->
+    <div
+      v-if="showApproveDialog"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+        <h3 class="text-lg font-bold mb-4">Approve Employer</h3>
+
+        <p class="text-gray-700 mb-6">
+          Are you sure you want to approve this employer?
+        </p>
+
+        <div class="flex justify-end gap-2">
+          <button
+            @click="showApproveDialog = false"
+            class="px-4 py-2 border rounded hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+
+          <button
+            @click="confirmApprove"
+            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            Approve
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REJECT MODAL -->
+    <div
+      v-if="showRejectDialog"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
         <h3 class="text-lg font-bold mb-4">Reject Employer</h3>
+
         <textarea
           v-model="rejectionReason"
           class="w-full border rounded px-3 py-2 mb-4"
           rows="4"
           placeholder="Enter reason for rejection (e.g., Invalid documents, Missing requirements, etc.)..."
         ></textarea>
+
         <div class="flex gap-2 justify-end">
           <button
             @click="showRejectDialog = false"
@@ -72,6 +119,7 @@
           >
             Cancel
           </button>
+
           <button
             @click="confirmReject"
             :disabled="!rejectionReason.trim()"
@@ -101,17 +149,43 @@ defineProps({
   }
 })
 
+/**
+ * BACK BUTTON
+ */
+const goBack = () => {
+  window.history.back()
+}
+
+/**
+ * APPROVE MODAL
+ */
+const showApproveDialog = ref(false)
+let approveId = null
+
+const openApproveDialog = (id) => {
+  approveId = id
+  showApproveDialog.value = true
+}
+
+const confirmApprove = () => {
+  router.post(
+    route('peso.employers.approve', { id: approveId }),
+    {},
+    {
+      onSuccess: () => {
+        showApproveDialog.value = false
+        router.reload()
+      }
+    }
+  )
+}
+
+/**
+ * REJECT MODAL
+ */
 const showRejectDialog = ref(false)
 const rejectionReason = ref('')
 let rejectId = null
-
-const approve = (id) => {
-  if (confirm('Approve this employer?')) {
-    router.post(route('peso.employers.approve', { id }), {}, {
-      onSuccess: () => router.reload()
-    })
-  }
-}
 
 const openRejectDialog = (id) => {
   rejectId = id
@@ -127,7 +201,9 @@ const confirmReject = () => {
 
   router.post(
     route('peso.employers.reject', { id: rejectId }),
-    { rejection_reason: rejectionReason.value },
+    {
+      rejection_reason: rejectionReason.value
+    },
     {
       onSuccess: () => {
         showRejectDialog.value = false

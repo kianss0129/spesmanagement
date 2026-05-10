@@ -28,20 +28,16 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
+        'password' => 'hashed',
     ];
 
-    /**
-     * Each user may have a beneficiary profile
-     */
+    // Beneficiary profile
     public function beneficiary()
     {
         return $this->hasOne(\App\Models\Beneficiary::class);
     }
 
-    /**
-     * Each user may have an employer profile
-     */
+    // Employer profile
     public function employer()
     {
         return $this->hasOne(\App\Models\Employer::class);

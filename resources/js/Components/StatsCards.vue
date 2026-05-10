@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
     <div class="bg-white p-4 rounded shadow">
       <div class="text-gray-500">Total Users</div>
       <div class="text-2xl font-bold">{{ stats.users }}</div>
@@ -11,6 +11,10 @@
     <div class="bg-white p-4 rounded shadow">
       <div class="text-gray-500">Total Employers</div>
       <div class="text-2xl font-bold">{{ stats.employers }}</div>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <div class="text-gray-500">Pending Applications</div>
+      <div class="text-2xl font-bold">{{ stats.pending_applications ?? 0 }}</div>
     </div>
     <div v-if="showPesoStats" class="bg-white p-4 rounded shadow">
       <div class="text-gray-500">PESO Users</div>

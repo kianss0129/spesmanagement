@@ -11,33 +11,17 @@
           <input v-model="assignForm.job_listing_id" type="number" class="w-full border rounded px-3 py-2" required />
         </div>
         <div>
-          <label class="text-sm">Beneficiary ID</label>
-          <input v-model="assignForm.beneficiary_id" type="number" class="w-full border rounded px-3 py-2" required />
+          <label class="text-sm">Beneficiary</label>
+          <select v-model="assignForm.beneficiary_id" class="w-full border rounded px-3 py-2" required>
+            <option value="">-- Select beneficiary --</option>
+            <option v-for="beneficiary in beneficiaryOptions" :key="beneficiary.id" :value="beneficiary.id">
+              #{{ beneficiary.id }} - {{ beneficiary.name }}
+            </option>
+          </select>
         </div>
         <div class="flex items-center space-x-2">
           <button type="submit" class="bg-indigo-600 text-white px-3 py-2 rounded">Assign</button>
           <span v-if="assignMessage" class="text-sm text-green-600">{{ assignMessage }}</span>
-        </div>
-      </form>
-
-      <!-- Schedule Interview -->
-      <form v-if="showScheduleForm" @submit.prevent="scheduleInterview" class="space-y-3 bg-gray-50 p-4 rounded shadow-inner">
-        <h3 class="font-medium">Schedule Interview</h3>
-        <div>
-          <label class="text-sm">Application ID</label>
-          <input v-model="scheduleForm.application_id" type="number" class="w-full border rounded px-3 py-2" required />
-        </div>
-        <div>
-          <label class="text-sm">Scheduled At</label>
-          <input v-model="scheduleForm.scheduled_at" type="datetime-local" class="w-full border rounded px-3 py-2" required />
-        </div>
-        <div>
-          <label class="text-sm">Meet Link (optional)</label>
-          <input v-model="scheduleForm.meet_link" type="url" class="w-full border rounded px-3 py-2" />
-        </div>
-        <div class="flex items-center space-x-2">
-          <button type="submit" class="bg-green-600 text-white px-3 py-2 rounded">Schedule</button>
-          <span v-if="scheduleMessage" class="text-sm text-green-600">{{ scheduleMessage }}</span>
         </div>
       </form>
 
@@ -46,20 +30,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
-  showAssignForm: { type: Boolean, default: true },
-  showScheduleForm: { type: Boolean, default: true }
+  showAssignForm: { type: Boolean, default: true }
 })
 
 const emit = defineEmits(['dataChanged'])
 
-const assignForm = ref({ job_listing_id: '', beneficiary_id: '' })
-const scheduleForm = ref({ application_id: '', scheduled_at: '', meet_link: '' })
+const applications = ref([])
+
+const assignForm = ref({ job_listing_id: null, beneficiary_id: null })
 const assignMessage = ref('')
-const scheduleMessage = ref('')
+
+const beneficiaryOptions = computed(() => {
+  const map = {}
+  applications.value.forEach(app => {
+    if (app.beneficiary_id && !map[app.beneficiary_id]) {
+      map[app.beneficiary_id] = {
+        id: app.beneficiary_id,
+        name: app.beneficiary_name || `Beneficiary #${app.beneficiary_id}`
+      }
+    }
+  })
+  return Object.values(map)
+})
 
 async function assignBeneficiary() {
   assignMessage.value = ''
@@ -68,20 +64,21 @@ async function assignBeneficiary() {
     assignMessage.value = 'Assigned successfully.'
     emit('dataChanged')
   } catch (e) {
-    assignMessage.value = e?.response?.data?.error ?? 'Failed to assign.'
+    assignMessage.value =
+  e?.response?.data?.message ||
+  e?.response?.data?.errors?.beneficiary_id?.[0] ||
+  e?.response?.data?.errors?.job_listing_id?.[0] ||
+  'Failed to assign.'
     console.error('Assign failed', e)
   }
 }
 
-async function scheduleInterview() {
-  scheduleMessage.value = ''
+onMounted(async () => {
   try {
-    await axios.post('/peso/schedule-interview', scheduleForm.value)
-    scheduleMessage.value = 'Interview scheduled.'
-    emit('dataChanged')
+    const res = await axios.get('/peso/applications')
+    applications.value = res.data
   } catch (e) {
-    scheduleMessage.value = e?.response?.data?.message ?? 'Failed to schedule.'
-    console.error('Schedule failed', e)
+    console.error('Failed to load applications for dropdown', e)
   }
-}
+})
 </script>

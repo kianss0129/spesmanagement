@@ -23,11 +23,12 @@ class JobListing extends Model
 
     public function employer()
     {
-        return $this->belongsTo(Employer::class);
+       return $this->belongsTo(\App\Models\Employer::class, 'employer_id');
     }
 
     public function applications()
     {
         return $this->hasMany(Application::class, 'job_listing_id');
     }
+    
 }

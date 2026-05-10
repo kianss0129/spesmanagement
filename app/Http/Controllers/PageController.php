@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Models\Attendance;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Foundation\Application;
@@ -60,10 +60,34 @@ class PageController extends Controller
         return Inertia::render('Employer/Reports');
     }
 
-    public function employerAttendance()
-    {
-        return Inertia::render('Employer/Attendance');
-    }
+public function employerAttendance()
+{
+    $records = Attendance::with('beneficiary')
+        ->latest()
+        ->get()
+        ->map(function ($a) {
+
+            return [
+                'id' => $a->id,
+
+                // ✅ safe even if relation is null
+                'beneficiary_name' => trim(
+    ($a->beneficiary->first_name ?? '') . ' ' . ($a->beneficiary->last_name ?? '')
+) ?: 'N/A',
+
+                'date' => $a->date,
+                'time_in' => $a->time_in,
+                'time_out' => $a->time_out,
+
+                // ✅ correct storage path handling
+              'proof' => $a->notes ? asset('storage/'.$a->notes) : null,    
+            ];
+        });
+
+    return inertia('Employer/Attendance', [
+        'records' => $records
+    ]);
+}
 
     // Beneficiary pages
     public function beneficiaryApplications()

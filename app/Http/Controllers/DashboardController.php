@@ -5,9 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
+
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\PESO\AnalyticsController;
 use App\Http\Controllers\PESO\PESOController;
+use App\Http\Controllers\PESO\InterviewController;
+
+use App\Models\User;
+use App\Models\Beneficiary;
+use App\Models\Employer;
+use Spatie\Permission\Models\Role;
 
 class DashboardController extends Controller
 {
@@ -18,83 +25,92 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        // Prepare common data
         $data = [
             'user' => $user,
         ];
 
-        // Beneficiaries for monitoring (visible to Admin, PESO Admin, PESO)
-        if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO'])) {
-            $pesoController = new PESOController();
-            $data['beneficiaries'] = $pesoController->monitoring()->getData();
-            $interviewController = new \App\Http\Controllers\PESO\InterviewController();
-            $data['interviews'] = $interviewController->upcoming()->getData();
-            // Job listings for management (Admin, PESO Admin)
-            if ($user->hasAnyRole(['Admin', 'PESO Admin'])) {
-                $data['jobListings'] = $pesoController->jobListings()->getData();
-                // Analytics data
-                $analyticsController = new AnalyticsController();
-                $data['completionRates'] = $analyticsController->completionRatePerBatch();
-                $data['attendanceCompliance'] = $analyticsController->attendanceCompliance($request);
-            }
-        }
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN + PESO ADMIN
+        |--------------------------------------------------------------------------
+        */
+        if ($user->hasAnyRole(['Admin', 'PESO Admin'])) {
 
-        // Role-based data
-        if ($user->hasRole('Admin') || $user->hasRole('PESO Admin')) {
-            // Full admin data
-            $adminController = new AdminController();
-            $adminResponse = $adminController->dashboard();
-            // Since it returns Inertia response, we need to get the data differently
-            // For now, call the method that provides data
-            $data['stats'] = $adminController->getStatsForDashboard();
-        } elseif ($user->hasRole('PESO')) {
-            // PESO data
+            $pesoController = new PESOController();
             $analyticsController = new AnalyticsController();
+            $adminController = new AdminController();
+
+            $data['beneficiaries'] = $pesoController->monitoring()->getData();
+            $data['interviews'] = app(InterviewController::class)->upcoming()->getData();
+            $data['jobListings'] = $pesoController->jobListings()->getData();
+
+            $data['completionRates'] = $analyticsController->completionRatePerBatch();
+            $data['attendanceCompliance'] = $analyticsController->attendanceCompliance($request);
+
             $data['applicants'] = $analyticsController->applicantsBySchool($request);
             $data['employers'] = $analyticsController->topHiringEmployers();
-            $data['totals'] = [
-                'applications' => 0, // Would need to calculate
-                'assigned' => 0,
-                'interviews' => 0,
-                'attendance' => 0,
+
+            // Full Admin stats
+            $data['stats'] = $adminController->getStatsForDashboard();
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PESO USER
+        |--------------------------------------------------------------------------
+        */
+        elseif ($user->hasRole('PESO')) {
+
+            $pesoController = new PESOController();
+            $analyticsController = new AnalyticsController();
+
+            $data['beneficiaries'] = $pesoController->monitoring()->getData();
+            $data['interviews'] = app(InterviewController::class)->upcoming()->getData();
+
+            $data['applicants'] = $analyticsController->applicantsBySchool($request);
+            $data['employers'] = $analyticsController->topHiringEmployers();
+
+            // 🔥 Real-time stats (no AdminController call)
+            $data['stats'] = [
+                'totalUsers' => User::count(),
+                'totalBeneficiaries' => Beneficiary::count(),
+                'totalEmployers' => Employer::count(),
+                'pesoUsers' => Role::where('name', 'PESO')->first()?->users()->count() ?? 0,
             ];
-            $data['stats'] = []; // Minimal stats for PESO
         }
 
         return Inertia::render('Dashboard', $data);
     }
 
     /**
-     * Legacy redirect method for backward compatibility
+     * Smart redirect method
      */
     public function redirect()
     {
         $user = auth()->user();
 
-        // If no user is logged in, send to login page
         if (!$user) {
             return Redirect::route('login');
         }
 
-        // Beneficiary onboarding check
+        // Beneficiary
         if ($user->hasRole('Beneficiary')) {
             if (!$user->onboarding_completed) {
                 return Redirect::route('onboarding');
             }
-            return Redirect::route('onboarding'); // fallback
-        }
-
-        // Admin/PESO roles go to unified dashboard
-        if ($user->hasRole('Admin') || $user->hasRole('PESO Admin') || $user->hasRole('PESO')) {
             return Redirect::route('dashboard');
         }
 
-        // Employer goes to their dashboard
+        // Admin / PESO
+        if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO'])) {
+            return Redirect::route('dashboard');
+        }
+
+        // Employer
         if ($user->hasRole('Employer')) {
             return Redirect::route('employer.dashboard');
         }
 
-        // fallback
         return Redirect::route('login');
     }
 }
