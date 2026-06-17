@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
+use Illuminate\Support\Facades\Log;
 
 class UpdateUserProfileInformation implements UpdatesUserProfileInformation
 {
@@ -17,6 +18,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      */
     public function update(User $user, array $input): void
     {
+        Log::info('UpdateUserProfileInformation called', ['user_id' => $user->id, 'has_photo' => isset($input['photo'])]);
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
@@ -24,7 +26,14 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         ])->validateWithBag('updateProfileInformation');
 
         if (isset($input['photo'])) {
-            $user->updateProfilePhoto($input['photo']);
+            try {
+                Log::info('Attempting to update profile photo', ['user_id' => $user->id, 'photo' => gettype($input['photo'])]);
+                $user->updateProfilePhoto($input['photo']);
+                Log::info('Profile photo updated', ['user_id' => $user->id, 'path' => $user->profile_photo_path]);
+            } catch (\Throwable $e) {
+                Log::error('Failed to update profile photo', ['user_id' => $user->id, 'exception' => $e->getMessage()]);
+                throw $e;
+            }
         }
 
         if ($input['email'] !== $user->email &&

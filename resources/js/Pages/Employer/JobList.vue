@@ -1,187 +1,146 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const props = defineProps({
-  jobs: Array
+  jobs: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-// Modal control
 const showModal = ref(false)
 const jobToDelete = ref(null)
-
-// Toast control
 const showToast = ref(false)
 const toastMessage = ref('')
 
-// 🔙 BACK
+const activeJobs = computed(() => props.jobs || [])
+const totalSlots = computed(() => activeJobs.value.reduce((sum, job) => sum + Number(job.slots || 0), 0))
+
 function goBack() {
   window.history.back()
 }
 
-// Open delete modal
 function openModal(job) {
   jobToDelete.value = job
   showModal.value = true
 }
 
-// Close modal
 function closeModal() {
   showModal.value = false
   jobToDelete.value = null
 }
 
-// Delete job
 function deleteJob() {
   if (!jobToDelete.value) return
+
   router.delete(`/employer/jobs/${jobToDelete.value.id}`, {
     onSuccess: () => {
+      toastMessage.value = `Job "${jobToDelete.value.title}" deleted.`
       showToast.value = true
-      toastMessage.value = `Job "${jobToDelete.value.title}" deleted successfully!`
       closeModal()
       setTimeout(() => { showToast.value = false }, 3000)
-    }
+    },
   })
+}
+
+function formatDate(value) {
+  if (!value) return 'No closing date'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: '2-digit' })
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-blue-50 p-8">
-
-    <!-- HEADER -->
-    <div class="flex justify-between items-center mb-6">
-
-      <!-- LEFT SIDE (BACK + TITLE) -->
-      <div class="flex items-center gap-4">
-
-        <!-- 🔙 MODERN BACK BUTTON -->
-        <button
-          @click="goBack"
-          class="flex items-center gap-2 px-3 py-2 bg-white shadow-md rounded-xl hover:bg-blue-100 hover:shadow-lg transition group"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg"
-               class="w-5 h-5 text-gray-600 group-hover:text-blue-600 transform group-hover:-translate-x-1 transition"
-               fill="none"
-               viewBox="0 0 24 24"
-               stroke="currentColor">
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 19l-7-7 7-7" />
-          </svg>
-
-          <span class="text-sm font-medium text-gray-700 group-hover:text-blue-600">
+  <main class="min-h-screen bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl space-y-6">
+      <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <button type="button" class="mb-4 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50" @click="goBack">
             Back
-          </span>
-        </button>
-
-        <h1 class="text-3xl font-bold text-blue-900">
-          My Job Listings
-        </h1>
-      </div>
-
-      <!-- RIGHT SIDE -->
-      <a
-        href="/employer/jobs/create"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow transition duration-200"
-      >
-        + New Job
-      </a>
-    </div>
-
-    <!-- TABLE CARD -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-      <table class="w-full text-left border-collapse">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            <th class="px-4 py-2 text-left">Job ID</th>
-            <th class="p-4 font-semibold">Title</th>
-            <th class="p-4 font-semibold">Location</th>
-            <th class="p-4 font-semibold">Slots</th>
-            <th class="p-4 font-semibold">Closing</th>
-            <th class="p-4 font-semibold text-center">Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr v-for="job in jobs" :key="job.id" class="border-b hover:bg-blue-50 transition">
-            <td class="p-4 font-medium text-gray-800">{{ job.id }}</td> 
-            <td class="p-4 font-medium text-gray-800">{{ job.title }}</td>
-            <td class="p-4 text-gray-600">{{ job.location }}</td>
-            <td class="p-4 text-gray-600">{{ job.slots }}</td>
-            <td class="p-4 text-gray-600">{{ job.closing_date }}</td>
-            <td class="p-4 flex justify-center gap-3">
-              <a
-                :href="`/employer/jobs/${job.id}/edit`"
-                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition"
-              >
-                Edit
-              </a>
-              <button
-                @click="openModal(job)"
-                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm transition"
-              >
-                Delete
-              </button>
-            </td>
-          </tr>
-
-          <tr v-if="!jobs || jobs.length === 0">
-            <td colspan="6" class="text-center p-8 text-gray-400">
-              No job listings yet.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- DELETE MODAL -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-    >
-      <div class="bg-white rounded-xl p-6 w-96 shadow-lg">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Delete Job</h2>
-
-        <p class="text-gray-700 mb-6">
-          Are you sure you want to delete
-          <span class="font-semibold">{{ jobToDelete?.title }}</span>?
-        </p>
-
-        <div class="flex justify-end gap-3 mb-4">
-          <button
-            @click="closeModal"
-            class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
-          >
-            Cancel
           </button>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Work Opportunities</p>
+          <h1 class="mt-2 text-3xl font-bold text-slate-950">Job Slots</h1>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            Maintain job slots that CPESO can use for matching and placement.
+          </p>
+        </div>
+        <a href="/employer/jobs/create" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700">
+          New Job Slot
+        </a>
+      </header>
 
-          <button
-            @click="deleteJob"
-            class="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
-          >
-            Delete
-          </button>
+      <section class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-semibold uppercase text-slate-500">Available Jobs</p>
+          <p class="mt-2 text-3xl font-bold">{{ activeJobs.length }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-semibold uppercase text-slate-500">Total Slots</p>
+          <p class="mt-2 text-3xl font-bold text-blue-600">{{ totalSlots }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-xs font-semibold uppercase text-slate-500">Workflow</p>
+          <p class="mt-2 text-sm font-semibold text-slate-700">Post slots for CPESO matching</p>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="hidden grid-cols-[0.8fr_1.4fr_1fr_0.6fr_0.9fr_1fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 lg:grid">
+          <span>ID</span>
+          <span>Job Title</span>
+          <span>Location</span>
+          <span>Slots</span>
+          <span>Closing Date</span>
+          <span>Actions</span>
         </div>
 
-        <!-- VIEW APPLICANTS -->
-        <a
-          :href="`/employer/jobs/${jobToDelete?.id}`"
-          class="text-blue-600 hover:underline text-sm"
-        >
-          View Applicants
-        </a>
+        <div v-if="activeJobs.length === 0" class="p-10 text-center">
+          <h2 class="text-lg font-bold text-slate-900">No job slots yet</h2>
+          <p class="mt-2 text-sm text-slate-500">Create a job slot so CPESO can match beneficiaries to your organization.</p>
+        </div>
 
+        <article
+          v-for="job in activeJobs"
+          :key="job.id"
+          class="grid gap-4 border-b border-slate-200 px-5 py-5 last:border-b-0 lg:grid-cols-[0.8fr_1.4fr_1fr_0.6fr_0.9fr_1fr] lg:items-center"
+        >
+          <p class="text-sm font-semibold text-slate-500">#{{ job.id }}</p>
+          <div>
+            <p class="font-semibold text-slate-900">{{ job.title }}</p>
+            <p class="mt-1 line-clamp-2 text-sm text-slate-500">{{ job.description }}</p>
+          </div>
+          <p class="text-sm text-slate-700">{{ job.location || 'No location' }}</p>
+          <p class="text-sm font-semibold text-slate-900">{{ job.slots || 0 }}</p>
+          <p class="text-sm text-slate-700">{{ formatDate(job.closing_date) }}</p>
+          <div class="flex flex-wrap gap-2">
+            <a :href="`/employer/jobs/${job.id}/edit`" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">
+              Edit
+            </a>
+            <button type="button" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100" @click="openModal(job)">
+              Delete
+            </button>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="closeModal">
+      <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <h2 class="text-xl font-bold text-slate-900">Delete Job Slot</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-600">
+          Delete <span class="font-semibold">{{ jobToDelete?.title }}</span>? This only removes this job post from employer management.
+        </p>
+        <div class="mt-6 flex justify-end gap-3">
+          <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="closeModal">Cancel</button>
+          <button type="button" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700" @click="deleteJob">Delete</button>
+        </div>
       </div>
     </div>
 
-    <!-- TOAST -->
-    <div
-      v-if="showToast"
-      class="fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-lg shadow-lg transition"
-    >
+    <div v-if="showToast" class="fixed bottom-6 right-6 rounded-lg bg-green-600 px-5 py-3 text-sm font-semibold text-white shadow-xl">
       {{ toastMessage }}
     </div>
-
-  </div>
+  </main>
 </template>

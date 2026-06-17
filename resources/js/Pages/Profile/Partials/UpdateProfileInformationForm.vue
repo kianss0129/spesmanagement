@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
+import { Inertia } from '@inertiajs/inertia';
 import ActionMessage from '@/Components/ActionMessage.vue';
 import FormSection from '@/Components/FormSection.vue';
 import InputError from '@/Components/InputError.vue';
@@ -32,7 +33,11 @@ const updateProfileInformation = () => {
     form.post(route('user-profile-information.update'), {
         errorBag: 'updateProfileInformation',
         preserveScroll: true,
-        onSuccess: () => clearPhotoFileInput(),
+        onSuccess: () => {
+            clearPhotoFileInput();
+            // Refresh Inertia shared props so `user.profile_photo_url` is updated
+            Inertia.reload({ only: ['auth'] });
+        },
     });
 };
 

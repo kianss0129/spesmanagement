@@ -12,7 +12,13 @@ class CheckBeneficiaryApproved
     {
         $user = Auth::user();
 
-        if ($user->role !== 'Beneficiary' || !$user->is_approved) {
+        $beneficiary = $user?->beneficiary;
+
+        if (
+            ! $user?->hasRole('Beneficiary') ||
+            ! $beneficiary ||
+            ! ($beneficiary->approved || $beneficiary->approval_status === 'approved')
+        ) {
             // redirect if not approved
             return redirect()->route('login')->with('error', 'Your account is not approved yet.');
         }

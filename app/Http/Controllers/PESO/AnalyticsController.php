@@ -64,7 +64,7 @@ public function applicationsAssignedByPESO()
     }
 }
 
-    private function dashboardStats(Request $request)
+    public function dashboardStats(Request $request)
     {
         [$startDate, $endDate] = $this->resolveDateRange($request);
 
@@ -92,7 +92,7 @@ public function applicationsAssignedByPESO()
         ];
     }
 
-    private function resolveDateRange(Request $request)
+    public function resolveDateRange(Request $request)
     {
         $filter = $request->query('date_filter', 'last_7_days');
         $start = $request->query('start_date');
@@ -173,6 +173,11 @@ public function applicationsAssignedByPESO()
 
 
     // 2️⃣ Top Hiring Employers
+    public function topEmployers()
+    {
+        return $this->topHiringEmployers();
+    }
+
     public function topHiringEmployers()
     {
         $data = Employer::select('employers.id','employers.company_name as name', DB::raw('COUNT(applications.id) as hires'))
@@ -341,7 +346,7 @@ public function applicationsAssignedByPESO()
         return $top->map(function($b){
             $beneficiary = Beneficiary::find($b->beneficiary_id);
             $feedback = EmployerRating::where('beneficiary_id',$b->beneficiary_id)
-                        ->get(['punctuality','attitude','work_quality','communication','overall']);
+                        ->get(['punctuality','work_attitude as attitude','output_quality as work_quality','communication','overall']);
             return [
                 'beneficiary_name' => $beneficiary->name,
                 'average_rating' => round($b->avg_rating,2),
@@ -354,7 +359,7 @@ public function applicationsAssignedByPESO()
     {
         $submittedCount = EmployerRating::count();
         $averages = EmployerRating::selectRaw(
-            'AVG(punctuality) as punctuality, AVG(work_quality) as work_quality, AVG(attitude) as attitude, AVG(communication) as communication, AVG(overall) as overall'
+            'AVG(punctuality) as punctuality, AVG(output_quality) as work_quality, AVG(work_attitude) as attitude, AVG(communication) as communication, AVG(overall) as overall'
         )->first();
 
         return [

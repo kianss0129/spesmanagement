@@ -1,127 +1,255 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600">
+  <div
+    class="min-h-screen bg-cover bg-center bg-no-repeat relative overflow-hidden"
+    style="background-image: url('/images/spes-bg.jpg')"
+  >
+    <!-- OVERLAYS -->
+    <div class="absolute inset-0 bg-slate-950/70"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/50 to-transparent"></div>
 
-    <!-- HERO SECTION -->
-    <div class="text-white text-center py-20 px-6">
-      <h1 class="text-4xl md:text-5xl font-extrabold mb-4">
-        SPES Management System
-      </h1>
-      <p class="text-lg md:text-xl opacity-90 max-w-2xl mx-auto">
-        Empowering students through employment opportunities while simplifying
-        management for employers and PESO administrators.
-      </p>
+    <div class="relative z-10 flex flex-col min-h-screen">
 
-      <div class="mt-8 flex justify-center gap-4">
-        <Link
-          v-if="canLogin"
-          :href="route('login')"
-          class="px-8 py-3 rounded-xl bg-white text-indigo-600 font-semibold shadow hover:scale-105 transition"
-        >
-          Login
-        </Link>
+      <!-- ================= NAVBAR ================= -->
+      <header class="sticky top-0 z-50 backdrop-blur-xl bg-white/10 border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4">
 
-        <button
-          v-if="canRegister"
-          @click="openRegisterModal"
-          class="px-8 py-3 rounded-xl border border-white text-white hover:bg-white hover:text-indigo-600 transition"
-        >
-          Get Started
-        </button>
-      </div>
-    </div>
+          <div class="flex justify-between items-center">
 
-    <!-- FEATURES SECTION -->
-    <div class="bg-white py-16 px-6 md:px-12">
-      <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">
-        System Features
-      </h2>
+            <!-- LOGO -->
+            <div class="flex items-center gap-3">
+              <div class="bg-white p-2 rounded-xl shadow-lg">
+                <img
+                  src="/images/spes-logo.png"
+                  class="w-10 h-10"
+                />
+              </div>
 
-      <div class="grid md:grid-cols-3 gap-8">
-        <div class="p-6 rounded-xl shadow hover:shadow-lg transition">
-          <h3 class="text-xl font-semibold mb-2 text-indigo-600">Student Portal</h3>
-          <p class="text-gray-600">
-            Easy registration and application tracking for beneficiaries.
-          </p>
+              <div>
+                <h1 class="font-bold text-white text-lg">
+                  SPES Management
+                </h1>
+
+                <p class="text-white/60 text-sm">
+                  Student Employment Program
+                </p>
+              </div>
+            </div>
+
+            <!-- NAVIGATION -->
+           <nav class="hidden md:flex gap-10 text-white font-medium">
+
+  <button
+    @click="activeTab = 'home'"
+    :class="activeTab === 'home' ? 'text-blue-400' : 'text-white'"
+    class="transition hover:text-blue-300"
+  >
+    Home
+  </button>
+
+  <button
+    @click="activeTab = 'about'"
+    :class="activeTab === 'about' ? 'text-blue-400' : 'text-white'"
+    class="transition hover:text-blue-300"
+  >
+    About
+  </button>
+
+  <button
+    @click="activeTab = 'manual'"
+    :class="activeTab === 'manual' ? 'text-blue-400' : 'text-white'"
+    class="transition hover:text-blue-300"
+  >
+    User Manual
+  </button>
+
+  <button
+    @click="activeTab = 'contact'"
+    :class="activeTab === 'contact' ? 'text-blue-400' : 'text-white'"
+    class="transition hover:text-blue-300"
+  >
+    Contact
+  </button>
+
+</nav>
+            <!-- ACTION BUTTONS -->
+            <div class="flex gap-3">
+
+              <Link
+                v-if="canLogin"
+                :href="route('login')"
+                class="px-5 py-2 rounded-xl bg-white/10 border border-white/20 text-white hover:bg-white/20 transition"
+              >
+                Login
+              </Link>
+
+              <button
+                v-if="canRegister"
+                @click="openRegisterModal"
+                class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition"
+              >
+                Register
+              </button>
+
+            </div>
+
+          </div>
         </div>
+      </header>
+<!-- ================= CONTENT SWITCHER ================= -->
+<section class="flex-1 flex items-center">
 
-        <div class="p-6 rounded-xl shadow hover:shadow-lg transition">
-          <h3 class="text-xl font-semibold mb-2 text-indigo-600">Employer Access</h3>
-          <p class="text-gray-600">
-            Post jobs and manage applicants efficiently.
-          </p>
-        </div>
+  <!-- HOME TAB -->
+  <div
+    v-if="activeTab === 'home'"
+    class="max-w-7xl mx-auto px-6 w-full"
+  >
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
 
-        <div class="p-6 rounded-xl shadow hover:shadow-lg transition">
-          <h3 class="text-xl font-semibold mb-2 text-indigo-600">PESO Dashboard</h3>
-          <p class="text-gray-600">
-            Monitor, validate, and analyze program performance.
-          </p>
-        </div>
-      </div>
-    </div>
+      <div>
 
-    <!-- ABOUT SECTION -->
-    <div class="bg-gray-100 py-16 px-6 md:px-12 text-center">
-      <h2 class="text-3xl font-bold text-gray-800 mb-6">About SPES</h2>
-      <p class="max-w-3xl mx-auto text-gray-600 leading-relaxed">
-        The Special Program for the Employment of Students (SPES) provides
-        opportunities for students to gain work experience and earn income
-        during school breaks. This system digitizes the entire process—from
-        registration to monitoring—making it faster, transparent, and secure.
-      </p>
-    </div>
+        <h1 class="text-white text-5xl lg:text-7xl font-extrabold leading-tight">
+          Welcome to
+          <span class="text-blue-500">
+            SPES Management System
+          </span>
+        </h1>
 
-    <!-- FOOTER -->
-    <div class="bg-indigo-700 text-white text-center py-6">
-      <p class="text-sm opacity-80">
-        © 2026 SPES Management System | All Rights Reserved
-      </p>
-    </div>
+        <p class="mt-8 text-lg text-slate-300 max-w-xl leading-relaxed">
+          Simplify student applications, employer management,
+          and PESO monitoring through one centralized system.
+        </p>
 
-    <!-- REGISTER MODAL -->
-    <div
-      v-if="showRegisterModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white rounded-xl p-6 w-96 relative">
-        <h3 class="text-xl font-semibold mb-4 text-center">
-          Choose Registration Type
-        </h3>
+        <div class="mt-10 flex flex-wrap gap-4">
 
-        <div class="flex justify-around gap-4">
-          <button
-            @click="selectBeneficiary"
-            class="flex flex-col items-center p-4 border rounded-lg hover:bg-indigo-50 transition w-32"
+          <Link
+            :href="route('login')"
+            class="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-2xl text-white font-semibold shadow-xl transition hover:scale-105"
           >
-            👨‍🎓
-            <span>Beneficiary</span>
+            Get Started
+          </Link>
+
+          <button
+            @click="openRegisterModal"
+            class="px-8 py-4 border border-white/30 rounded-2xl text-white hover:bg-white/10 transition"
+          >
+            Register Now
           </button>
 
-          <button
-            @click="selectEmployer"
-            class="flex flex-col items-center p-4 border rounded-lg hover:bg-indigo-50 transition w-32"
-          >
-            🏢
-            <span>Employer</span>
-          </button>
         </div>
 
-        <button
-          @click="closeRegisterModal"
-          class="absolute top-2 right-2 text-lg font-bold"
-        >
-          ×
-        </button>
       </div>
+
+    </div>
+  </div>
+
+  <!-- IMPORTED PAGES -->
+  <div
+    v-else
+    class="w-full px-6 py-10"
+  >
+    <component :is="tabs[activeTab]" />
+  </div>
+
+</section>
+
+      <transition name="fade">
+        <div
+          v-if="showRegisterModal"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-8"
+        >
+          <div class="w-full max-w-xl rounded-3xl border border-white/10 bg-slate-900/90 p-8 shadow-2xl backdrop-blur-xl">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-3xl font-extrabold text-white">Register as</h2>
+                <p class="mt-2 text-sm text-slate-400">
+                  Choose whether you want to sign up as a beneficiary or an employer.
+                </p>
+              </div>
+
+              <button
+                @click="showRegisterModal = false"
+                class="text-slate-400 hover:text-white"
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div class="mt-8 grid gap-4 sm:grid-cols-2">
+              <button
+                @click="selectBeneficiary"
+                class="w-full rounded-3xl bg-blue-600 px-6 py-4 text-white font-semibold shadow-lg hover:bg-blue-700 transition"
+              >
+                Beneficiary
+              </button>
+
+              <button
+                @click="selectEmployer"
+                class="w-full rounded-3xl bg-green-600 px-6 py-4 text-white font-semibold shadow-lg hover:bg-green-700 transition"
+              >
+                Employer
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ================= FEATURES ================= -->
+      <section class="bg-black/30 backdrop-blur-lg border-t border-white/10">
+
+        <div class="max-w-7xl mx-auto">
+
+          <div class="grid md:grid-cols-3">
+
+            <div class="p-8 border-r border-white/10 hover:bg-white/5 transition">
+              <h3 class="text-white font-bold text-lg">
+                Student Beneficiaries
+              </h3>
+
+              <p class="text-slate-300 mt-3">
+                Apply, track applications, and manage requirements.
+              </p>
+            </div>
+
+            <div class="p-8 border-r border-white/10 hover:bg-white/5 transition">
+              <h3 class="text-white font-bold text-lg">
+                Employers
+              </h3>
+
+              <p class="text-slate-300 mt-3">
+                Manage and recruit applicants efficiently.
+              </p>
+            </div>
+
+            <div class="p-8 hover:bg-white/5 transition">
+              <h3 class="text-white font-bold text-lg">
+                PESO Administration
+              </h3>
+
+              <p class="text-slate-300 mt-3">
+                Simplify monitoring and generate reports faster.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </div>
 
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Inertia } from '@inertiajs/inertia'
-import { Link } from '@inertiajs/vue3'
+import { ref } from "vue"
+import { Link } from "@inertiajs/vue3"
+import { Inertia } from "@inertiajs/inertia"
+
+import About from "@/Pages/About.vue"
+import Contact from "@/Pages/Contact.vue"
+import Manual from "@/Pages/Manual.vue"
 
 defineProps({
   canLogin: Boolean,
@@ -129,23 +257,26 @@ defineProps({
 })
 
 const route = window.route
+
 const showRegisterModal = ref(false)
+
+const activeTab = ref("home")
+
+const tabs = {
+  about: About,
+  manual: Manual,
+  contact: Contact,
+}
 
 function openRegisterModal() {
   showRegisterModal.value = true
 }
 
-function closeRegisterModal() {
-  showRegisterModal.value = false
-}
-
 function selectBeneficiary() {
-  closeRegisterModal()
-  Inertia.visit(route('register.beneficiary'))
+  Inertia.visit(route("register.beneficiary"))
 }
 
 function selectEmployer() {
-  closeRegisterModal()
-  Inertia.visit(route('register.employer'))
+  Inertia.visit(route("register.employer"))
 }
 </script>

@@ -1,109 +1,179 @@
 <template>
-  <div class="min-h-screen bg-gray-100 py-10">
-    <div class="max-w-4xl mx-auto px-4">
+  <div
+    class="min-h-screen bg-cover bg-center bg-no-repeat relative overflow-hidden"
+    style="background-image: url('/images/spes-notiff.jpg');"
+  >
+    <!-- DARK OVERLAY -->
+    <div class="absolute inset-0 bg-black/70"></div>
 
-      <!-- Back Button -->
+    <!-- GLOW EFFECTS -->
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute w-80 h-80 bg-blue-500/20 blur-3xl rounded-full -top-20 -left-20 animate-pulse"></div>
+      <div class="absolute w-80 h-80 bg-cyan-400/20 blur-3xl rounded-full bottom-0 right-0 animate-pulse"></div>
+    </div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 py-10">
+
+      <!-- BACK BUTTON -->
       <button
         @click="goBack"
-        class="mb-6 flex items-center space-x-2 text-gray-700 hover:text-gray-900"
+        class="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15 19l-7-7 7-7"/>
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
         </svg>
-        <span>Back</span>
+
+        <span class="font-medium">
+          Back
+        </span>
       </button>
 
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">
+      <!-- HEADER -->
+      <div class="mb-10">
+        <h1 class="text-4xl font-extrabold text-white mb-2">
           Notifications & Announcements
         </h1>
-        <p class="text-gray-500 text-sm mt-1">
-          Stay updated with the latest system announcements.
+
+        <p class="text-gray-300">
+          Stay updated with the latest announcements and system updates.
         </p>
       </div>
 
-      <!-- Empty State -->
+      <!-- EMPTY STATE -->
       <div
         v-if="announcements.length === 0"
-        class="bg-white rounded-lg shadow p-8 text-center"
+        class="bg-white/10 backdrop-blur-xl border border-white/20
+               rounded-3xl shadow-2xl p-10 text-center"
       >
-        <div class="text-gray-400 text-5xl mb-3">🔔</div>
-        <p class="text-gray-500 text-lg font-medium">
-          No notifications yet
-        </p>
-        <p class="text-sm text-gray-400 mt-1">
+        <div class="text-6xl mb-4 animate-bounce">
+          🔔
+        </div>
+
+        <h2 class="text-2xl font-bold text-white mb-2">
+          No Notifications Yet
+        </h2>
+
+        <p class="text-gray-300">
           Announcements will appear here once available.
         </p>
       </div>
 
-      <!-- Foldable Announcement Cards -->
-      <div v-else class="space-y-4">
+      <!-- ANNOUNCEMENTS -->
+      <div v-else class="space-y-5">
+
         <div
           v-for="n in announcements"
           :key="n.id"
-          class="bg-white rounded-xl shadow hover:shadow-lg transition duration-300"
+          class="bg-white/10 backdrop-blur-xl border border-white/20
+                 rounded-3xl shadow-xl overflow-hidden transition
+                 hover:scale-[1.01] hover:shadow-2xl"
         >
-          <!-- Header (clickable) -->
+
+          <!-- CARD HEADER -->
           <div
-            class="flex justify-between items-center p-4 cursor-pointer"
+            class="flex justify-between items-center p-5 cursor-pointer"
             @click="toggleFold(n.id)"
           >
-            <h2 class="text-lg font-semibold text-gray-800">
-              {{ n.title }}
-            </h2>
-            <div class="flex items-center space-x-2">
-              <span class="text-xs text-gray-400">
+
+            <div>
+              <h2 class="text-xl font-bold text-white">
+                {{ n.title }}
+              </h2>
+
+              <p class="text-xs text-gray-300 mt-1">
                 {{ formatDate(n.created_at) }}
-              </span>
+              </p>
+            </div>
+
+            <!-- TOGGLE ICON -->
+            <div
+              class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+            >
               <svg
-                :class="{'rotate-180': isOpen(n.id)}"
-                class="w-4 h-4 text-gray-500 transform transition-transform duration-200"
+                :class="{ 'rotate-180': isOpen(n.id) }"
+                class="w-5 h-5 text-white transform transition duration-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M19 9l-7 7-7-7"></path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
+
           </div>
 
-          <!-- Content (collapsible) -->
+          <!-- COLLAPSIBLE CONTENT -->
           <transition name="fade">
-            <div v-show="isOpen(n.id)" class="p-4 pt-0 border-t text-gray-600">
-              <p class="leading-relaxed">{{ n.content }}</p>
+            <div
+              v-show="isOpen(n.id)"
+              class="px-5 pb-5 border-t border-white/10"
+            >
 
-              <!-- Clickable Image -->
-              <div v-if="n.image" class="mt-4">
+              <p class="text-gray-200 leading-relaxed mt-4 whitespace-pre-line">
+                {{ n.content }}
+              </p>
+
+              <!-- IMAGE -->
+              <div v-if="n.image" class="mt-5">
                 <img
                   :src="`/storage/${n.image}`"
                   alt="Announcement Image"
-                  class="rounded-lg w-full max-h-80 object-cover border cursor-pointer hover:opacity-90 transition"
+                  class="rounded-2xl w-full max-h-[450px] object-cover
+                         border border-white/10 shadow-lg
+                         cursor-pointer hover:opacity-90 transition"
                   @click="openModal(`/storage/${n.image}`)"
                 />
               </div>
+
             </div>
           </transition>
+
         </div>
+
       </div>
 
-      <!-- Modal -->
-      <div
-        v-if="modalImage"
-        class="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50"
-      >
-        <div class="relative">
+      <!-- IMAGE MODAL -->
+      <transition name="fade">
+        <div
+          v-if="modalImage"
+          class="fixed inset-0 bg-black/80 backdrop-blur-sm
+                 flex items-center justify-center z-50 p-4"
+        >
+
+          <!-- CLOSE BUTTON -->
           <button
             @click="closeModal"
-            class="absolute top-2 right-2 text-white bg-gray-800 rounded-full p-2 hover:bg-gray-700"
+            class="absolute top-5 right-5 w-10 h-10 rounded-full
+                   bg-white/10 hover:bg-white/20 text-white text-xl
+                   flex items-center justify-center transition"
           >
             ✕
           </button>
-          <img :src="modalImage" class="max-h-[80vh] max-w-[90vw] rounded-lg shadow-lg"/>
+
+          <!-- MODAL IMAGE -->
+          <img
+            :src="modalImage"
+            class="max-h-[90vh] max-w-[95vw]
+                   rounded-3xl shadow-2xl border border-white/10"
+          />
+
         </div>
-      </div>
+      </transition>
 
     </div>
   </div>
@@ -119,12 +189,13 @@ const props = defineProps({
   }
 })
 
-// Track open announcements
+// OPEN ANNOUNCEMENT IDS
 const openIds = ref([])
 
-// Modal image
+// MODAL IMAGE
 const modalImage = ref(null)
 
+// TOGGLE FOLD
 function toggleFold(id) {
   if (openIds.value.includes(id)) {
     openIds.value = openIds.value.filter(i => i !== id)
@@ -133,24 +204,27 @@ function toggleFold(id) {
   }
 }
 
+// CHECK OPEN STATE
 function isOpen(id) {
   return openIds.value.includes(id)
 }
 
-// Modal functions
+// OPEN MODAL
 function openModal(imageUrl) {
   modalImage.value = imageUrl
 }
 
+// CLOSE MODAL
 function closeModal() {
   modalImage.value = null
 }
 
-// Back button
+// BACK BUTTON
 function goBack() {
   history.back()
 }
 
+// FORMAT DATE
 function formatDate(date) {
   return new Date(date).toLocaleString('en-US', {
     year: 'numeric',
@@ -162,16 +236,24 @@ function formatDate(date) {
 }
 </script>
 
-<style>
-.fade-enter-active, .fade-leave-active {
-  transition: all 0.2s ease;
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
 }
-.fade-enter-from, .fade-leave-to {
+
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
   max-height: 0;
+  transform: translateY(-5px);
 }
-.fade-enter-to, .fade-leave-from {
+
+.fade-enter-to,
+.fade-leave-from {
   opacity: 1;
   max-height: 1000px;
+  transform: translateY(0);
 }
 </style>

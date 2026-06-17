@@ -44,6 +44,6 @@ class PESORegisterController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('peso.dashboard');
+        return redirect()->route('peso.user.dashboard');
     }
 }

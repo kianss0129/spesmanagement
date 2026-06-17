@@ -20,6 +20,7 @@ class LoginController extends Controller
             'email' => ['required','email'],
             'password' => ['required'],
             'recaptcha' => ['required'], // mandatory now
+            'role' => ['nullable','string','in:peso'],
         ]);
 
         // Verify Google reCAPTCHA
@@ -42,11 +43,36 @@ class LoginController extends Controller
             ]);
         }
 
+        $user = $request->user();
+        $role = $request->input('role');
+
+        if ($role === 'peso') {
+            if (! $user->hasRole('PESO') && ! $user->hasRole('PESO Admin') && ! $user->hasRole('Admin') && ! $user->hasRole('Super Admin')) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Only PESO, PESO Admin, or Admin accounts may log in here.',
+                ]);
+            }
+        } else {
+            if (! $user->hasRole('Employer') && ! $user->hasRole('Beneficiary')) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Only employer and beneficiary accounts may log in here.',
+                ]);
+            }
+        }
+
         // Regenerate session
         $request->session()->regenerate();
 
         // Redirect based on role (fallback handled by authenticated())
-        return $this->authenticated($request, $request->user());
+        return $this->authenticated($request, $user);
     }
 
     /**

@@ -15,7 +15,7 @@ class EnsureBeneficiaryApproved
             return redirect()->route('login');
         }
 
-        // Must be beneficiary (Spatie role)
+        // Must be beneficiary
         if (!$user->hasRole('Beneficiary')) {
             return redirect()->route('onboarding')
                 ->with('error', 'Access denied.');
@@ -25,21 +25,45 @@ class EnsureBeneficiaryApproved
         $beneficiary = $user->beneficiary;
 
         if (!$beneficiary) {
-            return redirect()->route('beneficiary.page.uploadDocuments')
+            return redirect()->route('onboarding.pending')
                 ->with('error', 'Please complete your beneficiary profile.');
         }
 
-        // Must be approved
+        /**
+         * IMPORTANT FIX
+         *
+         * Allow access to onboarding.pending
+         * even if already approved.
+         *
+         * Ito kasi yung dahilan bakit
+         * auto redirect ka lagi.
+         */
+        if ($request->routeIs('onboarding.pending')) {
+            return $next($request);
+        }
+
+        // Must be approved for beneficiary pages
         if ($beneficiary->approval_status !== 'approved') {
 
-            // If rejected and waiting period
-            if ($beneficiary->approval_status === 'rejected' && $beneficiary->resubmit_at && now()->lt($beneficiary->resubmit_at)) {
-                return redirect()->route('beneficiary.page.uploadDocuments')
-                    ->with('error', 'Your documents were rejected. You may resubmit after ' . $beneficiary->resubmit_at->toFormattedDateString());
+            // Rejected with waiting period
+            if (
+                $beneficiary->approval_status === 'rejected' &&
+                $beneficiary->resubmit_at &&
+                now()->lt($beneficiary->resubmit_at)
+            ) {
+                return redirect()->route('onboarding.pending')
+                    ->with(
+                        'error',
+                        'Your documents were rejected. You may resubmit after ' .
+                        $beneficiary->resubmit_at->toFormattedDateString()
+                    );
             }
 
-            return redirect()->route('beneficiary.page.uploadDocuments')
-                ->with('error', 'Your account is pending approval. Please upload required documents.');
+            return redirect()->route('onboarding.pending')
+                ->with(
+                    'error',
+                    'Your account is pending approval. Please wait for PESO approval.'
+                );
         }
 
         return $next($request);

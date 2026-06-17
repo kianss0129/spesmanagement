@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\AnnouncementRead;
+use App\Models\User;
 
-    class Announcement extends Model
-    {
+class Announcement extends Model
+{
         protected $fillable = [
             'title',
             'content',
@@ -30,5 +32,22 @@ use Illuminate\Database\Eloquent\Model;
                 $q->where('target_role', 'all')
                   ->orWhere('target_role', $role);
             });
+        }
+
+        public function reads()
+        {
+            return $this->hasMany(AnnouncementRead::class);
+        }
+
+        public function isReadBy(User $user)
+        {
+            return $this->reads()->where('user_id', $user->id)->exists();
+        }
+
+        public function markAsReadBy(User $user)
+        {
+            if (!$this->isReadBy($user)) {
+                $this->reads()->create(['user_id' => $user->id]);
+            }
         }
     }

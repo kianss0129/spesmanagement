@@ -2,13 +2,11 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
-
-// ✅ Add Spatie middleware classes
-use Spatie\Permission\Middleware\RoleMiddleware;
-use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -28,12 +26,9 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        parent::boot();
+        $this->configureRateLimiting();
 
-        // ✅ Manually bind the middleware aliases for Spatie
-        Route::aliasMiddleware('role', RoleMiddleware::class);
-        Route::aliasMiddleware('permission', PermissionMiddleware::class);
-        Route::aliasMiddleware('role_or_permission', RoleOrPermissionMiddleware::class);
+        parent::boot();
 
         // ✅ Optional: Route logic based on role
         Route::middleware('web')->group(function () {
@@ -42,13 +37,25 @@ class RouteServiceProvider extends ServiceProvider
 
                 return match ($role) {
                     'Admin' => redirect('/admin-dashboard'),
-                    'PESO' => redirect('/peso/dashboard'),
+                    'PESO' => redirect('/peso-user/dashboard'),
+                    'PESO User' => redirect('/peso-user/dashboard'),
                     'Employer' => redirect('/employer/dashboard'),
                     'Beneficiary' => redirect('/beneficiary/dashboard'),
                     'Super Admin' => redirect('/admin-dashboard'),
                     default => abort(403),
                 };
             });
+        });
+    }
+
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('heavy-routes', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('heavy-actions', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

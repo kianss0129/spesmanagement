@@ -62,30 +62,67 @@ class PageController extends Controller
 
 public function employerAttendance()
 {
-    $records = Attendance::with('beneficiary')
+    $employer = auth()->user()?->employer;
+    if (!$employer) {
+        $employer = \App\Models\Employer::where('user_id', auth()->id())->first();
+    }
+
+    if (!$employer) {
+        return inertia('Employer/Attendance', [
+            'records' => [],
+            'employerJobs' => []
+        ]);
+    }
+
+    // Fetch all jobs posted by this employer
+    $employerJobs = $employer->jobListings()->get();
+
+    // Fetch all applications for this employer's jobs
+    $jobIds = $employerJobs->pluck('id')->toArray();
+    $applications = \App\Models\Application::whereIn('job_listing_id', $jobIds)
+        ->with('jobListing')
+        ->get();
+
+    // Create a mapping of beneficiary_id to job info
+    $beneficiaryJobMap = [];
+    foreach ($applications as $app) {
+        if (!isset($beneficiaryJobMap[$app->beneficiary_id])) {
+            $beneficiaryJobMap[$app->beneficiary_id] = [
+                'job_listing_id' => $app->job_listing_id,
+                'job_title' => $app->jobListing?->title ?? 'Unknown Job',
+            ];
+        }
+    }
+
+    // Fetch attendance records for this employer
+    $records = Attendance::whereIn('employer_id', [$employer->id, auth()->id()])
+        ->with('beneficiary')
         ->latest()
         ->get()
-        ->map(function ($a) {
+        ->map(function ($a) use ($beneficiaryJobMap) {
+            $jobInfo = $beneficiaryJobMap[$a->beneficiary_id] ?? null;
 
             return [
                 'id' => $a->id,
-
-                // ✅ safe even if relation is null
                 'beneficiary_name' => trim(
-    ($a->beneficiary->first_name ?? '') . ' ' . ($a->beneficiary->last_name ?? '')
-) ?: 'N/A',
-
+                    ($a->beneficiary->first_name ?? '') . ' ' . ($a->beneficiary->last_name ?? '')
+                ) ?: 'N/A',
                 'date' => $a->date,
                 'time_in' => $a->time_in,
                 'time_out' => $a->time_out,
-
-                // ✅ correct storage path handling
-              'proof' => $a->notes ? asset('storage/'.$a->notes) : null,    
+                'job_listing_id' => $jobInfo['job_listing_id'] ?? null,
+                'job_title' => $jobInfo['job_title'] ?? 'N/A',
+                'has_application' => $jobInfo !== null,
+                'proof' => $a->notes ? asset('storage/'.$a->notes) : null,
             ];
         });
 
     return inertia('Employer/Attendance', [
-        'records' => $records
+        'records' => $records,
+        'employerJobs' => $employerJobs->map(fn($job) => [
+            'id' => $job->id,
+            'title' => $job->title,
+        ])->toArray()
     ]);
 }
 

@@ -1,13 +1,17 @@
 <?php
 
+
 namespace App\Models;
+
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
 class JobListing extends Model
 {
     use HasFactory;
+
 
     protected $fillable = [
         'employer_id',
@@ -21,14 +25,25 @@ class JobListing extends Model
         'salary',
     ];
 
+
     public function employer()
     {
        return $this->belongsTo(\App\Models\Employer::class, 'employer_id');
     }
 
+
     public function applications()
     {
         return $this->hasMany(Application::class, 'job_listing_id');
     }
-    
+
+
+    public function skills()
+    {
+        return $this->belongsToMany(Skill::class, 'job_listing_skills')->withTimestamps();
+    }
+   
 }
+
+
+

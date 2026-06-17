@@ -24,3 +24,8 @@ Homestead.yaml
 Thumbs.db
 /bootstrap/cache/*.php
 .env
+echo "test-document-flow.zip" >> .gitignore
+echo "storage/framework/sessions/*" >> .gitignoretest-document-flow.zip
+storage/framework/sessions/*
+test-document-flow.zip
+storage/framework/sessions/*

@@ -1,14 +1,18 @@
 ﻿<?php
-
+use App\Http\Controllers\GoogleController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\AdminAssignmentController;
+use App\Http\Controllers\PESO\PESOController;
 
 // =======================
 // LOAD MODULAR ROUTES
@@ -19,24 +23,69 @@ require_once __DIR__ . '/employer.php';
 require_once __DIR__ . '/peso.php';
 require_once __DIR__ . '/admin.php';
 
+
+Route::get('/', function () {
+    return Inertia::render('Welcome');
+})->name('welcome');
+
+Route::get('/about', function () {
+    return Inertia::render('About');
+})->name('about');
+
+
+
+Route::get('/manual', function () {
+    return Inertia::render('Manual');
+})->name('manual');
+
+Route::get('/contact', function () {
+    return Inertia::render('Contact');
+})->name('contact');
+
+
+
+
+
+// =======================
+// GOOGLE OAUTH ROUTES
+// =======================
+Route::middleware('guest')->get('/auth/google', [GoogleController::class, 'redirect'])
+    ->name('google.login');
+
+Route::get('/auth/google/callback', [GoogleController::class, 'callback'])
+    ->name('google.callback');
+
+
 // =======================
 // HOME & DASHBOARD
 // =======================
 Route::get('/', [PageController::class, 'welcome'])->name('home');
 
 Route::middleware('auth')->get('/dashboard', function () {
+
     $user = auth()->user();
 
     if ($user->hasRole('Beneficiary')) {
+
         $beneficiary = $user->beneficiary;
 
-        if ($beneficiary && $beneficiary->approval_status !== 'approved') {
-            return redirect()->route('onboarding.pending');
+        // walang beneficiary record
+        if (!$beneficiary) {
+            return redirect()->route('onboarding');
+        }
+
+        // rejected users balik onboarding
+        if ($beneficiary->approval_status === 'rejected') {
+            return redirect()->route('onboarding');
         }
 
         return Inertia::render('Beneficiary/Dashboard', [
             'user' => $user,
             'beneficiary' => $beneficiary,
+
+            // gamitin sa frontend para magpakita pending notice
+            'pendingApproval' =>
+                $beneficiary->approval_status !== 'approved',
         ]);
     }
 
@@ -44,15 +93,18 @@ Route::middleware('auth')->get('/dashboard', function () {
         return redirect()->route('employer.dashboard');
     }
 
-    if ($user->hasAnyRole(['Admin', 'PESO Admin', 'PESO'])) {
-        return app(DashboardController::class)->index(request());
+    if ($user->hasAnyRole(['Admin', 'PESO Admin'])) {
+        return app(DashboardController::class)
+            ->index(request());
+    }
+
+    if ($user->hasAnyRole(['PESO', 'PESO User'])) {
+        return redirect()->route('peso.user.dashboard');
     }
 
     return redirect()->route('login');
-})->name('dashboard');
 
-Route::middleware('auth')->get('/admin/dashboard', fn () => redirect('/dashboard'));
-Route::middleware('auth')->get('/peso/dashboard', fn () => redirect('/dashboard'));
+})->name('dashboard');
 
 // =======================
 // PROFILE
@@ -93,4 +145,26 @@ Route::prefix('_debug')->middleware('local')->group(function () {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     });
+});
+
+// Fallback to serve certificate files from storage when webserver returns 404
+// This helps hosts that don't follow symlinks for `public/storage`.
+Route::get('storage/certificates/{path}', function ($path) {
+    $full = 'certificates/' . $path;
+    if (!Storage::disk('public')->exists($full)) {
+        abort(404);
+    }
+    return Storage::disk('public')->response($full);
+})->where('path', '.*');
+
+Route::middleware(['auth', 'throttle:heavy-routes'])->group(function () {
+    Route::get('/admin/stats', [AdminController::class, 'stats']);
+    Route::get('/peso/attendance', [PesoController::class, 'attendance']);
+    Route::get('/peso/announcements', [PesoController::class, 'announcements']);
+    Route::get('/peso/applications', [PesoController::class, 'index']);
+    Route::get('/peso/applications/for-interview', [PesoController::class, 'applicationsForInterview']);
+    Route::get('/peso/beneficiaries/approved', [PesoController::class, 'approvedBeneficiaries']);
+    Route::get('/peso/contracts/upcoming', [PesoController::class, 'upcomingContracts']);
+    Route::get('/peso/analytics/dashboard', [PesoController::class, 'dashboard']);
+    Route::get('/admin/jobs/matched', [AdminAssignmentController::class, 'getAdminMatchedJobs']);
 });

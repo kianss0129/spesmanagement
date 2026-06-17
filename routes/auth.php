@@ -44,13 +44,15 @@ Route::middleware('guest')->group(function () {
     Route::get('register/employer', [EmployerRegisterController::class, 'create'])
         ->name('register.employer');
     Route::post('register/employer', [EmployerRegisterController::class, 'store'])
-        ->name('register.employer.store');
+        ->name('register.employer.store')
+        ->middleware('throttle:heavy-actions');
 
     // PESO Registration
     Route::get('register/peso', [PESORegisterController::class, 'create'])
         ->name('register.peso');
     Route::post('register/peso', [PESORegisterController::class, 'store'])
-        ->name('register.peso.store');
+        ->name('register.peso.store')
+        ->middleware('throttle:heavy-actions');
 
     // =====================
     // PASSWORD RESET (OTP)
@@ -100,10 +102,10 @@ Route::middleware('auth')->group(function () {
         // Redirect based on user type
         $user = $request->user();
         if ($user->hasRole('Employer')) {
-            return redirect()->route('onboarding', ['category' => 'employer'])
+            return redirect()->route('employer.dashboard')
                 ->with('success', 'Email verified successfully!');
         } elseif ($user->hasRole('Beneficiary')) {
-            return redirect()->route('onboarding', ['category' => $user->beneficiary_type])
+            return redirect()->route('beneficiary.dashboard')
                 ->with('success', 'Email verified successfully!');
         }
 
@@ -130,31 +132,19 @@ Route::middleware('auth')->group(function () {
 // ONBOARDING ROUTES
 // =======================
 Route::middleware(['auth', 'verified'])->prefix('onboarding')->group(function () {
+    // Render the SPES onboarding page
     Route::get('/', [OnboardingController::class, 'index'])->name('onboarding');
 
-    Route::post('/step1', [OnboardingController::class, 'step1']);
-    Route::post('/step2', [OnboardingController::class, 'step2']);
-    Route::post('/upload', [OnboardingController::class, 'upload']);
+    // Single submit endpoint — SPES front-end posts the full form (including files)
+    Route::post('/submit', [OnboardingController::class, 'submit'])
+        ->name('onboarding.submit')
+        ->middleware('throttle:heavy-actions');
+    // Legacy single-file upload endpoint (used by Upload page)
+    Route::post('/upload', [OnboardingController::class, 'upload'])
+        ->middleware('throttle:heavy-actions');
 
-    Route::post('/submit', [OnboardingController::class, 'submit'])->name('onboarding.submit');
-
+    // Keep pending redirect for backward compatibility
     Route::get('/pending', function () {
-        $user = auth()->user();
-
-        if ($user && $user->hasRole('Employer')) {
-            $employer = $user->employer;
-            if ($employer && $employer->approval_status === 'approved') {
-                return redirect()->route('employer.dashboard');
-            }
-        }
-
-        if ($user && $user->hasRole('Beneficiary')) {
-            $beneficiary = $user->beneficiary;
-            if ($beneficiary && $beneficiary->approval_status === 'approved') {
-                return redirect()->route('dashboard');
-            }
-        }
-
-        return Inertia::render('Onboarding/Pending');
+        return redirect()->route('beneficiary.dashboard');
     })->name('onboarding.pending');
 });

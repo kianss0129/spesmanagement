@@ -1,40 +1,52 @@
 <?php
 
+
 namespace App\Http\Controllers\Auth;
 
+
 use App\Http\Controllers\Controller;
-use Illuminate\Auth\Events\Verified;
-use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Auth;
+
 
 class VerifyEmailController extends Controller
 {
     /**
      * Handle the email verification link.
-     *
-     * This expects the signed URL with {id} and {hash} (sha1 of the email)
-     * Example route: /email/verify/{id}/{hash}
-     *
-     * @param  int  $id
-     * @param  string $hash
      */
     public function __invoke($id, $hash)
     {
         $user = User::findOrFail($id);
 
-        if ($user->hasVerifiedEmail()) {
-            return redirect()->route('dashboard');
-        }
 
-        // The verification hash in the signed URL is sha1($user->getEmailForVerification())
         if (! hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-            return redirect()->route('login')->withErrors(['email' => 'Invalid or expired verification link.']);
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Invalid or expired verification link.']);
         }
 
-        $user->markEmailAsVerified();
-        event(new Verified($user));
 
-        // redirect to the appropriate dashboard or route after verification
-        return redirect()->route('dashboard')->with('status', 'Email verified!');
+        if (! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new Verified($user));
+        }
+
+
+        if (! Auth::check()) {
+            Auth::login($user);
+        }
+
+
+        if ($user->hasRole('Employer')) {
+            return redirect()->route('employer.dashboard', ['verified' => 1]);
+        }
+
+
+        if ($user->hasRole('Beneficiary')) {
+            return redirect()->route('beneficiary.dashboard', ['verified' => 1]);
+        }
+
+
+        return redirect()->route('dashboard', ['verified' => 1]);
     }
 }

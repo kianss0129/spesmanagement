@@ -24,8 +24,8 @@ class EnsureEmployerApproved
         $employer = $user->employer;
 
         if (!$employer) {
-            return redirect()->route('onboarding')
-                ->with('error', 'Please complete your employer profile.');
+            return redirect()->route('employer.dashboard')
+                ->with('message', 'Please complete your employer profile.');
         }
 
         // If rejected
@@ -35,15 +35,15 @@ class EnsureEmployerApproved
                 ->withErrors(['email' => 'Your account was rejected by PESO.']);
         }
 
-        // If pending
+        // If pending - allow dashboard access with limited access
         if ($employer->approval_status === 'pending') {
-            return redirect()->route('onboarding.pending')
-                ->with('error', 'Your account is still pending approval.');
+            return redirect()->route('employer.dashboard')
+                ->with('message', 'Your account is pending approval. Complete your profile to speed up the process.');
         }
 
         // Allow only approved
         if ($employer->approval_status !== 'approved') {
-            return redirect()->route('onboarding');
+            return redirect()->route('employer.dashboard');
         }
 
         return $next($request);

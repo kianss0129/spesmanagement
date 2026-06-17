@@ -19,8 +19,8 @@ class ApprovedBeneficiary
         if ($user->hasRole('Beneficiary')) {
             $beneficiary = $user->beneficiary;
 
-            if (!$beneficiary || !$beneficiary->is_approved) {
-                return redirect()->route('beneficiary.uploadDocuments')
+            if (!$beneficiary || !($beneficiary->approved || $beneficiary->approval_status === 'approved')) {
+                return redirect()->route('beneficiary.page.uploadDocuments')
                     ->with('error', 'Please upload required documents. Your account is not approved yet.');
             }
         }

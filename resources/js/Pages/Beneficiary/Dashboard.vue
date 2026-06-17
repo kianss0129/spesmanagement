@@ -12,9 +12,11 @@
             <p class="text-xs text-gray-300">BENEFICIARY</p>
             <h2 class="font-bold text-xl">DASHBOARD</h2>
           </div>
-          <button @click="toggleSidebar" class="w-10 h-10 flex items-center justify-center text-xl rounded hover:bg-blue-800 transition">
-            ☰
-          </button>
+          <button @click="toggleSidebar"
+          class="w-10 h-10 flex items-center justify-center text-xl rounded hover:bg-blue-800 transition"
+          aria-label="Toggle Sidebar">
+          ☰
+        </button>
         </div>
 
 
@@ -37,19 +39,30 @@
 
 
         <!-- MENU -->
-        <nav class="flex-1 overflow-y-auto text-sm space-y-6 pr-2">
-          <div v-for="menu in menus" :key="menu.name" class="relative">
+        <nav class="flex-1 overflow-y-auto text-sm space-y-1 pr-2">
+          <div v-for="menu in isApproved ? menus : pendingMenus" :key="menu.name" class="relative">
             <div
-              class="menu-item"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 hover:bg-white/10"
+              :class="currentRoute === menu.href ? 'bg-white/15 text-white font-semibold' : 'text-gray-300'"
               @click="menu.children
   ? toggleDropdown(menu.name)
   : menu.href && router.visit(menu.href)"
               @mouseenter="!isOpen && (collapsedHover = menu.name)"
               @mouseleave="!isOpen && (collapsedHover = null)"
             >
-              <span class="text-lg">{{ menu.icon }}</span>
-              <span v-if="isOpen">{{ menu.label }}</span>
-              <span v-if="menu.children && isOpen" class="ml-auto">▾</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path v-if="menu.icon === 'dashboard'" stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                <path v-else-if="menu.icon === 'application'" stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path v-else-if="menu.icon === 'requirements'" stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                <path v-else-if="menu.icon === 'job'" stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.193 23.193 0 0112 15c-3.183 0-6.22-.64-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <path v-else-if="menu.icon === 'schedule'" stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path v-else-if="menu.icon === 'attendance'" stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path v-else-if="menu.icon === 'messages'" stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                <path v-else-if="menu.icon === 'profile'" stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                <path v-else stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span v-if="isOpen" class="truncate">{{ menu.label }}</span>
+              <span v-if="menu.children && isOpen" class="ml-auto text-xs opacity-60">▾</span>
             </div>
 
 
@@ -90,7 +103,7 @@
               @click="logout"
               class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 transition text-white"
             >
-              <span class="text-lg">⏻</span>
+              <span class="text-lg"></span>
               <span v-if="isOpen">Logout</span>
             </button>
           </div>
@@ -123,16 +136,19 @@
 
 
             <div class="flex items-center gap-4">
-              <!-- 🔔 NOTIFICATION -->
+              <!--  NOTIFICATION -->
               <div class="relative notif-menu">
                 <button
                   @click.stop="toggleNotif"
-                  class="relative w-10 h-10 rounded-full bg-white shadow hover:bg-gray-100 flex items-center justify-center"
+                  title="Notifications"
+                  class="relative w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center transition"
                 >
-                  🔔
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
                   <span
                     v-if="unreadCount > 0"
-                    class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-bold"
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold shadow-sm"
                   >
                     {{ unreadCount > 99 ? '99+' : unreadCount }}
                   </span>
@@ -217,38 +233,38 @@
       </div>
     </div>
 
-    <div v-if="notificationModalOpen" @click.self="closeNotificationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-6 py-4 border-b">
+    <div v-if="notificationModalOpen" @click.self="closeNotificationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 py-8">
+      <div class="relative w-full max-w-4xl mx-auto bg-white rounded-lg shadow-2xl overflow-hidden max-h-[90vh]">
+        <button @click="closeNotificationModal" class="absolute top-4 right-4 z-20 rounded-full bg-white/90 p-2 text-gray-700 shadow hover:bg-white transition">
+          
+        </button>
+
+        <div class="p-6 space-y-4 overflow-auto max-h-[90vh]">
           <div>
             <h3 class="text-lg font-semibold text-gray-900">{{ activeNotification?.title }}</h3>
             <p class="text-xs text-gray-500">{{ formatDate(activeNotification?.created_at) }}</p>
           </div>
-          <button @click="closeNotificationModal" class="text-gray-500 hover:text-gray-700">✕</button>
-        </div>
-        <div class="p-6 space-y-4">
+
           <p class="text-sm text-gray-700">{{ activeNotification?.content }}</p>
-          <img
-            v-if="activeNotification?.image"
-            :src="`/storage/${activeNotification.image}`"
-            class="w-full rounded-2xl object-cover"
-            alt="Notification Image"
-          />
-        </div>
-        <div class="flex justify-end gap-3 px-6 pb-6">
-          <button @click="closeNotificationModal" class="rounded-full border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Close</button>
-          <button @click="goToNotifications" class="rounded-full bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700">See all</button>
+
+          <div v-if="activeNotification?.image" class="relative w-full h-[60vh] max-h-[70vh] rounded-lg overflow-hidden bg-gray-100">
+            <img
+              :src="`/storage/${activeNotification.image}`"
+              class="h-full w-full object-contain"
+              alt="Notification Image"
+            />
+          </div>
         </div>
       </div>
     </div>
 
     <!-- CONTRACT HISTORY MODAL -->
     <div v-if="contractHistoryModalOpen" @click.self="closeContractHistoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+      <div class="w-full max-w-2xl bg-white rounded-lg shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <h3 class="text-lg font-semibold text-gray-900">Contract Schedule History</h3>
-          <button @click="closeContractHistoryModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          <button @click="closeContractHistoryModal" class="text-gray-500 hover:text-gray-700"></button>
         </div>
 
         <!-- Content -->
@@ -280,9 +296,9 @@
               </div>
 
               <div class="space-y-2 text-sm">
-                <p><span class="text-gray-600">📍 Location:</span> {{ contract.location }}</p>
-                <p v-if="contract.result !== 'pending'"><span class="text-gray-600">✓ Result:</span> <span :class="contract.result === 'signed' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">{{ contract.result }}</span></p>
-                <p v-if="contract.notes" class="text-gray-600 mt-2">📝 {{ contract.notes }}</p>
+                <p><span class="text-gray-600"> Location:</span> {{ contract.location }}</p>
+                <p v-if="contract.result !== 'pending'"><span class="text-gray-600"> Result:</span> <span :class="contract.result === 'signed' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">{{ contract.result }}</span></p>
+                <p v-if="contract.notes" class="text-gray-600 mt-2"> {{ contract.notes }}</p>
               </div>
 
               <div class="text-xs text-gray-400 mt-3 pt-3 border-t">
@@ -301,11 +317,11 @@
 
     <!-- INTERVIEW HISTORY MODAL -->
     <div v-if="interviewHistoryModalOpen" @click.self="closeInterviewHistoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+      <div class="w-full max-w-2xl bg-white rounded-lg shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
           <h3 class="text-lg font-semibold text-gray-900">Interview History</h3>
-          <button @click="closeInterviewHistoryModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          <button @click="closeInterviewHistoryModal" class="text-gray-500 hover:text-gray-700"></button>
         </div>
 
         <!-- Content -->
@@ -336,9 +352,9 @@
               </div>
 
               <div class="space-y-2 text-sm">
-                <p><span class="text-gray-600">📅 Scheduled:</span> {{ formatDate(interview.scheduled_at) }}</p>
-                <p v-if="interview.meet_link"><span class="text-gray-600">🔗 Meeting:</span> <a :href="interview.meet_link" target="_blank" class="text-blue-500 hover:text-blue-700">Join Link</a></p>
-                <p v-if="interview.notes" class="text-gray-600 mt-2">📝 {{ interview.notes }}</p>
+                <p><span class="text-gray-600"> Scheduled:</span> {{ formatDate(interview.scheduled_at) }}</p>
+                <p v-if="interview.meet_link"><span class="text-gray-600"> Meeting:</span> <a :href="interview.meet_link" target="_blank" class="text-blue-500 hover:text-blue-700">Join Link</a></p>
+                <p v-if="interview.notes" class="text-gray-600 mt-2"> {{ interview.notes }}</p>
               </div>
 
               <div class="text-xs text-gray-400 mt-3 pt-3 border-t">
@@ -378,11 +394,291 @@
             </div>
           </header>
 
+          <section class="space-y-6">
+            <!-- STATUS HERO -->
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div class="grid gap-6 p-6 lg:grid-cols-[1.4fr_0.6fr] lg:p-8">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                    Current SPES Status
+                  </p>
+                  <h2 class="mt-3 text-3xl font-bold text-slate-900">
+                    {{ statusLabel }}
+                  </h2>
+                  <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                    {{ statusDescription }}
+                  </p>
+                </div>
 
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <p class="text-sm font-semibold text-slate-700">Application progress</p>
+                  <div class="mt-4 flex items-end gap-2">
+                    <span class="text-4xl font-bold text-blue-700">{{ progressPercent }}%</span>
+                    <span class="pb-1 text-sm text-slate-500">complete</span>
+                  </div>
+                  <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      class="h-full rounded-full bg-blue-600 transition-all duration-500"
+                      :style="{ width: `${progressPercent}%` }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
+            <!-- NEXT STEP -->
+            <div class="rounded-lg border border-blue-100 bg-blue-50 p-5 shadow-sm sm:p-6">
+              <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
+                    What to do next
+                  </p>
+                  <h3 class="mt-2 text-xl font-bold text-slate-900">
+                    {{ nextStep.title }}
+                  </h3>
+                  <p class="mt-2 text-sm leading-6 text-slate-600">
+                    {{ nextStep.description }}
+                  </p>
+                </div>
+                <Link
+                  :href="nextStep.href"
+                  class="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                >
+                  {{ nextStep.action }}
+                </Link>
+              </div>
+            </div>
+
+            <!-- TIMELINE -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div class="mb-5 flex flex-col gap-1">
+                <h3 class="text-lg font-bold text-slate-900">Application timeline</h3>
+                <p class="text-sm text-slate-500">Follow your SPES application from submission to completion.</p>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div
+                  v-for="item in timelineItems"
+                  :key="item.key"
+                  class="rounded-xl border p-4"
+                  :class="item.done ? 'border-green-200 bg-green-50' : item.current ? 'border-blue-200 bg-blue-50' : 'border-slate-200 bg-slate-50'"
+                >
+                  <div
+                    class="mb-3 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+                    :class="item.done ? 'bg-green-600 text-white' : item.current ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'"
+                  >
+                    {{ item.done ? '' : item.order }}
+                  </div>
+                  <p class="font-semibold text-slate-900">{{ item.label }}</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">{{ item.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+              <!-- REQUIREMENTS -->
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-bold text-slate-900">Requirements checklist</h3>
+                    <p class="mt-1 text-sm text-slate-500">
+                      {{ missingRequirements.length ? `${missingRequirements.length} item(s) still need attention.` : 'All listed requirements look submitted.' }}
+                    </p>
+                  </div>
+                  <Link href="/beneficiary/applications" class="text-sm font-semibold text-blue-700 hover:text-blue-800">
+                    View application
+                  </Link>
+                </div>
+
+                <div class="space-y-3">
+                  <div
+                    v-for="requirement in requirementItems"
+                    :key="requirement.key"
+                    class="flex items-start justify-between gap-4 rounded-xl border border-slate-200 p-4"
+                  >
+                    <div>
+                      <p class="font-semibold text-slate-900">{{ requirement.name }}</p>
+                      <p class="mt-1 text-xs text-slate-500">{{ requirement.note }}</p>
+                    </div>
+                    <span
+                      class="rounded-full px-3 py-1 text-xs font-semibold"
+                      :class="requirement.complete ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+                    >
+                      {{ requirement.complete ? 'Submitted' : 'Missing' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SCHEDULE -->
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-bold text-slate-900">Upcoming schedule</h3>
+                    <p class="mt-1 text-sm text-slate-500">Exams, interviews, and contract signing dates.</p>
+                  </div>
+                  <Link href="/beneficiary/interviews" class="text-sm font-semibold text-blue-700 hover:text-blue-800">
+                    View
+                  </Link>
+                </div>
+
+                <div v-if="upcomingScheduleItems.length" class="space-y-3">
+                  <div
+                    v-for="item in upcomingScheduleItems"
+                    :key="item.id"
+                    class="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="font-semibold text-slate-900">{{ item.title }}</p>
+                        <p class="mt-1 text-sm text-slate-600">{{ item.when }}</p>
+                        <p v-if="item.meta" class="mt-1 text-xs text-slate-500">{{ item.meta }}</p>
+                      </div>
+                      <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        {{ item.type }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-else class="rounded-xl border border-dashed border-slate-300 p-6 text-center">
+                  <p class="font-semibold text-slate-700">No upcoming schedule yet</p>
+                  <p class="mt-1 text-sm text-slate-500">New schedules will appear here when CPESO posts them.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gap-6 xl:grid-cols-[0.9fr_1fr]">
+              <!-- ASSIGNED JOB -->
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <h3 class="text-lg font-bold text-slate-900">Assigned job / employer</h3>
+                <div v-if="assignedEmployer" class="mt-5 rounded-xl border border-green-200 bg-green-50 p-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-green-700">Assigned</p>
+                  <p class="mt-2 text-xl font-bold text-slate-900">{{ assignedEmployer.company }}</p>
+                  <p class="mt-1 text-sm text-slate-600">{{ assignedEmployer.job_title || 'Assigned position' }}</p>
+                  <Link href="/beneficiary/jobs" class="mt-4 inline-flex text-sm font-semibold text-green-700 hover:text-green-800">
+                    View placement details
+                  </Link>
+                </div>
+                <div v-else class="mt-5 rounded-xl border border-dashed border-slate-300 p-6 text-center">
+                  <p class="font-semibold text-slate-700">No assigned employer yet</p>
+                  <p class="mt-1 text-sm text-slate-500">Your placement will appear after CPESO assigns you to an employer.</p>
+                </div>
+              </div>
+
+              <!-- RECENT MESSAGES -->
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <div class="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-bold text-slate-900">Recent Announcements</h3>
+                    <p class="mt-1 text-sm text-slate-500">Only the latest notices and status updates are shown here.</p>
+                  </div>
+                  <Link href="/beneficiary/notifications" class="text-sm font-semibold text-blue-700 hover:text-blue-800">
+                    See all
+                  </Link>
+                </div>
+
+                <div v-if="recentMessages.length" class="space-y-3">
+                  <button
+                    v-for="message in recentMessages"
+                    :key="message.id"
+                    type="button"
+                    @click="openNotification(message)"
+                    class="w-full rounded-xl border border-slate-200 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="font-semibold text-slate-900">{{ message.title }}</p>
+                        <p class="mt-1 line-clamp-2 text-sm text-slate-600">{{ message.content }}</p>
+                        <p class="mt-2 text-xs text-slate-400">{{ formatDate(message.created_at) }}</p>
+                      </div>
+                      <span v-if="!message.read" class="mt-1 h-2 w-2 rounded-full bg-blue-600"></span>
+                    </div>
+                  </button>
+                </div>
+
+                <div v-else class="rounded-xl border border-dashed border-slate-300 p-6 text-center">
+                  <p class="font-semibold text-slate-700">No messages yet</p>
+                  <p class="mt-1 text-sm text-slate-500">Announcements and reminders from CPESO will appear here.</p>
+                </div>
+              </div>
+            </div>
+
+            <div
+              v-if="isApproved && applicationStatus === 'completed'"
+              class="rounded-lg border border-green-200 bg-green-50 p-5 text-center shadow-sm sm:p-6"
+            >
+              <h3 class="text-lg font-bold text-slate-900">Program completed</h3>
+              <p class="mt-2 text-sm text-slate-600">
+                Congratulations. Your SPES completion certificate is ready when available.
+              </p>
+              <a
+                href="/beneficiary/certificate"
+                class="mt-4 inline-flex items-center justify-center rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700"
+              >
+                Download certificate
+              </a>
+            </div>
+          </section>
+
+          <div v-if="false">
+          <!-- ONBOARDING SUMMARY -->
+          <section v-if="!isApproved" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+              <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-blue-600">
+                  Onboarding
+                </p>
+                <h2 class="text-2xl font-bold text-gray-800 mt-2">
+                  Complete your application profile
+                </h2>
+                <p class="text-sm text-gray-600 mt-2">
+                  Track your progress and finish the application requirements to unlock your full dashboard.
+                </p>
+              </div>
+
+              <div class="rounded-lg bg-blue-50 px-5 py-4 min-w-[180px]">
+                <p class="text-sm text-blue-700 font-semibold">Progress</p>
+                <p class="text-3xl font-bold text-blue-900 mt-2">{{ onboardingProgress }}%</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-for="step in onboardingSteps"
+                :key="step.label"
+                class="flex items-start gap-3 rounded-lg border border-gray-100 p-4 bg-gray-50"
+              >
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-full"
+                  :class="step.done ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'"
+                >
+                  {{ step.done ? '' : '' }}
+                </div>
+
+                <div>
+                  <p class="font-semibold text-gray-800">{{ step.label }}</p>
+                  <p class="text-sm text-gray-500 mt-1">{{ step.description }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/onboarding"
+                class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow hover:bg-blue-700 transition"
+              >
+                Submit Application
+              </Link>
+
+              <span class="inline-flex items-center rounded-xl bg-gray-100 px-4 py-3 text-sm text-gray-700">
+                {{ onboardingStatusLabel }}
+              </span>
+            </div>
+          </section>
 
          <!-- APPLICATION PROGRESS -->
-<div class="bg-white p-6 rounded-2xl shadow-lg mb-6">
+<div class="bg-white p-6 rounded-lg shadow-lg mb-6">
   <h2 class="font-semibold mb-4">Application Progress</h2>
 
 
@@ -408,223 +704,39 @@
     ></div>
   </div>
 
-
-
-
-  <p class="mt-2 text-sm text-gray-600">
-    Current Status: <b>{{ applicationStatus }}</b>
-  </p>
+  
 </div>
 
 
-
-
- 
-
-
-
-
   </div>
-
-
-
-
- 
-
-
-
 
           <!-- GRID -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div v-if="isApproved" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <!-- SCHEDULE -->
-          <div class="bg-white p-6 rounded-2xl shadow-lg">
-  <h2 class="font-semibold mb-2">Upcoming Schedule</h2>
+       
 
 
 
 
-  <!-- EMPTY -->
-  <div v-if="(!interviews || interviews.length === 0) && (!exams || exams.length === 0)"
-       class="text-gray-500 text-sm">
-    No upcoming schedule
-  </div>
+  
+  
 
 
 
 
-  <!-- 🔵 INTERVIEWS -->
-  <div v-for="i in interviews || []" :key="'interview-' + i.id" class="text-sm mb-3">
-    <p class="font-medium">
-      {{ i.job_title || 'Interview Schedule' }}
-      <span class="text-blue-500 text-xs">(Interview)</span>
-    </p>
 
 
 
 
-    <p class="text-gray-600">
-      {{ formatDate(i.scheduled_at) }}
-    </p>
 
 
-
-
-    <Link
-      v-if="i.meet_link"
-      :href="canJoin(i) ? i.meet_link : '#'"
-      target="_blank"
-      class="inline-block mt-2 px-4 py-2 rounded-full shadow"
-      :class="canJoin(i)
-        ? 'bg-orange-500 text-white'
-        : 'bg-gray-300 text-gray-500 pointer-events-none'"
-    >
-      Join Google Meet
-    </Link>
-  </div>
-
-
-
-
-  <!-- 🟢 EXAMS -->
-  <div v-for="e in exams || []" :key="'exam-' + e.id" class="text-sm mb-3">
-    <p class="font-medium">
-      Exam Schedule
-      <span class="text-xs">
-  ({{ e.result || 'pending' }})
-</span>
-    </p>
-
-
-
-
-    <p class="text-gray-600">
-      {{ formatDate(e.exam_date) }}
-    </p>
-
-
-
-
-    <p class="text-blue-600 text-xs mt-1">
-      📍 {{ e.location }}
-    </p>
-  </div>
-
-
-
-
-</div>
-        <!-- INTERVIEW STATUS -->
-<div class="bg-white p-6 rounded-2xl shadow-lg">
-  <div class="flex justify-between items-center mb-3">
-    <h2 class="font-semibold">Interview Status</h2>
-    <button
-      @click="openInterviewHistoryModal"
-      class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full transition"
-    >
-      📋 View History
-    </button>
-  </div>
-
-
-
-  <table class="w-full text-sm">
-    <thead class="text-gray-500 border-b">
-      <tr>
-        <th class="text-left py-2">Employer</th>
-        <th class="text-left py-2">Result</th>
-      </tr>
-    </thead>
-
-
-
-    <tbody>
-      <tr v-for="item in interviewItems" :key="item.id" class="border-b">
-        <td class="py-2">{{ item.employer }}</td>
-        <td class="py-2">
-          <span
-            :class="{
-              'text-green-600': item.result === 'passed',
-              'text-red-600': item.result === 'failed',
-              'text-yellow-600': item.result === 'pending'
-            }"
-          >
-            {{ item.result }}
-          </span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="bg-white p-6 rounded-2xl shadow-lg mt-6">
-  <div class="flex justify-between items-center mb-2">
-    <h2 class="font-semibold">Contract Schedule</h2>
-    <button
-      @click="openContractHistoryModal"
-      class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-full transition"
-    >
-      📋 View History
-    </button>
-  </div>
-
-  <div v-if="(!contracts || contracts.length === 0)"
-       class="text-gray-500 text-sm">
-    No upcoming contract schedule
-  </div>
-
-  <div v-for="c in contracts || []" :key="'contract-' + c.id" class="text-sm mb-3">
-    <p class="font-medium">
-      Contract Signing
-      <span class="text-xs">({{ c.status || 'scheduled' }})</span>
-    </p>
-
-    <p class="text-gray-600">
-      {{ formatDate(c.contract_date) }}
-    </p>
-
-    <p class="text-blue-600 text-xs mt-1">
-      📍 {{ c.location }}
-    </p>
-  </div>
+   
 </div>
 
 
-<!-- ✅ MOVE THIS OUTSIDE -->
-<div class="bg-white p-6 rounded-2xl shadow-lg mt-6">
-  <h2 class="font-semibold mb-3">Exam Status</h2>
 
 
 
-
-  <table class="w-full text-sm">
-    <thead class="text-gray-500 border-b">
-      <tr>
-        <th class="text-left py-2">Location</th>
-        <th class="text-left py-2">Result</th>
-      </tr>
-    </thead>
-
-
-
-
-    <tbody>
-      <tr v-for="item in examItems" :key="item.id" class="border-b">
-        <td class="py-2">{{ item.location }}</td>
-        <td class="py-2">
-          <span
-            :class="{
-              'text-green-600': item.result === 'passed',
-              'text-red-600': item.result === 'failed',
-              'text-yellow-600': item.result === 'pending'
-            }"
-          >
-            {{ item.result }}
-          </span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
            
 
 
@@ -639,97 +751,24 @@
 
 
 
-          <!-- CHART -->
-          <div class="bg-white p-6 rounded-2xl shadow-lg mb-10">
-            <h2 class="font-semibold mb-3">Attendance</h2>
-            <div class="h-64">
-              <canvas id="attendanceChart"></canvas>
-            </div>
+          
+
+
+
+        
+
+
+
+
+
+
+
+
+
           </div>
 
-
-
-
-          <!-- DTR TABLE -->
-<div class="bg-white p-6 rounded-2xl shadow-lg mb-10">
-  <h2 class="font-semibold mb-3">Daily Time Record</h2>
-
-
-
-
-  <table class="w-full text-sm">
-    <thead class="border-b text-gray-500">
-      <tr>
-        <th class="text-left py-2">Date</th>
-        <th class="text-left py-2">Status</th>
-        <th class="text-left py-2">Time In</th>
-        <th class="text-left py-2">Time Out</th>
-        <th class="text-left py-2">Proof</th>
-      </tr>
-    </thead>
-
-
-
-
-    <tbody>
-      <tr v-for="d in attendance" :key="d.date" class="border-b">
-        <td class="py-2">{{ formatDate(d.date) }}</td>
-        <td class="py-2">
-          <span :class="{
-            'text-green-600': d.status === 'present',
-            'text-yellow-600': d.status === 'late' || d.status === 'pending',
-            'text-red-600': d.status === 'absent',
-            'text-gray-500': !d.status
-          }">
-            {{ d.status || 'pending' }}
-          </span>
-        </td>
-        <td class="py-2">{{ d.time_in || '—' }}</td>
-        <td class="py-2">{{ d.time_out || '—' }}</td>
-        <td class="py-2 text-gray-600">{{ d.notes || 'No proof attached' }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-
-
-<!-- RECENT ACTIVITIES -->
-<div class="bg-white p-6 rounded-2xl shadow-lg mb-6">
-  <div class="flex justify-between items-center mb-3">
-    <h2 class="font-semibold">Recent Activities</h2>
-    <Link href="/beneficiary/activities" class="text-sm text-blue-600 hover:text-blue-800">
-      View All Activities →
-    </Link>
-  </div>
-
-
-  <div v-if="activities.length === 0" class="text-gray-500 text-sm">
-    No recent activities
-  </div>
-
-
-  <div v-else class="space-y-3">
-    <div v-for="activity in activities" :key="activity.date" class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-      <span class="text-lg">{{ activity.icon }}</span>
-      <div class="flex-1">
-        <p class="font-medium text-sm">{{ activity.title }}</p>
-        <p class="text-gray-600 text-xs">{{ activity.description }}</p>
-        <p class="text-gray-400 text-xs mt-1">{{ formatDate(activity.date) }}</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
 <!-- COMPLETION CERTIFICATE -->
-<div v-if="applicationStatus === 'completed'" class="bg-white p-6 rounded-2xl shadow-lg text-center mb-6">
+<div v-if="false && isApproved && applicationStatus === 'completed'" class="bg-white p-6 rounded-lg shadow-lg text-center mb-6">
   <h2 class="font-semibold mb-3">Program Completed</h2>
   <p class="text-gray-600 mb-4">
     Congratulations! You can download your SPES Completion Certificate.
@@ -750,7 +789,7 @@
 
 
         </div>
-      </div>
+    
   </template>
 
 
@@ -787,6 +826,10 @@ const notifFilter = ref('all')
 
 const page = usePage()
 const user = ref(page.props.auth.user)
+const beneficiaryProfile = ref(page.props.beneficiary || {})
+const approvalStatus = computed(() => beneficiaryProfile.value?.approval_status || 'pending')
+const isApproved = computed(() => approvalStatus.value === 'approved')
+const currentRoute = computed(() => window.location.pathname)
 const interviews = ref([])
 const contracts = ref([])
 const attendance = ref([])
@@ -904,21 +947,42 @@ APPLICATION PROGRESS STEPS
 const steps = [
   'applied',
   'screening',
-  'qualified',
   'exam',
+  'exam_passed',
   'interview',
-  'for_approval',
+  'interview_passed',
+  'qualified',
   'approved',
-  'rejected'
+  'assigned',
+  'contract_signing',
+  'contract_signed',
+  'deployed',
+  'ongoing',
+  'completion_review',
+  'completed'
 ]
 
 
 
 
+const submissionCompleted = computed(() => Boolean(
+  beneficiaryProfile.value?.screening_at ||
+  beneficiaryProfile.value?.completion_percentage >= 100 ||
+  beneficiaryProfile.value?.onboarding_step >= 5 ||
+  beneficiaryProfile.value?.draft_status === 'screening'
+))
+
+const displayApplicationStatus = computed(() => {
+  return applicationStatus.value || 'applied'
+})
+
 const progressWidth = computed(() => {
-  const index = steps.indexOf(applicationStatus.value)
+
+
+  const workflowSteps = steps.filter((step) => step !== 'rejected')
+  const index = workflowSteps.indexOf(normalizeWorkflowStatus(applicationStatus.value))
   if (index === -1) return '0%'
-  return ((index + 1) / steps.length * 100) + '%'
+  return ((index + 1) / workflowSteps.length * 100) + '%'
 })
 
 
@@ -928,42 +992,481 @@ const progressWidth = computed(() => {
 
 
 
-function statusClass(step) {
+const onboardingSteps = computed(() => [
+  {
+    label: 'Profile Information',
+    done: submissionCompleted.value || Boolean(user.value?.name && user.value?.email),
+    description: 'Your name, email, and account details are saved.'
+  },
+  {
+    label: 'Personal Details',
+    done: submissionCompleted.value || Boolean(beneficiaryProfile.value?.phone || beneficiaryProfile.value?.school_id || beneficiaryProfile.value?.skills || beneficiaryProfile.value?.parent_name),
+    description: 'Complete your personal profile and category-specific details.'
+  },
+  {
+    label: 'Required Documents',
+    done: submissionCompleted.value || documents.value.length > 0,
+    description: 'Upload the documents required for your application.'
+  },
+  {
+    label: 'Review Applications',
+    done: submissionCompleted.value || Boolean(applicationStatus.value && applicationStatus.value !== 'not_started' && applicationStatus.value !== 'applied'),
+    description: 'Review your application information and confirm your submission.'
+  },
+  {
+    label: 'Submit Application',
+    done: submissionCompleted.value || Boolean(applicationStatus.value && applicationStatus.value !== 'not_started' && applicationStatus.value !== 'applied'),
+    description: 'Submit your application and wait for review.'
+  }
+])
 
-
-
-
-  const current = applicationStatus.value
-  const stepIndex = steps.indexOf(step)
-  const currentIndex = steps.indexOf(current)
-
-
-
-
-  if (current === 'rejected') {
-    return 'text-red-600 font-semibold'
+const completedOnboardingSteps = computed(() => onboardingSteps.value.filter(step => step.done).length)
+const onboardingProgress = computed(() => Math.round((completedOnboardingSteps.value / onboardingSteps.value.length) * 100))
+const onboardingStatusLabel = computed(() => {
+  if (completedOnboardingSteps.value === onboardingSteps.value.length) {
+    return 'All onboarding steps are completed. Your application is ready for review.'
   }
 
+  return 'Complete the pending steps to finish your application and unlock the full dashboard.'
+})
+function statusClass(step) {
+  const current = normalizeWorkflowStatus(applicationStatus.value)
 
+  if (current === 'rejected') {
+    return step === 'rejected'
+      ? 'text-red-600 font-bold'
+      : 'text-gray-400'
+  }
 
+  const stepIndex = steps.indexOf(step)
+  const currentIndex = steps.indexOf(current)
 
   if (stepIndex < currentIndex) {
     return 'text-green-600 font-semibold'
   }
 
-
-
-
   if (stepIndex === currentIndex) {
     return 'text-blue-600 font-bold'
   }
 
-
-
-
   return 'text-gray-400'
 }
 
+const currentStatus = computed(() => {
+  return normalizeWorkflowStatus(applicationStatus.value || 'applied')
+})
+
+function normalizeWorkflowStatus(status) {
+  const value = String(status || 'applied').toLowerCase()
+
+  if (['pending', 'submitted', 'under_review', 'review'].includes(value)) return 'screening'
+  if (['for_exam', 'exam_scheduled'].includes(value)) return 'exam'
+  if (value === 'exam_passed') return 'exam_passed'
+  if (['for_interview', 'scheduled', 'interview_scheduled'].includes(value)) return 'interview'
+  if (value === 'interview_passed') return 'interview_passed'
+  if (['for_approval', 'passed', 'qualified'].includes(value)) return 'qualified'
+  if (value === 'selected') return 'approved'
+  if (value === 'placed') return 'assigned'
+  if (['contract', 'for_contract', 'contract_signing', 'contract-signing'].includes(value)) return 'contract_signing'
+  if (['contract_signed', 'signed'].includes(value)) return 'contract_signed'
+
+  return value
+}
+
+const statusLabel = computed(() => {
+  const labels = {
+    not_started: 'Application not started',
+    applied: 'Application submitted',
+    screening: 'Under CPESO screening',
+    needs_correction: 'Needs Correction',
+    exam: 'Exam stage',
+    exam_passed: 'Exam passed',
+    interview: 'Interview stage',
+    interview_passed: 'Interview passed',
+    qualified: 'Qualified',
+    for_approval: 'For final approval',
+    approved: 'Approved',
+    assigned: 'Assigned to employer',
+    contract_signing: 'Contract signing',
+    contract_signed: 'Contract signed',
+    deployed: 'Work deployment',
+    ongoing: 'Currently employed under SPES',
+    completion_review: 'For completion review',
+    completed: 'Program completed',
+    rejected: 'Needs correction or resubmission',
+    pending: 'Pending review'
+  }
+
+  // Show different label for 'applied' depending on onboarding state
+  if (currentStatus.value === 'applied') {
+    const onboardingDone = beneficiaryProfile.value?.onboarding_completed_at || beneficiaryProfile.value?.draft_status === 'submitted'
+    return onboardingDone ? 'Application submitted' : 'Application not yet completed'
+  }
+
+  return labels[currentStatus.value] || 'Application in progress'
+})
+
+const statusDescription = computed(() => {
+  if (currentStatus.value === 'rejected' || currentStatus.value === 'needs_correction') {
+    return beneficiaryProfile.value?.rejection_reason || 'CPESO requested corrections to your submitted requirements. Please review and update the required documents.'
+  }
+
+  if (currentStatus.value === 'completed') {
+    return 'You have completed the SPES process. Keep your records and certificate for future reference.'
+  }
+
+  if (['deployed', 'ongoing', 'completion_review'].includes(currentStatus.value)) {
+    return 'You have an assigned employer. Keep track of your schedule and submit your attendance on time.'
+  }
+
+  if (['approved', 'assigned', 'for_contract', 'contract_signed'].includes(currentStatus.value)) {
+    return 'Your application is approved. Watch this page for placement, schedule, and attendance updates.'
+  }
+
+  // For 'applied' status, differentiate based on onboarding completion
+  if (currentStatus.value === 'applied') {
+    const onboardingDone = beneficiaryProfile.value?.onboarding_completed_at || beneficiaryProfile.value?.draft_status === 'submitted'
+    if (onboardingDone) {
+      return 'Your SPES application has been submitted. Please wait for CPESO screening.'
+    }
+    return 'Your SPES application has not been completed yet. Please finish the onboarding process and submit all required information.'
+  }
+
+  return 'Your application is being prepared or reviewed. Check your status and follow CPESO updates.'
+})
+
+const progressPercent = computed(() => {
+  if (currentStatus.value === 'completed') return 100
+  if (currentStatus.value === 'rejected') return 0
+
+  const workflowSteps = steps.filter((step) => step !== 'rejected')
+  const index = workflowSteps.indexOf(currentStatus.value)
+  if (index === -1) return 0
+  return Math.round(((index + 1) / workflowSteps.length) * 100)
+})
+
+const requiredDocumentNames = computed(() => {
+  const category = beneficiaryProfile.value?.category || user.value?.beneficiary_type || 'student'
+
+  if (category === 'student') {
+    return [
+      { key: 'valid_id', name: 'Valid ID' },
+      { key: 'school_enrollment', name: 'School Enrollment / Proof of Study' },
+      { key: 'barangay_certificate', name: 'Barangay Certificate' },
+    ]
+  }
+
+  if (category === 'osy') {
+    return [
+      { key: 'valid_id', name: 'Valid ID' },
+      { key: 'birth_certificate', name: 'Birth Certificate' },
+      { key: 'barangay_certificate', name: 'Barangay Certificate of Residency' },
+      { key: 'osy_certificate', name: 'Certificate of Out-of-School Youth Status' },
+    ]
+  }
+
+  if (category === 'dependent') {
+    return [
+      { key: 'birth_certificate', name: 'Birth Certificate' },
+      { key: 'income_proof', name: 'Proof of Family Income' },
+      { key: 'displacement_proof', name: 'Proof of Displacement' },
+      { key: 'parent_valid_id', name: 'Parent / Guardian Valid ID' },
+    ]
+  }
+
+  // Fallback
+  return [
+    { key: 'valid_id', name: 'Valid ID' },
+    { key: 'barangay_certificate', name: 'Barangay Certificate' },
+    { key: 'school_enrollment', name: 'School Enrollment' },
+  ]
+})
+
+function normalizeText(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function documentIsComplete(document) {
+  if (!document) return false
+  const status = String(document.status || '').toLowerCase()
+  return Boolean(
+    status === 'uploaded' ||
+    status === 'submitted' ||
+    status === 'approved' ||
+    document.path ||
+    document.url
+  )
+}
+
+const requirementItems = computed(() => {
+  const docs = Array.isArray(documents.value) ? documents.value : []
+
+  return requiredDocumentNames.value.map((required) => {
+    const match = docs.find((doc) => {
+      const docName = normalizeText(doc.name || doc.label || doc.type || doc.key || '')
+      return docName.includes(normalizeText(required.key)) || docName.includes(normalizeText(required.name))
+    })
+
+    const complete = documentIsComplete(match)
+
+    return {
+      ...required,
+      complete,
+      note: complete
+        ? 'Submitted and ready for review.'
+        : 'Required for your SPES application.'
+    }
+  })
+})
+
+const missingRequirements = computed(() =>
+  requirementItems.value.filter((requirement) => !requirement.complete)
+)
+
+const timelineItems = computed(() => {
+  const items = [
+    { key: 'applied', label: 'Applied', description: 'Application submitted.' },
+    { key: 'screening', label: 'Screening', description: 'CPESO reviews requirements and eligibility.' },
+    { key: 'exam', label: 'Exam', description: 'Beneficiary takes the scheduled examination.' },
+    { key: 'exam_passed', label: 'Exam Passed', description: 'Exam result is passed and ready for interview scheduling.' },
+    { key: 'interview', label: 'Interview', description: 'Beneficiary attends the scheduled interview.' },
+    { key: 'interview_passed', label: 'Interview Passed', description: 'Interview result is passed and ready for qualification.' },
+    { key: 'qualified', label: 'Qualified', description: 'Beneficiary passed screening, exam, and interview requirements.' },
+    { key: 'approved', label: 'Approved', description: 'Officially approved for SPES participation.' },
+    { key: 'assigned', label: 'Assigned', description: 'Assigned to employer/job placement.' },
+    { key: 'contract_signing', label: 'Contract Signing', description: 'Contract signing is scheduled with employer/CPESO.' },
+    { key: 'contract_signed', label: 'Contract Signed', description: 'Contract has been signed and is ready for deployment.' },
+    { key: 'deployed', label: 'Deployed', description: 'Beneficiary is deployed to the assigned work site.' },
+    { key: 'ongoing', label: 'Ongoing Work', description: 'Submit DTR and daily accomplishment reports during work.' },
+    { key: 'completion_review', label: 'Completion Review', description: 'Employer and CPESO validate completion records.' },
+    { key: 'completed', label: 'Completed', description: 'SPES participation completed.' }
+  ]
+
+  const hasSignedContract = (contracts.value || []).some((contract) => {
+    const status = String(contract.status || '').toLowerCase()
+    const result = String(contract.result || '').toLowerCase()
+    return status.includes('completed') || result.includes('signed')
+  })
+
+  let statusForTimeline = currentStatus.value
+
+  if (assignedEmployer.value && ['approved', 'qualified'].includes(statusForTimeline)) {
+    statusForTimeline = 'assigned'
+  }
+
+  if (hasSignedContract && !['contract_signed', 'deployed', 'ongoing', 'completion_review', 'completed'].includes(statusForTimeline)) {
+    statusForTimeline = 'contract_signed'
+  }
+
+  const currentIndex = items.findIndex((item) => item.key === statusForTimeline)
+
+  return items.map((item, index) => ({
+    ...item,
+    order: index + 1,
+    done: currentStatus.value === 'completed' || (currentIndex !== -1 && index < currentIndex),
+    current: currentIndex === index
+  }))
+})
+
+function scheduleTimestamp(value) {
+  const date = value ? new Date(value) : null
+  return date && !Number.isNaN(date.getTime()) ? date.getTime() : Number.MAX_SAFE_INTEGER
+}
+
+const upcomingScheduleItems = computed(() => {
+  const interviewItems = (interviews.value || []).map((item) => ({
+    id: `interview-${item.id}`,
+    type: 'Interview',
+    title: item.job_title || 'Interview schedule',
+    when: formatDate(item.scheduled_at),
+    meta: item.employer || item.company || item.meet_link || '',
+    sortDate: scheduleTimestamp(item.scheduled_at)
+  }))
+
+  const examScheduleItems = (exams.value || []).map((item) => ({
+    id: `exam-${item.id}`,
+    type: 'Exam',
+    title: 'Exam schedule',
+    when: formatDate(item.exam_date),
+    meta: item.location || item.result || '',
+    sortDate: scheduleTimestamp(item.exam_date)
+  }))
+
+  const contractItemsForSchedule = (contracts.value || []).map((item) => ({
+    id: `contract-${item.id}`,
+    type: 'Contract',
+    title: 'Contract signing',
+    when: formatDate(item.contract_date),
+    meta: item.location || item.status || '',
+    sortDate: scheduleTimestamp(item.contract_date)
+  }))
+
+  return [...interviewItems, ...examScheduleItems, ...contractItemsForSchedule]
+    .sort((a, b) => a.sortDate - b.sortDate)
+    .slice(0, 4)
+})
+
+const recentMessages = computed(() => {
+  return [...(notifications.value || [])]
+    .sort((a, b) => scheduleTimestamp(b.created_at) - scheduleTimestamp(a.created_at))
+    .slice(0, 3)
+})
+
+const nextStep = computed(() => {
+  const status = currentStatus.value
+
+  if (status === 'completed') {
+    return {
+      title: 'View your completion record',
+      description: 'Your SPES participation is completed. You may view your certificate or completion record.',
+      action: 'View certificate',
+      href: '/beneficiary/certificate'
+    }
+  }
+
+  if (status === 'needs_correction' || status === 'rejected' || approvalStatus.value === 'rejected') {
+    return {
+      title: 'Correct and resubmit requirements',
+      description: beneficiaryProfile.value?.rejection_reason || 'CPESO requested corrections. Review and update your submitted documents.',
+      action: 'View corrections',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  if (status === 'completion_review') {
+    return {
+      title: 'Wait for completion approval',
+      description: 'Your completion records are under CPESO review.',
+      action: 'View application',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  if (status === 'ongoing') {
+    return {
+      title: 'Submit DTR and daily reports',
+      description: 'Continue submitting your attendance and accomplishment reports during your work period.',
+      action: 'Open attendance',
+      href: '/beneficiary/attendance'
+    }
+  }
+
+  if (status === 'deployed') {
+    return {
+      title: 'Start submitting your DTR',
+      description: 'You are deployed. Begin recording your attendance and daily reports.',
+      action: 'Open attendance',
+      href: '/beneficiary/attendance'
+    }
+  }
+
+  if (status === 'contract_signed') {
+    return {
+      title: 'Prepare for deployment',
+      description: 'Your contract has been signed. Please wait for deployment instructions.',
+      action: 'View placement',
+      href: '/beneficiary/jobs'
+    }
+  }
+
+  if (status === 'contract_signing' || status === 'for_contract') {
+    return {
+      title: 'Attend contract signing',
+      description: 'Your contract signing has been scheduled. Review the schedule details.',
+      action: 'View schedule',
+      href: '/beneficiary/interviews'
+    }
+  }
+
+  if (status === 'assigned') {
+    return {
+      title: 'Review your job placement',
+      description: 'You have been assigned to an employer/job placement. Review your placement details.',
+      action: 'View placement',
+      href: '/beneficiary/jobs'
+    }
+  }
+
+  if (status === 'approved') {
+    return {
+      title: 'Wait for job placement updates',
+      description: 'Your application is approved. CPESO will post assignment or schedule updates here.',
+      action: 'View jobs',
+      href: '/beneficiary/jobs'
+    }
+  }
+
+  if (status === 'qualified') {
+    return {
+      title: 'Wait for final approval',
+      description: 'You are qualified for SPES. Please wait for CPESO final approval.',
+      action: 'View application',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  if (status === 'interview_passed') {
+    return {
+      title: 'Wait for qualification review',
+      description: 'You passed the interview. CPESO will review your qualification status.',
+      action: 'View application',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  if (status === 'interview' || status === 'for_interview') {
+    return {
+      title: 'Attend your scheduled interview',
+      description: 'You have an interview schedule. Review the details and join on time.',
+      action: 'View interview',
+      href: '/beneficiary/interviews'
+    }
+  }
+
+  if (status === 'exam_passed') {
+    return {
+      title: 'Wait for interview scheduling',
+      description: 'You passed the exam. Please wait for your interview schedule.',
+      action: 'View schedule',
+      href: '/beneficiary/interviews'
+    }
+  }
+
+  if (status === 'exam' || status === 'for_exam') {
+    return {
+      title: 'Check your exam schedule',
+      description: 'You have a scheduled exam. Review the date, time, and instructions.',
+      action: 'View schedule',
+      href: '/beneficiary/interviews'
+    }
+  }
+
+  if (status === 'screening') {
+    return {
+      title: 'Wait for CPESO screening review',
+      description: 'Your submitted application and requirements are currently under CPESO review.',
+      action: 'View application',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  // Default: applied or unknown — check if onboarding is completed
+  if (beneficiaryProfile.value?.onboarding_completed_at || beneficiaryProfile.value?.draft_status === 'submitted') {
+    return {
+      title: 'Application submitted — under review',
+      description: 'Your SPES application has been submitted. Please wait for CPESO screening.',
+      action: 'View application',
+      href: '/beneficiary/applications'
+    }
+  }
+
+  return {
+    title: 'Complete your SPES application',
+    description: 'Finish your onboarding form and submit all required documents.',
+    action: 'Start application',
+    href: '/onboarding'
+  }
+})
 
 
 
@@ -1017,16 +1520,27 @@ function toggleNotif() {
 }
 
 function markAllAsRead() {
-  notifications.value = notifications.value.map(n => ({
-    ...n,
-    read: true
-  }))
+  axios.post('/api/beneficiary/notifications/mark-all-read')
+    .then(() => {
+      notifications.value = notifications.value.map(n => ({
+        ...n,
+        read: true
+      }))
+    })
+    .catch(err => console.error('Failed to mark all as read', err))
 }
 
 function openNotification(notification) {
   notificationModalOpen.value = true
   activeNotification.value = notification
-  notification.read = true
+
+  if (!notification.read) {
+    axios.post(`/api/beneficiary/notifications/${notification.id}/mark-read`)
+      .then(() => {
+        notification.read = true
+      })
+      .catch(err => console.error('Failed to mark as read', err))
+  }
 }
 
 function markAsRead(notificationId) {
@@ -1166,12 +1680,16 @@ async function loadProfileData() {
 
 
     const res = await axios.get('/api/beneficiary/profile')
-    console.log(res.data)
 
 
 
 
     user.value = res.data.user || { name: 'User' }
+    beneficiaryProfile.value = {
+      ...beneficiaryProfile.value,
+      ...res.data,
+      approval_status: res.data.approval_status || beneficiaryProfile.value?.approval_status || 'pending'
+    }
 
 
 
@@ -1191,8 +1709,17 @@ async function loadProfileData() {
 
 
 
-  const statusRes = await axios.get('/api/beneficiary/application-status')
-applicationStatus.value = statusRes.data.status
+    const statusRes = await axios.get('/api/beneficiary/application-status')
+    applicationStatus.value = statusRes.data.status || 'applied'
+
+    loadExams()
+    loadInterviews()
+    loadContracts()
+
+    if (beneficiaryProfile.value?.approval_status === 'approved' || ['for_exam', 'exam_passed', 'for_interview', 'interview_passed', 'qualified', 'approved', 'assigned', 'for_contract', 'contract_signed', 'deployed', 'ongoing', 'completion_review', 'completed'].includes(applicationStatus.value)) {
+      loadAttendance()
+      loadActivities()
+    }
 
 
 
@@ -1324,10 +1851,6 @@ INTERVIEWS
 
 
 async function loadInterviews() {
-
-
-
-
   try {
 
 
@@ -1376,9 +1899,7 @@ async function loadExams() {
 
 async function loadContracts() {
   try {
-    console.log('Loading contracts...')
     const res = await axios.get('/api/beneficiary/contracts')
-    console.log('Contracts response:', res.data)
     contracts.value = res.data || []
   } catch (err) {
     console.error('Failed to load contract schedules', err)
@@ -1447,6 +1968,9 @@ ATTENDANCE
 
 
 async function loadAttendance() {
+  if (!isApproved.value) {
+    return
+  }
 
 
 
@@ -1510,6 +2034,9 @@ RECENT ACTIVITIES
 
 
 async function loadActivities() {
+  if (!isApproved.value) {
+    return
+  }
 
 
 
@@ -1793,29 +2320,16 @@ onBeforeUnmount(() => {
   }
 })
 
-
-
-
-
-
-
-
 /* =============================
 SIDEBAR MENUS
 ============================= */
 
-
-
-
-const menus = [
-
-
-
+const legacyMenus = [
 
   {
     name:'profile',
-    label:'Profile Management',
-    icon:'👤',
+    label:'Profile',
+    icon:'',
     children:[
      
       {label:'Edit Info',href:'/beneficiary/settings'}
@@ -1827,68 +2341,45 @@ const menus = [
 
   {
     name:'application',
-    label:'Application Management',
-    icon:'💼',
+    label:'My Application',
+    icon:'',
     children:[
-      {label:'My Applications',href:'/beneficiary/applications'}
+      {label:'Application Status',href:'/beneficiary/applications'}
     ]
   },
-
-
 
 
  {
   name:'jobs',
-  label:'Job Vacancies',
-  icon:'🧳',
+  label:'Job Placement',
+  icon:'',
   children:[
-    { label:'View Jobs', href:'/beneficiary/jobs' }
+    { label:'View Placement', href:'/beneficiary/jobs' }
   ]
 },
 
 
-
-
-
-
-
-
   {
     name:'exam',
-    label:'Exam & Qualification',
-    icon:'📢',
+    label:'Schedule',
+    icon:'',
     children:[
-      {label:'Exam Notifications',href:'/beneficiary/exams'}
+      {label:'View Schedule',href:'/beneficiary/interviews'}
     ]
   },
-
-
-
-
-  {
-    name:'interview',
-    label:'Interview Management',
-    icon:'🎤',
-    children:[
-      {label:'Schedule',href:'/beneficiary/interviews'}
-    ]
-  },
-
-
-
 
   {
     name:'attendance',
-    label:'Attendance & Work',
-    icon:'🕒',
+    label:'Attendance / DTR',
+    icon:'',
     children:[
       {label:'Submit DTR',href:'/beneficiary/attendance'}
     ]
   },
   {
   name:'ratings',
-  label:'Beneficiary Ratings',
-  icon:'⭐',
+  label:'Activity History',
+  icon:'',
   children:[
     {label:'Ratings History', href:'/beneficiary/ratings/history'},
     {label:'Activity History', href:'/beneficiary/activities'}
@@ -1896,54 +2387,134 @@ const menus = [
 },
   {
     name:'notifications',
-    label:'Notifications',
-    icon:'🔔',
+    label:'Messages',
+    icon:'',
     children:[
-      {label:'Announcements',href:'/beneficiary/notifications'}
+      {label:'Messages',href:'/beneficiary/notifications'}
     ]
   }
 
-
-
-
 ]
 
+const legacyPendingMenus = computed(() => [
+  {
+    name:'profile',
+    label:'Profile',
+    icon:'',
+    children:[
+      {label:'Edit Info',href:'/beneficiary/settings'}
+    ]
+  },
+  {
+    name:'onboarding',
+    label:'Application Steps',
+    icon:'',
+    children:[
+      {label:'Personal Information',href:'/onboarding?step=1'},
+      {label:'Category Details',href:'/onboarding?step=2'},
+      {label:'Documents',href:'/onboarding?step=3'},
+      {label:'Review',href:'/onboarding?step=4'},
+      {label:'Submit',href:'/onboarding?step=5'}
+    ]
+  },
+  {
+    name:'notifications',
+    label:'Messages',
+    icon:'',
+    children:[
+      {label:'Messages',href:'/beneficiary/notifications'}
+    ]
+  }
+])
 
+const menus = [
+  {
+    name: 'dashboard',
+    label: 'Dashboard',
+    icon: 'dashboard',
+    href: '/beneficiary'
+  },
+  {
+    name: 'application',
+    label: 'My Application',
+    icon: 'application',
+    href: '/beneficiary/applications'
+  },
+  {
+    name: 'requirements',
+    label: 'Requirements',
+    icon: 'requirements',
+    href: '/beneficiary/upload'
+  },
+  {
+    name: 'jobPlacement',
+    label: 'Job Placement',
+    icon: 'job',
+    href: '/beneficiary/jobs'
+  },
+  {
+    name: 'schedule',
+    label: 'Schedule',
+    icon: 'schedule',
+    href: '/beneficiary/interviews'
+  },
+  {
+    name: 'attendance',
+    label: 'Attendance / DTR',
+    icon: 'attendance',
+    href: '/beneficiary/attendance'
+  },
+  {
+  name: 'ratings',
+  label: 'Ratings',
+  icon: 'application',
+  href: '/beneficiary/ratings/history'
+},
+  {
+    name: 'messages',
+    label: 'Messages',
+    icon: 'messages',
+    href: '/beneficiary/notifications'
+  },
+  {
+    name: 'profile',
+    label: 'Profile',
+    icon: 'profile',
+    href: '/beneficiary/settings'
+  }
+]
 
+const pendingMenus = computed(() => [
+  {
+    name: 'dashboard',
+    label: 'Dashboard',
+    icon: 'dashboard',
+    href: '/beneficiary'
+  },
+  {
+    name: 'application',
+    label: 'My Application',
+    icon: 'application',
+    href: '/beneficiary/applications'
+  },
+  {
+    name: 'requirements',
+    label: 'Requirements',
+    icon: 'requirements',
+    href: '/onboarding?step=3'
+  },
+  {
+    name: 'messages',
+    label: 'Messages',
+    icon: 'messages',
+    href: '/beneficiary/notifications'
+  },
+  {
+    name: 'profile',
+    label: 'Profile',
+    icon: 'profile',
+    href: '/beneficiary/settings'
+  }
+])
 
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

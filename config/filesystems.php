@@ -15,7 +15,10 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL') . '/storage',
+            // Use a relative URL by default so Storage::url() produces same-origin paths
+            // This avoids generating absolute URLs that point to localhost (127.0.0.1)
+            // in environments where APP_URL is set to a dev host.
+            'url' => env('FILESYSTEM_URL', '/storage'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

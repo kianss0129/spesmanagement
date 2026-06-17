@@ -68,7 +68,7 @@
           <h2 class="font-semibold mb-2">Step 2: {{ steps[currentStep - 1] }}</h2>
 
           <template v-if="userType === 'student'">
-            <input type="text" placeholder="Full Address Of Your School" v-model="form.school" @input="formatSchoolName" class="border p-2 w-full mb-1 rounded"/>
+            <input type="text" placeholder="School Name" v-model="form.school" class="border p-2 w-full mb-1 rounded"/>
             <p v-if="errors.school" class="text-red-600 text-sm mb-3">{{ errors.school }}</p>
           </template>
 
@@ -91,7 +91,7 @@
             <p v-if="errors.contactPerson" class="text-red-600 text-sm mb-3">{{ errors.contactPerson }}</p>
             
             <label class="block text-sm font-medium mb-2">Company Address</label>
-            <textarea placeholder="Company Address" v-model="form.address" @input="formatAddress" class="border p-2 w-full mb-1 rounded"></textarea>
+            <textarea placeholder="Company Address" v-model="form.address" class="border p-2 w-full mb-1 rounded"></textarea>
             <p v-if="errors.address" class="text-red-600 text-sm mb-3">{{ errors.address }}</p>
           </template>
         </div>
@@ -107,6 +107,7 @@
           </div>
           
           <div class="mb-4 bg-gray-100 p-4 rounded">
+            <h3 class="font-semibold mb-2">Required Documents:</h3>
 
             <div v-for="(doc, i) in requiredDocuments" :key="i" class="flex items-center justify-between mb-1">
               <span class="font-medium">{{ doc }}</span>
@@ -258,14 +259,6 @@ function formatPhone() {
   form.value.phone = form.value.phone.replace(/\D/g, '').slice(0,10)
 }
 
-function formatSchoolName() {
-  form.value.school = form.value.school.toUpperCase().replace(/[^A-Z ]+/g, '')
-}
-
-function formatAddress() {
-  form.value.address = form.value.address.toUpperCase().replace(/[^A-Z0-9\s\-,.#]+/g, '')
-}
-
 // --- VALIDATION ---
 function validateStep(step) {
   errors.value = {}
@@ -287,15 +280,7 @@ function validateStep(step) {
 
   // Other steps...
   if(step === 2) {
-    if(userType.value === 'student') {
-      if(!form.value.school) {
-        errors.value.school = 'School Name is required'; valid = false
-      } else if(!/^[A-Z ]+$/.test(form.value.school.trim())) {
-        errors.value.school = 'School Name must be uppercase letters only'; valid = false
-      } else if(form.value.school.trim().split(/\s+/).length < 2) {
-        errors.value.school = 'Please enter the full school name in uppercase'; valid = false
-      }
-    }
+    if(userType.value === 'student' && !form.value.school) { errors.value.school = 'School Name is required'; valid = false }
     if(userType.value === 'osy' && !form.value.skills) { errors.value.skills = 'Skills/Training is required'; valid = false }
     if(userType.value === 'dependent') {
       if(!form.value.parentName) { errors.value.parentName = 'Parent/Guardian Name is required'; valid = false }
@@ -303,11 +288,7 @@ function validateStep(step) {
     }
     if(userType.value === 'employer') {
       if(!form.value.contactPerson) { errors.value.contactPerson = 'Contact Person is required'; valid = false }
-      if(!form.value.address) {
-        errors.value.address = 'Company Address is required'; valid = false
-      } else if(!/^[A-Z0-9\s\-,.#]+$/.test(form.value.address.trim())) {
-        errors.value.address = 'Address must be uppercase and may include numbers, spaces, commas, periods, dashes, or #'; valid = false
-      }
+      if(!form.value.address) { errors.value.address = 'Company Address is required'; valid = false }
     }
   }
 

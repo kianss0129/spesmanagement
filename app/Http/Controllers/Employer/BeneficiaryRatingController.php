@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Employer;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Application;
 use App\Models\Beneficiary;
 use App\Models\EmployerRating;
 
@@ -28,6 +29,17 @@ public function store(Request $request)
 
     if (!$employer) {
         return response()->json(['message' => 'Employer not found'], 400);
+    }
+
+    $application = Application::with('jobListing')->findOrFail($data['application_id']);
+
+    if (
+        (int) $application->beneficiary_id !== (int) $data['beneficiary_id'] ||
+        (int) $application->jobListing?->employer_id !== (int) $employer->id
+    ) {
+        return response()->json([
+            'message' => 'You can only rate beneficiaries assigned to your employer account.',
+        ], 403);
     }
 
     EmployerRating::create([
@@ -56,13 +68,33 @@ public function store(Request $request)
     public function markCompleted($id)
     {
         $beneficiary = Beneficiary::findOrFail($id);
+        $employer = auth()->user()->employer;
 
-        $beneficiary->employment_status = 'completed';
+        if (! $employer) {
+            return response()->json(['message' => 'Employer not found.'], 403);
+        }
+
+        $application = Application::with('jobListing')
+            ->where('beneficiary_id', $beneficiary->id)
+            ->whereHas('jobListing', fn ($query) => $query->where('employer_id', $employer->id))
+            ->whereIn('status', ['contract_signed', 'deployed', 'ongoing'])
+            ->latest()
+            ->first();
+
+        if (! $application) {
+            return response()->json([
+                'message' => 'No eligible application found for completion review.',
+            ], 422);
+        }
+
+        $beneficiary->employment_status = 'employed';
         $beneficiary->save();
+
+        $application->update(['status' => 'completion_review']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Beneficiary marked as completed'
+            'message' => 'Beneficiary submitted for CPESO completion review'
         ]);
     }
 

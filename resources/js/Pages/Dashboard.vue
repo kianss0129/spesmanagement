@@ -2,6 +2,9 @@
   <div class="flex min-h-screen bg-gradient-to-br from-blue-100 to-blue-200">
 
 
+
+
+    <!-- SIDEBAR -->
     <Sidebar
       :is-open="isSidebarOpen"
       :selected-tab="selectedTab"
@@ -13,1606 +16,967 @@
 
 
 
-    <!-- ================= MAIN CONTENT ================= -->
+
+    <!-- MAIN -->
     <main class="flex-1 overflow-auto">
 
 
 
 
-
-
-
-
-      <!-- ================= TOP BAR ================= -->
-      <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between shadow-sm">
-        <!-- Title -->
-        <h1 class="text-3xl sm:text-4xl font-bold text-gray-700 capitalize">{{ selectedTab }}</h1>
-
-
-
-
-
-
-
-
-        <!-- Search, Bell, Profile -->
-        <div class="flex items-center gap-4">
-
-
-
-
-
-
-
-
-          <!-- PROFILE -->
-          <div class="relative">
-            <button @click.stop="toggleMenu">
-  <img
-    :src="profilePhoto"
-    class="w-10 h-10 rounded-full object-cover border hover:opacity-80 transition duration-300 hover:scale-105"
-  />
-</button>
-
-
-
-
-
-
-
-
-            <div v-if="menuOpen" class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border z-50">
-              <a :href="route('admin.settings')" class="block px-4 py-2 hover:bg-gray-100">Settings</a>
-              <button @click="logout" class="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100">Logout</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-
-
-
-
-
-      <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- ================= EXAM FLOW CONTROL ================= -->
-<div v-if="selectedTab === 'exam'" class="bg-white p-4 rounded shadow">
-  <h2 class="text-lg font-bold mb-4">Exam Status Control</h2>
-
-
-
-
-
-
-
-
-  <div class="mb-4 bg-gray-50 p-4 rounded">
-  <h3 class="font-medium mb-2">Schedule Exam</h3>
-
-
-
-
-
-
-
-
-  <form @submit.prevent="scheduleExam" class="space-y-2">
-    <div>
-      <!-- ASSIGNED BENEFICIARIES -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-lg mb-3">Assigned Beneficiaries</h4>
-        <div class="overflow-x-auto">
-          <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Beneficiary ID</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Full Name</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Assigned Job</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Employer Name</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="app in sortedApplications.filter(isAssignedApplication)" :key="app.id" class="border-t">
-                <td class="px-4 py-2 text-sm">{{ app.id }}</td>
-                <td class="px-4 py-2 text-sm">{{ app.beneficiary_name }}</td>
-                <td class="px-4 py-2 text-sm">{{ app.job_title || 'N/A' }}</td>
-                <td class="px-4 py-2 text-sm">{{ app.employer_name || 'N/A' }}</td>
-                <td class="px-4 py-2 text-sm">
-                  <button @click="selectExamApplicant(app.id)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
-                    Select
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- UNASSIGNED BENEFICIARIES -->
-      <div class="mb-6">
-        <h4 class="font-semibold text-lg mb-3">Unassigned Beneficiaries</h4>
-        <div class="overflow-x-auto">
-          <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Beneficiary ID</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Full Name</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="app in sortedApplications.filter(app => !isAssignedApplication(app))" :key="app.id" class="border-t">
-                <td class="px-4 py-2 text-sm">{{ app.id }}</td>
-                <td class="px-4 py-2 text-sm">{{ app.beneficiary_name }}</td>
-                <td class="px-4 py-2 text-sm">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Unassigned
-                  </span>
-                </td>
-                <td class="px-4 py-2 text-sm">
-                  <button @click="selectExamApplicant(app.id)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
-                    Select
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div v-if="examForm.application_id" class="bg-blue-50 p-3 rounded flex items-center justify-between gap-4">
-        <p class="text-sm font-medium">Selected Applicant: {{ getSelectedExamApplicantName() }}</p>
-        <button
-          type="button"
-          @click="clearExamSelection"
-          class="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+      <!-- HEADER -->
+      <DashboardHeader
+        :profile-photo="profilePhoto"
+        :menu-open="menuOpen"
+        @toggle-menu="toggleMenu"
+        @logout="logout"
+      />
+
+
+
+
+      <!-- CONTENT -->
+      <div
+        class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6"
+      >
+
+
+
+
+        <!-- EXAM SECTION -->
+        <ExamSection
+          :selected-tab="selectedTab"
+          :sorted-applications="examSchedulingApplications"
+          :applications="applications"
+          :exams="exams"
+          :exam-form="examForm"
+          :min-date-time="minDateTime"
+          :is-assigned-application="isAssignedApplication"
+          :has-scheduled-exam="hasScheduledExam"
+          :select-exam-applicant="selectExamApplicant"
+          :get-selected-exam-applicant-name="getSelectedExamApplicantName"
+          :clear-exam-selection="clearExamSelection"
+          :schedule-exam="scheduleExam"
+          :update-exam-result="updateExamResult"
+          :format-date="formatDate"
+          :batch-history="batchHistory"
+          :select-batch="selectBatchCustom"
+          :select-batch-custom="selectBatchCustom"
+          :load-data="loadData"
+        />
+
+
+
+
+        <!-- CONTRACT SECTION -->
+        <ContractSection
+          :selected-tab="selectedTab"
+          :sorted-applications="sortedApplications"
+          :contracts="contracts"
+          :contract-form="contractForm"
+          :min-date-time="minDateTime"
+          :scheduling-contract="schedulingContract"
+          :is-assigned-application="isAssignedApplication"
+          :select-applicant="selectApplicant"
+          :get-selected-applicant-name="getSelectedApplicantName"
+          :clear-applicant-selection="clearApplicantSelection"
+          :schedule-contract="scheduleContract"
+          :update-contract-result="updateContractResult"
+          :format-date="formatDate"
+        />
+
+        <ScheduleSection
+          :selected-tab="selectedTab"
+          :exams="scheduleExams"
+          :interviews="scheduleInterviews"
+          :contracts="scheduleContracts"
+          :users="interviewerUsers"
+          :can-create-schedules="canCreateSchedules"
+          :can-reschedule-schedules="canCreateSchedules"
+          :can-manage-exams-contracts="canCreateSchedules"
+          :can-complete-assigned-interviews="canCompleteAssignedInterviews"
+          :reschedule-schedule="rescheduleSchedule"
+          :update-exam-result="updateExamResult"
+          :update-interview-result="updateInterviewResult"
+          :update-contract-result="updateContractResult"
+          :mark-contract-deployed="markContractDeployed"
+          :mark-application-qualified="markApplicationQualified"
+          :format-date="formatDate"
+          @open-scheduler="openScheduler"
+        />
+
+
+
+
+        <!-- HOME -->
+        <div
+          v-if="selectedTab === 'home'"
+          class="space-y-6"
         >
-          Remove
-        </button>
-      </div>
-    </div>
-
-
-
-
-
-
-
-
-    <input
-      v-model="examForm.exam_date"
-      type="datetime-local"
-      :min="minDateTime"
-      class="w-full border px-2 py-1 rounded"
-      required
-    />
-
-
-
-
-
-
-
-
-    <input
-      v-model="examForm.location"
-      type="text"
-      placeholder="Location"
-      class="w-full border px-2 py-1 rounded"
-    />
-
-
-
-
-
-
-
-
-    <button class="bg-blue-600 text-white px-3 py-1 rounded">
-      Schedule Exam
-    </button>
-  </form>
-</div>
-
-
-
-
-
-
-
-
-  <table class="w-full table-auto">
-    <tr v-for="a in applications" :key="a.id" class="border-b">
-      <td class="px-4 py-2">{{ a.name }}</td>
-    </tr>
-  </table>
-  <!-- ================= UPCOMING EXAMS ================= -->
-<div class="mt-4 bg-gray-50 p-4 rounded">
-  <h3 class="font-medium mb-2">Upcoming Exams</h3>
-
-
-
-
-
-
-
-
-  <ul class="text-sm space-y-2">
-    <li v-for="exam in exams" :key="exam.id" class="border p-2 rounded">
-
-
-
-
-
-
-
-
-      <!-- NAME (optional if backend provides) -->
-      <div class="font-semibold">
-        {{ exam.beneficiary_name || 'Applicant #' + exam.application_id }}
-      </div>
-
-
-
-
-
-
-
-
-      <!-- SCHEDULE -->
-      <div>
-    📅 {{ formatDate(exam.exam_date) }}
- </div>
-
-
-
-
-
-
-      <!-- LOCATION -->
-      <div v-if="exam.location">
-        📍 {{ exam.location }}
-      </div>
-
-
-
-
-
-
-
-
-      <!-- STATUS -->
-     <div class="text-xs text-gray-500">
-  Status: {{ exam.status }}
-  <span
-  v-if="exam.result"
-  :class="{
-    'text-green-600': exam.result === 'passed',
-    'text-red-600': exam.result === 'failed'
-  }"
->
-  ({{ exam.result }})
-</span>
-</div>
-
-
-
-
-
-
-
-
-<!-- ACTION BUTTONS -->
-<div v-if="exam.status === 'scheduled'" class="flex gap-2 mt-2">
-  <button
-    @click="updateExamResult(exam.id, 'passed')"
-    class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
-  >
-    Pass
-  </button>
-
-
-
-
-
-
-
-
-  <button
-    @click="updateExamResult(exam.id, 'failed')"
-    class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
-  >
-    Fail
-  </button>
-</div>
-
-
-
-
-
-
-
-
-    </li>
-
-
-
-
-
-
-
-
-   <li v-if="exams.length === 0" class="text-gray-500">
-  No scheduled exams
-</li>
-  </ul>
-</div>
-</div>
-
-<!-- ================= CONTRACT SIGNING ================= -->
-<div v-if="selectedTab === 'contract'" class="bg-white p-4 rounded shadow">
-  <h2 class="text-lg font-bold mb-4">Contract Signing</h2>
-
-  <div class="mb-4 bg-gray-50 p-4 rounded">
-  <h3 class="font-medium mb-2">Select Applicant</h3>
-
-  <!-- ASSIGNED BENEFICIARIES -->
-  <div class="mb-6">
-    <h4 class="font-semibold text-lg mb-3">Assigned Beneficiaries</h4>
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Beneficiary ID</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Full Name</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Assigned Job</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Employer Name</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="app in sortedApplications.filter(isAssignedApplication)" :key="app.id" class="border-t">
-            <td class="px-4 py-2 text-sm">{{ app.id }}</td>
-            <td class="px-4 py-2 text-sm">{{ app.beneficiary_name }}</td>
-            <td class="px-4 py-2 text-sm">{{ app.job_title || 'N/A' }}</td>
-            <td class="px-4 py-2 text-sm">{{ app.employer_name || 'N/A' }}</td>
-            <td class="px-4 py-2 text-sm">
-              <button @click="selectApplicant(app.id)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
-                Select
+          <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
+                  Today's SPES Operations
+                </p>
+                <h1 class="mt-2 text-3xl font-bold text-slate-900">
+                  CPESO Dashboard
+                </h1>
+                <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                  Review urgent applications, requirements, assignments, schedules, and announcements that need action today.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                @click="loadData"
+              >
+                Refresh
               </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+            </div>
+          </section>
 
-  <!-- UNASSIGNED BENEFICIARIES -->
-  <div class="mb-6">
-    <h4 class="font-semibold text-lg mb-3">Unassigned Beneficiaries</h4>
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-white border border-gray-200 rounded-lg">
-        <thead class="bg-gray-100">
-          <tr>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Beneficiary ID</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Full Name</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-            <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="app in sortedApplications.filter(app => !isAssignedApplication(app))" :key="app.id" class="border-t">
-            <td class="px-4 py-2 text-sm">{{ app.id }}</td>
-            <td class="px-4 py-2 text-sm">{{ app.beneficiary_name }}</td>
-            <td class="px-4 py-2 text-sm">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                Unassigned
-              </span>
-            </td>
-            <td class="px-4 py-2 text-sm">
-              <button @click="selectApplicant(app.id)" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">
-                Select
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+          <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <button
+              v-for="card in priorityCards"
+              :key="card.label"
+              type="button"
+              class="rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md"
+              @click="handleMenuClick(card.target)"
+            >
+              <p class="text-sm font-semibold text-slate-600">{{ card.label }}</p>
+              <div class="mt-4 flex items-end justify-between gap-3">
+                <span class="text-3xl font-bold text-slate-900">{{ card.value }}</span>
+                <span
+                  class="rounded-full px-3 py-1 text-xs font-semibold"
+                  :class="card.value > 0 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'"
+                >
+                  {{ card.value > 0 ? 'Needs action' : 'Clear' }}
+                </span>
+              </div>
+              <p class="mt-3 text-sm text-slate-500">{{ card.description }}</p>
+            </button>
+          </section>
 
-  <form @submit.prevent="scheduleContract" class="space-y-2">
-    <div v-if="contractForm.application_id" class="bg-blue-50 p-3 rounded flex items-center justify-between">
-      <p class="text-sm font-medium">Selected Applicant: {{ getSelectedApplicantName() }}</p>
-      <button @click="clearApplicantSelection" class="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600">
-        Remove
-      </button>
-    </div>
+          <section class="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div class="border-b border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-900">Today's Schedule</h2>
+                <p class="mt-1 text-sm text-slate-500">Upcoming exams, interviews, and contract signings.</p>
+              </div>
 
-    <input
-      v-model="contractForm.contract_date"
-      type="datetime-local"
-      :min="minDateTime"
-      class="w-full border px-2 py-1 rounded"
-      required
-    />
+              <div class="grid gap-0 divide-y divide-slate-200 lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+                <div
+                  v-for="group in scheduleGroups"
+                  :key="group.label"
+                  class="p-5"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <h3 class="font-semibold text-slate-900">{{ group.label }}</h3>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      {{ group.items.length }}
+                    </span>
+                  </div>
 
-    <input
-      v-model="contractForm.location"
-      type="text"
-      placeholder="Location"
-      class="w-full border px-2 py-1 rounded"
-    />
+                  <div class="mt-4 space-y-3">
+                    <div
+                      v-for="item in group.items"
+                      :key="`${group.label}-${item.id}`"
+                      class="rounded-lg bg-slate-50 p-3"
+                    >
+                      <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+                      <p class="mt-1 text-xs text-slate-500">{{ formatDate(item.date) }}</p>
+                    </div>
 
-    <button
-      type="submit"
-      :disabled="schedulingContract"
-      class="bg-blue-600 text-white px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-    >
-      <svg v-if="schedulingContract" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      {{ schedulingContract ? 'Scheduling...' : 'Schedule Contract' }}
-    </button>
-  </form>
-</div>
-
-  <!-- ================= UPCOMING CONTRACTS ================= -->
-<div class="mt-4 bg-gray-50 p-4 rounded">
-  <h3 class="font-medium mb-2">Upcoming Contracts</h3>
-
-  <ul class="text-sm space-y-2">
-    <li v-for="contract in contracts" :key="contract.id" class="border p-2 rounded">
-      <!-- NAME -->
-      <div class="font-semibold">
-        {{ contract.beneficiary_name || 'Applicant #' + contract.application_id }}
-      </div>
-
-      <!-- SCHEDULE -->
-      <div>
-    📅 {{ formatDate(contract.contract_date) }}
- </div>
-
-      <!-- LOCATION -->
-      <div v-if="contract.location">
-        📍 {{ contract.location }}
-      </div>
-
-      <!-- STATUS -->
-     <div class="text-xs text-gray-500">
-  Status: {{ contract.status }}
-  <span
-  v-if="contract.result"
-  :class="{
-    'text-green-600': contract.result === 'signed',
-    'text-red-600': contract.result === 'not_signed'
-  }"
->
-  ({{ contract.result }})
-</span>
-</div>
-
-<!-- ACTION BUTTONS -->
-<div v-if="contract.status === 'scheduled'" class="flex gap-2 mt-2">
-  <button
-    @click="updateContractResult(contract.id, 'signed')"
-    class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
-  >
-    Signed
-  </button>
-
-  <button
-    @click="updateContractResult(contract.id, 'not_signed')"
-    class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
-  >
-    Not Signed
-  </button>
-</div>
-
-    </li>
-
-   <li v-if="contracts.length === 0" class="text-gray-500">
-  No scheduled contracts
-</li>
-  </ul>
-</div>
-</div>
-
-
-
-
-
-
-
-
-        <!-- ================= DASHBOARD ================= -->
-        <div v-if="selectedTab === 'home'" class="space-y-6">
-          <!-- Welcome Section -->
-          <div class="mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-              Welcome, {{ props.user?.name || 'User' }}!
-            </h1>
-            <p class="text-gray-500 text-base sm:text-lg">Dashboard overview</p>
-          </div>
-
-          <!-- Stats Cards -->
-          <StatsCards
-            v-if="canViewDashboard"
-            :stats="stats"
-            :show-peso-stats="isAdminRole"
-          />
-
-          <!-- Charts Section -->
-          <div v-if="canViewDashboard" class="grid gap-6">
-            <Charts
-              :key="chartKey"
-              :applicants="applicants"
-              :employers="employers"
-              :performance="performance"
-              :completion="completion"
-              :attendance="attendance"
-              :stats="stats"
-              :chart-stats="chartStats"
-              :date-filter="dateFilter"
-              :custom-range="customRange"
-              :selected-days="selectedDays"
-              :show-applicants-chart="true"
-              :show-employers-chart="true"
-              :show-growth-chart="true"
-              :show-peso-chart="false"
-              :can-export="isAdminRole"
-              @export-applicants="exportApplicants"
-              @export-employers="exportEmployers"
-              @update:dateFilter="handleDateFilterChange"
-              @update:customRange="handleCustomRangeChange"
-              @refresh="loadData"
-            />
-          </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-          <div class="grid gap-6">
-            <div class="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-                <div>
-                  <h2 class="text-2xl font-bold text-gray-900 mb-1">Attendance / DTR Monitoring</h2>
-                  <p class="text-gray-500">Monitor beneficiary attendance logs and employer DTR submission status.</p>
+                    <p
+                      v-if="group.items.length === 0"
+                      class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500"
+                    >
+                      No upcoming {{ group.label.toLowerCase() }}.
+                    </p>
+                  </div>
                 </div>
-                <button @click="resetAttendanceFilters" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition">
-                  Reset Filters
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 class="text-lg font-bold text-slate-900">Quick Actions</h2>
+              <div class="mt-4 grid gap-3">
+                <button
+                  v-for="action in quickActionItems"
+                  :key="action.label"
+                  type="button"
+                  class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:border-blue-300 hover:bg-blue-50"
+                  @click="handleMenuClick(action.target)"
+                >
+                  <span>{{ action.label }}</span>
+                  <span class="text-blue-600">Open</span>
                 </button>
               </div>
-
-
-              <div class="grid gap-4 md:grid-cols-3 mb-6">
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">School</label>
-                  <select v-model="attendanceFilters.school" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="">All Schools</option>
-                    <option v-for="school in attendanceFilterOptions.schools" :key="school" :value="school">{{ school }}</option>
-                  </select>
-                </div>
-
-
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Employer</label>
-                  <select v-model="attendanceFilters.employer" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="">All Employers</option>
-                    <option v-for="employer in attendanceFilterOptions.employers" :key="employer" :value="employer">{{ employer }}</option>
-                  </select>
-                </div>
-
-
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                  <select v-model="attendanceFilters.status" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <option value="">All Statuses</option>
-                    <option v-for="status in attendanceFilterOptions.statuses" :key="status" :value="status">{{ status }}</option>
-                  </select>
-                </div>
-              </div>
-
-
-              <div class="grid gap-4 md:grid-cols-3 mb-8">
-                <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-6">
-                  <div class="text-sm font-medium text-gray-600">Beneficiaries Monitored</div>
-                  <div class="mt-3 text-3xl font-bold text-blue-600">{{ attendanceSummary.beneficiariesMonitored }}</div>
-                </div>
-                <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-green-50 to-white p-6">
-                  <div class="text-sm font-medium text-gray-600">Attendance Records</div>
-                  <div class="mt-3 text-3xl font-bold text-green-600">{{ attendanceSummary.records }}</div>
-                </div>
-                <div class="rounded-2xl border border-gray-200 bg-gradient-to-br from-purple-50 to-white p-6">
-                  <div class="text-sm font-medium text-gray-600">Average Presence</div>
-                  <div class="mt-3 text-3xl font-bold text-purple-600">{{ attendanceSummary.avgPresenceDays }} days</div>
-                </div>
-              </div>
-
-
-              <div class="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <div class="overflow-x-auto rounded-2xl border border-gray-200">
-                    <table class="w-full text-left text-sm">
-                      <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                          <th class="px-4 py-3">Beneficiary</th>
-                          <th class="px-4 py-3">Employer</th>
-                          <th class="px-4 py-3">Date</th>
-                          <th class="px-4 py-3">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="record in filteredAttendanceRecords" :key="record.id" class="border-b border-gray-200 hover:bg-gray-50">
-                          <td class="px-4 py-3">{{ record.beneficiary_name }}</td>
-                          <td class="px-4 py-3">{{ record.employer_name }}</td>
-                          <td class="px-4 py-3">{{ record.date }}</td>
-                          <td class="px-4 py-3"><span class="rounded-full px-2 py-1 text-xs font-semibold" :class="record.status === 'present' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">{{ record.status }}</span></td>
-                        </tr>
-                        <tr v-if="filteredAttendanceRecords.length === 0">
-                          <td colspan="4" class="px-4 py-6 text-center text-slate-500">No attendance records available.</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-
-                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-3">DTR Review</h3>
-                  <p class="text-sm text-slate-500 mb-4">Review recent DTR submissions and notes from beneficiaries.</p>
-                  <div v-if="filteredAttendanceRecords.length === 0" class="text-slate-500">No recent DTR items found.</div>
-                  <ul v-else class="space-y-3">
-                    <li v-for="record in filteredAttendanceRecords.slice(0, 5)" :key="record.id" class="rounded-2xl border border-slate-200 bg-white p-4">
-                      <div class="flex items-center justify-between gap-3">
-                        <div>
-                          <div class="font-semibold text-slate-900">{{ record.beneficiary_name }}</div>
-                          <div class="text-sm text-slate-500">{{ record.date }} Â· {{ record.employer_name }}</div>
-                        </div>
-                        <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">{{ formatTime(record.time_in) || 'No time in' }}</span>
-                      </div>
-                      <p class="mt-3 text-sm text-slate-600">{{ record.notes || 'No notes provided.' }}</p>
-                    </li>
-                  </ul>
-                </div>
-              </div>
             </div>
+          </section>
 
-
-            <div class="grid gap-6 lg:grid-cols-2">
-              <div class="bg-white p-6 rounded-2xl shadow">
-                <div class="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 class="text-lg font-semibold text-gray-800">Average Rating Analytics</h3>
-                    <p class="text-sm text-gray-500">Track average beneficiary ratings across key categories.</p>
-                  </div>
-                  <div class="text-sm font-semibold text-blue-600">{{ averageRatings.submitted_count }} submitted</div>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="text-sm text-slate-500">Punctuality</div>
-                    <div class="mt-2 text-2xl font-bold text-slate-900">{{ averageRatings.punctuality }}</div>
-                  </div>
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="text-sm text-slate-500">Work Attitude</div>
-                    <div class="mt-2 text-2xl font-bold text-slate-900">{{ averageRatings.attitude }}</div>
-                  </div>
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="text-sm text-slate-500">Output Quality</div>
-                    <div class="mt-2 text-2xl font-bold text-slate-900">{{ averageRatings.work_quality }}</div>
-                  </div>
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="text-sm text-slate-500">Communication</div>
-                    <div class="mt-2 text-2xl font-bold text-slate-900">{{ averageRatings.communication }}</div>
-                  </div>
-                </div>
+          <section class="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div class="border-b border-slate-200 p-5">
+                <h2 class="text-lg font-bold text-slate-900">Recent Activity</h2>
+                <p class="mt-1 text-sm text-slate-500">Latest approvals, rejections, and assignments.</p>
               </div>
 
-
-              <div class="bg-white p-6 rounded-2xl shadow">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Employer Reliability Analytics</h3>
-                <p class="text-sm text-gray-500 mb-4">See which employers have the highest number of completed beneficiaries.</p>
-                <div v-if="!employerReliability.length" class="text-sm text-gray-500">No employer reliability data available.</div>
-                <ul v-else class="space-y-3">
-                  <li v-for="item in employerReliability.slice(0, 5)" :key="item.employer_id || item.employer_name" class="rounded-2xl border border-slate-200 p-4">
-                    <div class="flex items-center justify-between gap-4">
-                      <div>
-                        <div class="font-semibold text-slate-900">{{ item.employer_name }}</div>
-                        <div class="text-sm text-slate-500" v-if="item.job_listing_count">
-                          {{ item.job_listing_count }} job listing<span v-if="item.job_listing_count > 1">s</span>
-                        </div>
-                      </div>
-                      <div class="text-2xl font-bold text-slate-900">{{ item.completed_count }}</div>
+              <div class="divide-y divide-slate-200">
+                <div
+                  v-for="activity in recentTriageActivity"
+                  :key="activity.id"
+                  class="p-5"
+                >
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900">{{ activity.title }}</p>
+                      <p class="mt-1 text-sm text-slate-600">{{ activity.description }}</p>
                     </div>
-                  </li>
-                </ul>
+                    <span class="text-xs font-medium text-slate-500">{{ formatDate(activity.date) }}</span>
+                  </div>
+                </div>
+
+                <p
+                  v-if="recentTriageActivity.length === 0"
+                  class="p-5 text-sm text-slate-500"
+                >
+                  No recent triage activity yet.
+                </p>
               </div>
             </div>
-          </div>
+
+            <div class="space-y-6">
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900">Urgent Announcements</h2>
+                <div class="mt-4 space-y-3">
+                  <div
+                    v-for="announcement in urgentAnnouncements"
+                    :key="announcement.id"
+                    class="rounded-lg border border-amber-200 bg-amber-50 p-4"
+                  >
+                    <p class="text-sm font-semibold text-amber-950">{{ announcement.title }}</p>
+                    <p class="mt-1 line-clamp-2 text-sm text-amber-900">
+                      {{ announcement.content || announcement.message }}
+                    </p>
+                  </div>
+
+                  <p
+                    v-if="urgentAnnouncements.length === 0"
+                    class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500"
+                  >
+                    No urgent announcements posted.
+                  </p>
+                </div>
+              </div>
+
+              <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="text-lg font-bold text-slate-900">Analytics Summary</h2>
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                  <div
+                    v-for="item in analyticsSummary"
+                    :key="item.label"
+                    class="rounded-lg bg-slate-50 p-4"
+                  >
+                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                      {{ item.label }}
+                    </p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900">{{ item.value }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
 
 
 
+       <!-- BENEFICIARIES -->
+<div
+  v-if="selectedTab === 'beneficiaries'"
+  class="space-y-6"
+>
 
 
 
 
-        <!-- ================= BENEFICIARIES ================= -->
-        <div v-if="selectedTab === 'beneficiaries'" class="space-y-6">
+  <AdminWorkflow
+    v-if="isAdmin || isPesoAdmin || isPesoUser"
+    :stats="stats"
+    :applications="applications"
+    :beneficiaries="beneficiaries"
+    :exams="exams"
+    :interviews="interviews"
+    :contracts="contracts"
+    :daily-reports="workOutputs"
+    :selected-days="selectedDays"
+    :can-manage-roles="isAdmin"
+    :can-approve="isPesoAdmin"
+    :read-only="isPesoUser"
+    @update:selectedDays="selectedDays = $event"
+    @refresh="loadData"
+  />
 
 
 
 
+</div>
 
 
 
 
-          <AdminWorkflow
-            v-if="isAdmin || isPesoAdmin || isPesoUser"
-            :stats="stats"
-            :selected-days="selectedDays"
-            :can-manage-roles="isAdmin"
-            :can-approve="isPesoAdmin"
-            :read-only="isPesoUser"
-            @update:selectedDays="selectedDays = $event"
-            @refresh="loadData"
+       <!-- BENEFICIARY MONITORING -->
+<div
+  v-if="selectedTab === 'beneficiaryMonitoring'"
+  class="space-y-6"
+>
+<!-- BENEFICIARY MONITORING -->
+<beneficiaryMonitoringSection
+  :selected-tab="selectedTab"
+  :beneficiaries="beneficiaries"
+  :is-peso-user="isPesoUser"
+  :status-class="statusClass"
+  :view-beneficiary-applications="viewBeneficiaryApplications"
+/>
+
+
+
+
+  <!-- ATTENDANCE -->
+          <AttendanceSection
+            :selected-tab="selectedTab"
+            :attendance-filters="attendanceFilters"
+            :attendance-filter-options="attendanceFilterOptions"
+            :attendance-summary="attendanceSummary"
+            :filtered-attendance-records="filteredAttendanceRecords"
+            :daily-reports="workOutputs"
+            :completion-queue="completionReviewQueue"
+            :approve-completion="approveCompletionFromQueue"
+            :show-attendance-history-modal="showAttendanceHistoryModal"
+            :average-ratings="averageRatings"
+            :employer-reliability="employerReliability"
+            :reset-attendance-filters="resetAttendanceFilters"
+            :format-time="formatTime"
           />
 
 
 
 
-
-
-
-
-          <div class="bg-white p-4 rounded shadow mt-4 overflow-x-auto">
-            <h2 class="text-lg font-bold mb-4">Beneficiary Monitoring</h2>
-            <table class="w-full table-auto">
-              <thead>
-                <tr class="bg-gray-100">
-                  <th class="px-4 py-2 text-left">Name</th>
-                  <th class="px-4 py-2 text-left">Status</th>
-                  <th class="px-4 py-2 text-left">Assigned Employer</th>
-                  <th class="px-4 py-2 text-left" v-if="!isPesoUser">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="beneficiary in beneficiaries" :key="beneficiary.id" class="border-b">
-                  <td class="px-4 py-2">{{ beneficiary.name }}</td>
-                  <td class="px-4 py-2">
-                    <span :class="statusClass(beneficiary.status)" class="px-2 py-1 rounded text-xs">
-                      {{ beneficiary.status }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-2">{{ beneficiary.assigned_employer || 'None' }}</td>
-                  <td class="px-4 py-2" v-if="!isPesoUser">
-                    <button @click="viewBeneficiaryApplications(beneficiary.id)"
-                      class="bg-purple-600 text-white px-2 py-1 rounded text-xs mr-2">View applicants</button>
-                   
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-
-
-
-
-
-
-
-        <!-- ================= APPROVED BENEFICIARIES ================= -->
-         <div v-if="selectedTab === 'approvedBeneficiaries'" class="space-y-6">
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-lg font-bold mb-4">Approved Beneficiaries</h2>
-
-
-
-
-
-
-
-
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="px-4 py-2 text-left">Name</th>
-            <th class="px-4 py-2 text-left">Email</th>
-            <th class="px-4 py-2 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-  <tr v-for="b in approvedBeneficiaries" :key="b.id" class="border-b">
-  <td class="px-4 py-2">{{ b.name }}</td>
-  <td class="px-4 py-2">{{ b.email }}</td>
-  <td class="px-4 py-2">
-    <button
-      @click="openRevertModal('beneficiaries', b.id)"
-      class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs"
-    >
-      Revert to Pending
-    </button>
-    
-  </td>
-</tr>
-
-
-
-
-
-
-
-
-  <tr v-if="approvedBeneficiaries.length === 0">
-    <td colspan="3" class="px-4 py-2 text-gray-500">No approved beneficiaries</td>
-  </tr>
-</tbody>
-      </table>
-    </div>
-  </div>
 </div>
 
-
-
-
-
-
-
-
-<!-- ================= APPROVED EMPLOYERS ================= -->
- <div v-if="selectedTab === 'approvedEmployers'" class="space-y-6">
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-lg font-bold mb-4">Approved Employers</h2>
-
-
-
-
-
-
-
-
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="px-4 py-2 text-left">Company</th>
-            <th class="px-4 py-2 text-left">Email</th>
-            <th class="px-4 py-2 text-left">Actions</th>
-          </tr>
-        </thead>
-       <tbody>
-  <tr v-for="e in approvedEmployers" :key="e.id" class="border-b">
-    <td class="px-4 py-2">{{ e.company_name }}</td>
-    <td class="px-4 py-2">{{ e.email }}</td>
-  <td class="px-4 py-2">
-    <button
-      @click="openRevertModal('employers', e.id)"
-      class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs"
-    >
-      Revert to Pending
-    </button>
-  </td>
-</tr>
-
-
-
-
-
-
-
-
-  <tr v-if="approvedEmployers.length === 0">
-    <td colspan="3" class="px-4 py-2 text-gray-500">No approved employers</td>
-  </tr>
-</tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-
-
-
-       <!-- ================= JOBS ================= -->
-<div v-if="selectedTab === 'jobs'">
-  <div class="bg-white p-4 rounded shadow hover:shadow-md transition">
-    <h2 class="text-lg font-bold mb-4">
-      Job Listing & Application Management
-    </h2>
-
-    <QuickActions
-      v-if="isPesoAdmin"
-      :can-assign="isPesoAdmin"
-      :can-schedule="isPesoAdmin"
-      @data-changed="loadData"
-      class="mb-6"
-    />
-
-
-
-
-
-
-
-
-    <div class="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm">
-      <table class="w-full min-w-full divide-y divide-gray-200 bg-white">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="px-4 py-2 text-left">Job ID</th>
-            <th class="px-4 py-2 text-left">Job Title</th>
-            <th class="px-4 py-2 text-left">Employer</th>
-            <th class="px-4 py-2 text-left">Applications</th>
-         
-            <th class="px-4 py-2 text-left">Actions</th>
-          </tr>
-        </thead>
-
-
-
-
-
-
-
-
-        <tbody>
-          <tr
-            v-for="job in jobListings"
-            :key="job.id"
-            class="border-b"
-          >
-            <td class="p-4 font-medium text-gray-800">
-              {{ job.id }}
-            </td>
-
-
-
-
-
-
-
-
-            <td class="px-4 py-2">
-              {{ job.title }}
-            </td>
-
-
-
-
-
-
-
-
-            <td class="px-4 py-2">
-              {{ job.employer_name }}
-            </td>
-
-
-
-
-
-
-
-
-            <td class="px-4 py-2">
-              {{ job.applications_count }}
-            </td>
-
-
-
-
-
-
-
-
-           
-
-
-
-
-
-
-
-
-            <td class="px-4 py-2">
-              <!-- VIEW APPLICANTS -->
-              <button
-                @click="viewApplications(job.id)"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs"
-              >
-                View Applicants
-              </button>
-
-
-
-
-
-
-
-
-            </td>
-          </tr>
-
-
-
-
-
-
-
-
-          <tr v-if="jobListings.length === 0">
-            <td colspan="5" class="text-center py-4 text-gray-500">
-              No job listings found
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-
-
-
-
-
-
-
-
-  </div>
-</div>
-        <!-- ================= INTERVIEWS ================= -->
-        <div v-if="selectedTab === 'interviews'" class="space-y-4">
-          <div class="bg-white p-4 rounded shadow">
-            <h2 class="text-lg font-bold mb-4">Interview & Exam Scheduling</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Schedule Interview Form -->
-              <div class="bg-gray-50 p-4 rounded">
-                <h3 class="font-medium mb-2">Schedule Interview</h3>
-                <form @submit.prevent="scheduleInterview" class="space-y-3">
-                  <div>
-                    <label class="text-sm">Select Application</label>
-                    <select v-model="scheduleForm.application_id" class="w-full border rounded px-3 py-2" required>
-                      <option value="">-- Select an applicant --</option>
-                      <option v-for="app in applications" :key="app.id" :value="app.id">
-                        #{{ app.id }} - {{ isValidText(app.beneficiary_name) ? app.beneficiary_name : `Applicant #${app.id}` }}
-                        <span v-if="isValidText(app.job_title)"> — {{ app.job_title }}</span>
-                        <span v-else class="text-gray-400"> — Unassigned job</span>
-                        <span v-if="isValidText(app.employer_name)"> at {{ app.employer_name }}</span>
-                        <span v-else class="text-gray-400"> at Unassigned employer</span>
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="text-sm">Scheduled At</label>
-                    <input
-                    v-model="scheduleForm.start"
-                    type="datetime-local"
-                    :min="minDateTime"
-                    class="w-full border rounded px-3 py-2"
-                    required
-                  />
-                  </div>
-                  <div>
-      <label class="text-sm">Meet Link</label>
-      <input
-        v-model="scheduleForm.meet_link"
-        type="url"
-        placeholder="https://meet.google.com/..."
-        class="w-full border rounded px-3 py-2"
-      />
-    </div>
-                  <div>
-                  </div>
-                  <button
-                    type="submit"
-                    :disabled="schedulingInterview"
-                    class="bg-blue-600 text-white px-3 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    <svg v-if="schedulingInterview" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {{ schedulingInterview ? 'Scheduling...' : 'Schedule' }}
-                  </button>
-                </form>
-              </div>
-
-
-
-
-
-
-
-
-              <!-- Upcoming Interviews -->
-              <div class="bg-gray-50 p-4 rounded">
-                <h3 class="font-medium mb-2">Upcoming Interviews</h3>
-                <ul class="text-sm space-y-2">
-                  <li v-for="interview in interviews" :key="interview.id" class="border p-2 rounded">
-
-
-
-
-
-
-
-
-  <div class="font-semibold">
-    <div class="text-gray-800">
-      {{ isValidText(interview.beneficiary_name) ? interview.beneficiary_name : 'Applicant' }}
-    </div>
-    <div v-if="isValidText(interview.job_title) || isValidText(interview.employer_name)" class="text-xs text-gray-500 mt-1">
-      <template v-if="isValidText(interview.job_title)">
-        {{ interview.job_title }}
-      </template>
-      <template v-if="isValidText(interview.job_title) && isValidText(interview.employer_name)">
-        -
-      </template>
-      <template v-if="isValidText(interview.employer_name)">
-        {{ interview.employer_name }}
-      </template>
-    </div>
-  </div>
-
-
-
-
-
-
-
-
-  <div>
-    📅 {{ formatDate(interview.scheduled_at) }}
-  </div>
-
-
-
-
-
-
-
-
-  <div v-if="interview.meet_link" class="text-blue-600">
-    <a :href="interview.meet_link" target="_blank">Join Meet</a>
-  </div>
-
-
-
-
-
-
-
-
-  <!-- STATUS -->
-  <div class="text-xs text-gray-500">
-    Status: {{ interview.status }}
-
-
-
-
-
-
-
-
-    <span
-      v-if="interview.result"
-      :class="{
-        'text-green-600': interview.result === 'passed',
-        'text-red-600': interview.result === 'failed'
-      }"
-    >
-      ({{ interview.result }})
-    </span>
-  </div>
-
-
-
-
-
-
-
-
-  <!-- ACTION BUTTONS -->
-  <div v-if="interview.status === 'scheduled'" class="flex gap-2 mt-2">
-    <button
-      @click="updateInterviewResult(interview.id, 'passed')"
-      class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
-    >
-      Pass
-    </button>
-
-
-
-
-
-
-
-
-    <button
-      @click="updateInterviewResult(interview.id, 'failed')"
-      class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
-    >
-      Fail
-    </button>
-  </div>
-
-
-
-
-
-
-
-
-                 
-
-                  </li>
-                  <li v-if="interviews.length === 0" class="text-gray-500">No upcoming interviews</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-<!-- ================= EMPLOYER REPORTS ================= -->
-<div v-if="selectedTab === 'reports'" class="space-y-6">
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-lg font-bold mb-4">Employer Reports</h2>
-
-
-
-
-
-
-
-
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="px-4 py-2 text-left">Title</th>
-            <th class="px-4 py-2 text-left">Body</th>
-            <th class="px-4 py-2 text-left">Employer ID</th>
-            <th class="px-4 py-2 text-left">Document</th>
-            <th class="px-4 py-2 text-left">Date</th>
-          </tr>
-        </thead>
-
-
-
-
-
-
-
-
-        <tbody>
-          <tr v-for="r in reports" :key="r.id" class="border-b">
-            <td class="px-4 py-2">{{ r.title }}</td>
-            <td class="px-4 py-2">{{ r.body }}</td>
-            <td class="px-4 py-2">{{ r.employer_id }}</td>
-            <td class="px-4 py-2">
-              <button
-                v-if="r.file_url"
-                @click.prevent="openDocument(r.file_url, r.title)"
-                class="text-blue-600 hover:text-blue-800 underline"
-              >
-                View
-              </button>
-              <span v-else class="text-gray-500">No file</span>
-            </td>
-            <td class="px-4 py-2">{{ formatDate(r.created_at) }}</td>
-          </tr>
-
-
-
-
-
-
-
-
-          <tr v-if="reports.length === 0">
-            <td colspan="5" class="px-4 py-2 text-gray-500">
-              No reports found
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-        <!-- ================= ANNOUNCEMENTS & AUDIT ================= -->
-        <div v-if="selectedTab === 'announcements'" class="space-y-4">
-          <div class="bg-white p-4 rounded shadow">
-            <h2 class="text-lg font-bold mb-4">Announcements & Audit Trail</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Announcements -->
-              <div class="bg-gray-50 p-4 rounded">
-                <h3 class="font-medium mb-2">System Announcements</h3>
-                <!-- CREATE ANNOUNCEMENT (Admin Only) -->
-<div v-if="isAdminRole" class="mb-4 bg-white p-3 rounded border">
-  <h4 class="font-semibold mb-2">Create Announcement</h4>
-
-
-
-
-
-
-
-
-  <form @submit.prevent="createAnnouncement" class="space-y-2">
-    <input
-      v-model="newAnnouncement.title"
-      type="text"
-      placeholder="Title"
-      class="w-full border rounded px-3 py-2"
-      required
-    />
-
-
-
-
-
-
-
-
-    <textarea
-      v-model="newAnnouncement.message"
-      placeholder="Message"
-      class="w-full border rounded px-3 py-2"
-      rows="3"
-      required
-    ></textarea>
-
-
-
-
-
-
-
-
-    <input
-  type="file"
-  accept="image/*"
-  @change="handleImageUpload"
-  class="w-full border rounded px-3 py-2"
+          <AttendanceSection
+            :selected-tab="selectedTab"
+            :attendance-filters="attendanceFilters"
+            :attendance-filter-options="attendanceFilterOptions"
+            :attendance-summary="attendanceSummary"
+            :filtered-attendance-records="filteredAttendanceRecords"
+            :daily-reports="workOutputs"
+            :completion-queue="completionReviewQueue"
+            :approve-completion="approveCompletionFromQueue"
+            :show-attendance-history-modal="showAttendanceHistoryModal"
+            :average-ratings="averageRatings"
+            :employer-reliability="employerReliability"
+            :reset-attendance-filters="resetAttendanceFilters"
+            :format-time="formatTime"
+          />
+
+
+
+
+        <!-- APPROVED BENEFICIARIES -->
+       <ApprovedBeneficiariesSection
+  :selected-tab="selectedTab"
+  :approved-beneficiaries="approvedBeneficiaries"
+  :is-admin-role="isAdminRole"
+  :format-date="formatDate"
+  @revert="openRevertModal"
 />
 
 
 
 
-
-
-
-
-    <!-- ANNOUNCE TARGET -->
-    <div class="mb-3">
-      <label class="text-sm font-medium mr-2">Announce for :</label>
-      <select v-model="newAnnouncement.targetRole" class="border rounded px-2 py-1">
-        <option value="all">All</option>
-        <option value="beneficiary">Beneficiaries</option>
-        <option value="employer">Employers</option>
-      </select>
-    </div>
-
-
-
-
-
-
-
-
-    <button
-      type="submit"
-      class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
-    >
-      Post Announcement
-    </button>
-
-
-
-
-
-
-
-
-   <!-- View Previous Announcements -->
-<a
-  href="/peso/notifications"
-  class="inline-block bg-gray-600 text-white px-3 py-2 rounded hover:bg-gray-700"
->
-  View Previous Announcements
-</a>
-  </form>
-</div>
-                <ul class="text-sm space-y-2">
-                  <li v-for="announcement in filteredAnnouncements" :key="announcement.id" class="border p-2 rounded">
-                    <div class="font-semibold">{{ announcement.title }}</div>
-                    <div>{{ announcement.message }}</div>
-                    <img
-  v-if="announcement.image"
- :src="`/storage/${announcement.image}`"
-  class="w-32 mt-2 rounded cursor-pointer hover:opacity-80"
- @click="openImage(`/storage/${announcement.image}`)"
+        <!-- APPROVED EMPLOYERS -->
+      <ApprovedEmployersSection
+  :selected-tab="selectedTab"
+  :approved-employers="approvedEmployers"
+  :is-admin-role="isAdminRole"
+  :format-date="formatDate"
+  @revert="openRevertModal"
+  @manage-jobs="selectedTab = 'jobs'"
 />
-                    <div class="text-xs text-gray-500">
-  {{ formatDate(announcement.created_at) }}
-</div>
-                  </li>
-                  <li v-if="filteredAnnouncements.length === 0" class="text-gray-500">No announcements</li>
-                </ul>
-              </div>
-              <!-- Audit Trail -->
-              <div class="bg-gray-50 p-4 rounded">
-                <h3 class="font-medium mb-2">Recent Activity</h3>
-                <ul class="text-sm space-y-2">
-                  <li v-for="activity in auditTrail" :key="activity.id" class="border p-2 rounded">
-                    <div class="text-xs text-gray-500">
-  {{ formatDate(activity.created_at) }}
-</div>
-                    <div class="text-sm">{{ activity.description }}</div>
-                    <div class="text-xs text-gray-400">By: {{ activity.causer_name ?? 'system' }}</div>
-                  </li>
-                  <li v-if="auditTrail.length === 0" class="text-gray-500">No recent activity</li>
-                </ul>
+      <!-- JOBS -->
+<JobListingSection
+  :selected-tab="selectedTab"
+  :is-admin="isAdmin"
+  :is-peso-admin="isPesoAdmin"
+  :is-peso-user="isPesoUser"
+  :job-listings="jobListings"
+  :format-date="formatDate"
+  :view-applications="viewApplications"
+  :load-data="loadData"
+/>
+
+
+
+
+        <!-- APPLICATIONS -->
+        <ApplicationsSection
+          :selected-tab="selectedTab"
+          :applications="applications"
+          :format-date="formatDate"
+          :update-application-status="updateApplicationStatus"
+          :mark-application-qualified="markApplicationQualified"
+        />
+
+
+
+
+       <!-- INTERVIEW -->
+<InterviewSection
+  :selected-tab="selectedTab"
+  :applications="interviewApplications"
+  :interviews="interviews"
+  :schedule-form="scheduleForm"
+  :users="interviewerUsers"
+  :min-date-time="minDateTime"
+  :scheduling-interview="schedulingInterview"
+  :is-valid-text="isValidText"
+  :is-assigned-application="isAssignedApplication"
+  :schedule-interview="scheduleInterview"
+  :update-interview-result="updateInterviewResult"
+  :format-date="formatDate"
+/>
+
+
+
+
+        <!-- REPORTS -->
+        <ReportsSection
+          :selected-tab="selectedTab"
+          :reports="reports"
+          :format-date="formatDate"
+          :open-document="openDocument"
+        />
+
+
+
+
+
+
+
+
+        <!-- USER MANAGEMENT -->
+        <UserManagementSection
+  v-if="selectedTab === 'userManagement'"
+  :users="users"
+  :roles="roles"
+  @refresh="loadData"
+/>
+
+        <section v-if="selectedTab === 'auditTrail'" class="space-y-6">
+          <header class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Settings</p>
+            <h1 class="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Audit Trail</h1>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Review system activity by user, action, date, and module.
+            </p>
+          </header>
+
+          <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="grid gap-3 lg:grid-cols-3">
+              <input
+                v-model="auditFilters.user"
+                type="search"
+                placeholder="Filter by user"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+              <input
+                v-model="auditFilters.action"
+                type="search"
+                placeholder="Filter by action"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+              <input
+                v-model="auditFilters.date"
+                type="date"
+                class="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+            </div>
+          </section>
+
+          <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="hidden grid-cols-[0.9fr_1fr_0.9fr_0.8fr_1.4fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 xl:grid">
+              <span>Date / Time</span>
+              <span>User</span>
+              <span>Action</span>
+              <span>Module</span>
+              <span>Details</span>
+            </div>
+
+            <div
+              v-for="entry in paginatedAuditTrail"
+              :key="entry.id || `${entry.action}-${entry.created_at}`"
+              class="grid gap-4 border-b border-slate-200 px-5 py-5 text-sm text-slate-700 last:border-b-0 xl:grid-cols-[0.9fr_1fr_0.9fr_0.8fr_1.4fr] xl:items-center"
+            >
+              <span>{{ formatDate(entry.created_at || entry.date) }}</span>
+              <span class="font-semibold text-slate-900">{{ entry.user_name || entry.user || 'System' }}</span>
+              <span>{{ entry.action || 'Activity recorded' }}</span>
+              <span>{{ entry.module || entry.record || entry.subject || 'System' }}</span>
+              <span>{{ entry.details || entry.description || entry.record || 'No details provided.' }}</span>
+            </div>
+
+            <div
+              v-if="filteredAuditTrail.length > 0"
+              class="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span>
+                Showing {{ ((auditPage - 1) * auditPerPage) + 1 }}-{{ Math.min(auditPage * auditPerPage, filteredAuditTrail.length) }} of {{ filteredAuditTrail.length }} records
+              </span>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="auditPage === 1"
+                  @click="auditPage = Math.max(1, auditPage - 1)"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="auditPage === auditTotalPages"
+                  @click="auditPage = Math.min(auditTotalPages, auditPage + 1)"
+                >
+                  Next
+                </button>
               </div>
             </div>
-          </div>
-        </div>
+
+            <div v-if="filteredAuditTrail.length === 0" class="px-5 py-12 text-center">
+              <p class="text-sm font-semibold text-slate-700">No audit records found.</p>
+              <p class="mt-1 text-sm text-slate-500">Try adjusting the user, action, or date filters.</p>
+            </div>
+          </section>
+        </section>
+
+        <section v-if="selectedTab === 'systemSettings'" class="space-y-6">
+          <header class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Settings</p>
+            <h1 class="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">System Settings</h1>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+              Manage your profile, security, and account preferences.
+            </p>
+          </header>
+
+          <section class="grid gap-6 xl:grid-cols-[16rem_1fr]">
+            <aside class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Settings Menu</p>
+              <nav class="mt-5 grid gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg px-4 py-3 text-left text-sm font-semibold transition"
+                  :class="settingsTab === 'profile' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-blue-50 hover:text-slate-900'"
+                  @click="settingsTab = 'profile'"
+                >
+                  Profile Information
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-4 py-3 text-left text-sm font-semibold transition"
+                  :class="settingsTab === 'password' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-blue-50 hover:text-slate-900'"
+                  @click="settingsTab = 'password'"
+                >
+                  Update Password
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-4 py-3 text-left text-sm font-semibold transition"
+                  :class="settingsTab === 'delete' ? 'bg-red-600 text-white shadow-sm' : 'text-red-600 hover:bg-red-50'"
+                  @click="settingsTab = 'delete'"
+                >
+                  Delete Account
+                </button>
+              </nav>
+            </aside>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div v-if="settingsTab === 'profile'">
+                <div class="mb-6">
+                  <h2 class="text-xl font-bold text-slate-900">Profile Information</h2>
+                  <p class="mt-1 text-sm text-slate-500">Update your personal account details.</p>
+                </div>
+                <UpdateProfileInformationForm :user="$page.props.auth.user" />
+                <SectionBorder />
+              </div>
+
+              <div v-if="settingsTab === 'password'">
+                <div class="mb-6">
+                  <h2 class="text-xl font-bold text-slate-900">Update Password</h2>
+                  <p class="mt-1 text-sm text-slate-500">Ensure your account stays secure.</p>
+                </div>
+                <ChangePassword />
+              </div>
+
+              <div v-if="settingsTab === 'delete'">
+                <div class="mb-6">
+                  <h2 class="text-xl font-bold text-red-600">Delete Account</h2>
+                  <p class="mt-1 text-sm text-slate-500">Permanently remove your account and all associated data.</p>
+                </div>
+                <DeleteUserForm />
+              </div>
+            </div>
+          </section>
+        </section>
 
 
 
 
+        <!-- ANNOUNCEMENTS -->
+        <AnnouncementSection
+          :selected-tab="selectedTab"
+          :is-admin-role="isAdminRole"
+          :is-peso-user="isPesoUser"
+          :filtered-announcements="filteredAnnouncements"
+          :new-announcement="newAnnouncement"
+          :open-image="openImage"
+          :format-date="formatDate"
+          @create-announcement="createAnnouncement"
+          @image-upload="handleImageUpload"
+          @edit-announcement="openEditAnnouncement"
+          @delete-announcement="deleteAnnouncement"
+        />
 
 
 
 
       </div>
     </main>
+
+
+
+
   </div>
+
+
+
+
+  <!-- EDIT ANNOUNCEMENT MODAL -->
   <div
-  v-if="selectedImage"
-  class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
-  @click="closeImage"
->
-  <img
-    :src="selectedImage"
-    class="max-w-xl max-h-[60vh] rounded shadow-lg object-contain"
-    style="width: auto; height: auto;"
-  />
-</div>
-
-<div v-if="selectedDocument" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4 py-6" @click.self="closeDocument">
-  <div class="w-full max-w-5xl h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
-    <div class="flex items-center justify-between px-5 py-4 border-b">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">{{ selectedDocumentName }}</h3>
-        <p class="text-xs text-gray-500 break-all">{{ selectedDocument }}</p>
+    v-if="editingAnnouncement"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    @click.self="closeEditAnnouncement"
+  >
+    <form class="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl" @submit.prevent="updateAnnouncement">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Edit Announcement</h2>
+          <p class="mt-1 text-sm text-slate-500">Update the title, message, audience, or image.</p>
+        </div>
+        <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="closeEditAnnouncement">
+          Close
+        </button>
       </div>
-      <button @click="closeDocument" class="text-gray-500 hover:text-gray-900">Close</button>
-    </div>
-    <div class="flex-1 bg-slate-100">
-      <iframe
-        v-if="isPreviewableDocument(selectedDocument)"
-        :src="selectedDocument"
-        class="w-full h-full"
-        frameborder="0"
-      ></iframe>
-      <div v-else class="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-        <p class="text-gray-700">Preview is not available for this document type.</p>
-        <a
-          :href="selectedDocument"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+
+      <div class="mt-5 grid gap-4">
+        <input
+          v-model="editAnnouncementForm.title"
+          type="text"
+          required
+          placeholder="Announcement title"
+          class="rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
         >
-          Open in new tab
-        </a>
+
+        <textarea
+          v-model="editAnnouncementForm.message"
+          rows="5"
+          required
+          placeholder="Write announcement details..."
+          class="rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
+        />
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="text-sm font-semibold text-slate-700">Audience</label>
+            <select
+              v-model="editAnnouncementForm.targetRole"
+              class="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none"
+            >
+              <option value="beneficiary">Beneficiaries</option>
+              <option value="employer">Employers</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm font-semibold text-slate-700">Replace image</label>
+            <input
+              type="file"
+              accept="image/*"
+              class="mt-2 w-full rounded-lg border border-slate-300 px-4 py-2 text-sm"
+              @change="handleEditAnnouncementImage"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="closeEditAnnouncement">
+          Cancel
+        </button>
+        <button type="submit" class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+
+
+
+
+  <!-- DELETE ANNOUNCEMENT MODAL -->
+  <div
+    v-if="announcementToDelete"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+    @click.self="closeDeleteAnnouncement"
+  >
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-red-600">Confirm Delete</p>
+        <h2 class="mt-2 text-lg font-bold text-slate-900">Delete Announcement</h2>
+        <p class="mt-2 text-sm leading-6 text-slate-600">
+          Are you sure you want to delete this announcement? This action cannot be undone.
+        </p>
+      </div>
+
+      <div class="mt-5 rounded-lg border border-red-100 bg-red-50 p-4">
+        <p class="text-sm font-semibold text-red-950">{{ announcementToDelete.title }}</p>
+        <p class="mt-1 line-clamp-3 text-sm text-red-800">
+          {{ announcementToDelete.message || announcementToDelete.content }}
+        </p>
+      </div>
+
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+          :disabled="deletingAnnouncement"
+          @click="closeDeleteAnnouncement"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          :disabled="deletingAnnouncement"
+          @click="confirmDeleteAnnouncement"
+        >
+          {{ deletingAnnouncement ? 'Deleting...' : 'Delete Announcement' }}
+        </button>
       </div>
     </div>
   </div>
-</div>
+
+
+
+  <!-- IMAGE MODAL -->
+  <div
+    v-if="selectedImage"
+    class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+    @click="closeImage"
+  >
 
 
 
 
+    <img
+      :src="selectedImage"
+      class="max-w-xl max-h-[60vh] rounded shadow-lg object-contain"
+      style="width: auto; height: auto;"
+    />
 
 
 
 
-<ConfirmationModal :show="showRevertModal" @close="showRevertModal = false">
-  <template #title>Confirm Revert</template>
-  <template #content>
-    Are you sure you want to revert this {{ revertPayload.name }} to Pending? This action cannot be undone.
-  </template>
-  <template #footer>
-    <button
-      type="button"
-      @click="showRevertModal = false"
-      class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 mr-2"
+  </div>
+
+
+
+
+  <!-- DOCUMENT MODAL -->
+  <div
+    v-if="selectedDocument"
+    class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 px-4 py-6"
+    @click.self="closeDocument"
+  >
+
+
+
+
+    <div
+      class="w-full max-w-5xl h-[90vh] bg-white rounded-lg overflow-hidden shadow-2xl flex flex-col"
     >
-      Cancel
-    </button>
-    <button
-      type="button"
-      @click="confirmRevertToPending"
-      class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-    >
-      Yes, revert
-    </button>
-  </template>
-</ConfirmationModal>
 
-<!-- TOASTER -->
-<div
-  v-if="toast.show"
-  :class="`fixed bottom-6 right-6 bg-${toast.color}-600 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in`"
+
+
+
+      <div class="flex items-center justify-between px-5 py-4 border-b">
+
+
+
+
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ selectedDocumentName }}
+          </h3>
+
+
+
+
+          <p class="text-xs text-gray-500 break-all">
+            {{ selectedDocument }}
+          </p>
+        </div>
+
+
+
+
+        <button
+          @click="closeDocument"
+          class="text-gray-500 hover:text-gray-900"
+        >
+          Close
+        </button>
+
+
+
+
+      </div>
+
+
+
+
+      <div class="flex-1 bg-slate-100">
+
+
+
+
+        <iframe
+          v-if="isPreviewableDocument(selectedDocument)"
+          :src="selectedDocument"
+          class="w-full h-full"
+          frameborder="0"
+        ></iframe>
+
+
+
+
+        <div
+          v-else
+          class="flex h-full flex-col items-center justify-center gap-3 p-6 text-center"
+        >
+
+
+
+
+          <p class="text-gray-700">
+            Preview is not available for this document type.
+          </p>
+
+
+
+
+          <a
+            :href="selectedDocument"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Open in new tab
+          </a>
+
+
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <!-- REVERT MODAL -->
+ <ConfirmationModal
+  v-if="showRevertModal"
+  :show="showRevertModal"
+  @close="showRevertModal = false"
 >
-  {{ toast.message }}
-</div>
+    <template #title>
+      Confirm Revert
+    </template>
 
 
 
 
+    <template #content>
+      Are you sure you want to revert this
+      {{ revertPayload.name }}
+      to Pending?
+      This action cannot be undone.
+    </template>
 
 
 
 
+    <template #footer>
 
 
 
 
+      <button
+        type="button"
+        @click="showRevertModal = false"
+        class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 mr-2"
+      >
+        Cancel
+      </button>
+
+
+
+
+      <button
+        type="button"
+        @click="confirmRevertToPending"
+        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+      >
+        Yes, revert
+      </button>
+
+
+
+
+    </template>
+
+
+
+
+  </ConfirmationModal>
+
+
+
+
+  <!-- TOAST -->
+  <div
+    v-if="toast.show"
+    :class="[
+      'fixed bottom-6 right-6 text-white px-4 py-2 rounded shadow-lg z-50 animate-fade-in',
+      toast.color === 'red' ? 'bg-red-600' : 'bg-green-600'
+    ]"
+  >
+    {{ toast.message }}
+  </div>
 
 
 
@@ -1627,9 +991,44 @@
 
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+
+
+
+
+// =====================================================
+// VUE IMPORTS
+// =====================================================
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch
+} from 'vue'
+
+
+
+
+
+
+
+
+// =====================================================
+// INERTIA IMPORTS
+// =====================================================
 import { usePage } from '@inertiajs/vue3'
 import { Inertia } from '@inertiajs/inertia'
+
+
+
+
+
+
+
+
+// =====================================================
+// SERVICES
+// =====================================================
 import axios from 'axios'
 import { route } from 'ziggy-js'
 
@@ -1640,12 +1039,59 @@ import { route } from 'ziggy-js'
 
 
 
-import StatsCards from '@/Components/StatsCards.vue'
-import Charts from '@/Components/Charts.vue'
+// =====================================================
+// DASHBOARD COMPONENTS
+// =====================================================
+import StatsSection from '@/Components/Dashboard/StatsSection.vue'
+import ChartsSection from '@/Components/Dashboard/ChartsSection.vue'
+import AttendanceSection from '@/Components/Dashboard/AttendanceSection.vue'
+import InterviewSection from '@/Components/Dashboard/InterviewSection.vue'
+import ExamSection from '@/Components/Dashboard/ExamSection.vue'
+import ContractSection from '@/Components/Dashboard/ContractSection.vue'
+import ScheduleSection from '@/Components/Dashboard/ScheduleSection.vue'
+import ReportsSection from '@/Components/Dashboard/ReportsSection.vue'
+import AnnouncementSection from '@/Components/Dashboard/AnnouncementSection.vue'
+import ApplicationsSection from '@/Components/Dashboard/ApplicationsSection.vue'
+import DashboardHeader from '@/Components/Dashboard/DashboardHeader.vue'
+import BeneficiaryMonitoringSection from '@/Components/Dashboard/BeneficiaryMonitoringSection.vue'
+import JobListingSection from '@/Components/Dashboard/JobListingSection.vue'
+import UserManagementSection from '@/Components/Dashboard/UserManagementSection.vue'
+import ApprovedBeneficiariesSection from '@/Components/Dashboard/ApprovedBeneficiariesSection.vue'
+import ApprovedEmployersSection from '@/Components/Dashboard/ApprovedEmployersSection.vue'
+
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// GLOBAL COMPONENTS
+// =====================================================
+import Sidebar from '@/Components/Sidebar.vue'
 import QuickActions from '@/Components/QuickActions.vue'
 import AdminWorkflow from '@/Components/AdminWorkflow.vue'
-import Sidebar from '@/Components/Sidebar.vue'
 import ConfirmationModal from '@/Components/ConfirmationModal.vue'
+import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue'
+import ChangePassword from '@/Pages/Profile/Partials/ChangePassword.vue'
+import DeleteUserForm from '@/Pages/Profile/Partials/DeleteUserForm.vue'
+import SectionBorder from '@/Components/SectionBorder.vue'
+
+
+
+
+
+
+
+
+// =====================================================
+// COMPOSABLES
+// =====================================================
 import { useSidebarMenu } from '@/composables/useSidebarMenu'
 
 
@@ -1655,351 +1101,10 @@ import { useSidebarMenu } from '@/composables/useSidebarMenu'
 
 
 
-async function updateInterviewResult(id, result) {
-  try {
-    await axios.post(`/peso/interviews/${id}/result`, { result })
-
-
-
-
-
-
-
-
-    showToast(`Interview marked as ${result} âœ…`)
-
-
-
-
-
-
-
-
-    await loadData()
-  } catch (e) {
-    console.error(e)
-    showToast('Failed to update interview result ❌')
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async function updateExamResult(id, result) {
-  try {
-    await axios.post(`/peso/exams/${id}/result`, { result })
-
-
-
-
-
-
-
-
-    showToast(`Exam marked as ${result} ✅`)
-
-
-
-
-
-
-
-
-    await loadData()
-  } catch (e) {
-    console.error(e)
-    showToast('Failed to update exam result ❌')
-  }
-}
-
-async function updateContractResult(id, result) {
-  try {
-    await axios.post(`/peso/contracts/${id}/result`, { result })
-
-    showToast(`Contract marked as ${result} ✅`)
-
-    await loadData()
-  } catch (e) {
-    console.error(e)
-    showToast('Failed to update contract result ❌')
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const statusSteps = [
-  'applied',
-  'processing',
-  'approved',
-  'rejected'
-]
-function handleMenuClick(key) {
-  if (key === 'roles') {
-    Inertia.visit('/admin/roles') // or /admin/roles
-    return
-  }
-
-
-
-
-
-
-
-
-  selectedTab.value = key
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function isStepActive(currentStatus, step) {
-  return statusSteps.indexOf(step) <= statusSteps.indexOf(currentStatus)
-}
-function getProgress(status) {
-  const index = statusSteps.indexOf(status)
-
-
-
-
-
-
-
-
-  if (index === -1) return 0
-
-
-
-
-
-
-
-
-  if (status === 'rejected') return 100
-
-
-
-
-
-
-
-
-  return Math.round((index / (statusSteps.length - 1)) * 100)
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function formatDate(v) {
-
-
-
-
-
-
-
-
-  if (!v) return ''
-
-
-
-
-
-
-
-
-  const d = new Date(v)
-
-
-
-
-
-
-
-
-  if (isNaN(d)) return v
-
-
-
-
-
-
-
-
-  return d.toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Manila'
-  })
-}
-
-function formatTime(v) {
-  if (!v) return ''
-
-  const timeStr = String(v).trim()
-  if (!timeStr) return ''
-
-  const ampmMatch = timeStr.match(/(am|pm)$/i)
-  if (ampmMatch) {
-    const parsed = new Date(`1970-01-01T${timeStr.replace(/\s+/g, '').toUpperCase()}`)
-    if (!isNaN(parsed)) {
-      return parsed.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-    }
-  }
-
-  const hhmmMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
-  if (hhmmMatch) {
-    const hour = Number(hhmmMatch[1])
-    const minute = hhmmMatch[2]
-    return `${String(hour).padStart(2, '0')}:${minute}`
-  }
-
-  const parsed = new Date(timeStr)
-  if (!isNaN(parsed)) {
-    return parsed.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-  }
-
-  return timeStr
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ================== STATE =================-
-const isSidebarOpen = ref(true)
-const selectedTab = ref('home')
-const search = ref('')
-const menuOpen = ref(false)
+// =====================================================
+// PAGE + PROPS
+// =====================================================
 const page = usePage()
-const newAnnouncement = ref({
-  title: '',
-  message: '',
-  image: null,
-  targetRole: 'all' // all, beneficiary, employer
-})
-
-
-
-
-
-
-
-
-function isValidText(value) {
-  if (!value) return false
-  const normalized = String(value).trim().toLowerCase()
-  return normalized && normalized !== 'n/a' && normalized !== 'na' && normalized !== 'null' && normalized !== 'undefined'
-}
-
-const profilePhoto = computed(() => {
-  const url = page.props.auth?.user?.profile_photo_url
-  return isValidText(url) ? url : '/images/default-avatar.png'
-})
-
-
-
-
-const minDateTime = computed(() => {
-  const now = new Date()
-
-
-
-
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-
-
-
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`
-})
 
 
 
@@ -2012,93 +1117,740 @@ const props = defineProps({
   beneficiaries: Array,
   interviews: Array,
   jobListings: Array,
-  announcements: Array
+  announcements: Array,
+  approvedBeneficiaries: Array,
+  approvedEmployers: Array
 })
-const reports = ref([])
-const exams = ref([])
-const contracts = ref([])
-const stats = ref(props.stats || {})
-const applicants = ref(props.applicants || { labels: [], data: [] })
-const employers = ref(props.employers || { labels: [], data: [] })
-const performance = ref({ labels: [], series: [] })
-const completion = ref({ labels: [], data: [] })
-const attendance = ref({ labels: [], data: [] })
-const beneficiaries = ref(props.beneficiaries || [])
-const interviews = ref(props.interviews || [])
-const approvedBeneficiaries = ref([])
-const jobListings = ref(props.jobListings || [])
-const applications = ref([])
-const attendanceRecords = ref([])
-const attendanceSummary = ref({ beneficiariesMonitored: 0, records: 0, avgPresenceDays: 0 })
-const attendanceFilters = ref({ school: '', employer: '', status: '' })
-const attendanceFilterOptions = ref({ schools: [], employers: [], statuses: [] })
-const topBeneficiaries = ref([])
-const averageRatings = ref({ punctuality: 0, work_quality: 0, attitude: 0, communication: 0, overall: 0, submitted_count: 0 })
+
+
+
+
+
+
+
+
+// =====================================================
+// UI STATE
+// =====================================================
+const isSidebarOpen = ref(true)
+const selectedTab = ref('home')
+const settingsTab = ref('profile')
+const menuOpen = ref(false)
+const profileMenu = ref(null)
+const menuButton = ref(null)
+
+
+
+
+
+
+
+
+// =====================================================
+// MODAL STATE
+// =====================================================
+const selectedImage = ref(null)
+const selectedDocument = ref(null)
+const selectedDocumentName = ref('')
 const showRevertModal = ref(false)
-const revertPayload = ref({ type: '', id: null, name: '' })
-const employerReliability = ref([])
+const showAttendanceHistoryModal = ref(false)
 
-const isAssignedApplication = (app) => {
-  const employerName = String(app.employer_name || '').trim().toLowerCase()
-  const jobTitle = String(app.job_title || '').trim().toLowerCase()
-  const hasEmployer = employerName && employerName !== 'n/a'
-  const hasJob = jobTitle && jobTitle !== 'n/a'
 
-  return app.status === 'assigned' || hasEmployer || hasJob
-}
+
+
+
+
+
+
+// =====================================================
+// FORM STATE
+// =====================================================
+const search = ref('')
+
+
+
+
+const scheduleForm = ref({
+  application_id: '',
+  application_ids: [],
+  batch_title: '',
+  batch_size: null,
+  date: '',
+  start_time: '',
+  end_time: '',
+  interviewer_id: '',
+  meet_link: '',
+  instructions: '',
+  notify_beneficiaries: true
+})
+
+
+
+
+const examForm = ref({
+  batch_name: '',
+  batch_title: '',
+  batch_size: 1,
+  application_ids: [],
+  exam_title: '',
+  date: '',
+  start_time: '',
+  end_time: '',
+  exam_date: '',
+  location: '',
+  instructions: '',
+  notify_beneficiaries: true
+})
+
+
+
+
+const contractForm = ref({
+  application_id: '',
+  application_ids: [],
+  batch_title: '',
+  date: '',
+  start_time: '',
+  end_time: '',
+  contract_date: '',
+  location: '',
+  instructions: '',
+  notify_beneficiaries: true
+})
+
+
+
+
+const newAnnouncement = ref({
+  title: '',
+  message: '',
+  image: null,
+  targetRole: 'all'
+})
+
+const editingAnnouncement = ref(null)
+const announcementToDelete = ref(null)
+const deletingAnnouncement = ref(false)
+const editAnnouncementForm = ref({
+  title: '',
+  message: '',
+  image: null,
+  targetRole: 'all'
+})
+
+
+
+
+
+
+
+
+// =====================================================
+// TOAST STATE
+// =====================================================
+const toast = ref({
+  show: false,
+  message: '',
+  color: 'green'
+})
+
+
+
+
+
+
+
+
+// =====================================================
+// DATA STATE
+// =====================================================
+const reports = ref([])
+const workOutputs = ref([])
+const exams = ref([])
+const batchHistory = ref([])
+const contracts = ref([])
+const applications = ref([])
+const interviewApplications = ref([])
+const interviews = ref(props.interviews || [])
+const beneficiaries = ref(props.beneficiaries || [])
+const jobListings = ref(props.jobListings || [])
+const announcements = ref(props.announcements || [])
+const approvedBeneficiaries = ref(props.approvedBeneficiaries || [])
+const approvedEmployers = ref(props.approvedEmployers || [])
+const users = ref([])
+const interviewerUsers = ref([])
+const roles = ref([])
+const auditTrail = ref([])
+const auditFilters = ref({
+  user: '',
+  action: '',
+  date: '',
+})
+const auditPage = ref(1)
+const auditPerPage = 10
+const filteredAnnouncements = computed(() => announcements.value)
+const filteredAuditTrail = computed(() => {
+  return auditTrail.value.filter((entry) => {
+    const user = String(entry.user_name || entry.user || 'System').toLowerCase()
+    const action = String(entry.action || entry.description || '').toLowerCase()
+    const date = String(entry.created_at || entry.date || '').slice(0, 10)
+
+    const matchesUser = !auditFilters.value.user || user.includes(auditFilters.value.user.toLowerCase())
+    const matchesAction = !auditFilters.value.action || action.includes(auditFilters.value.action.toLowerCase())
+    const matchesDate = !auditFilters.value.date || date === auditFilters.value.date
+
+    return matchesUser && matchesAction && matchesDate
+  })
+})
+const auditTotalPages = computed(() => Math.max(1, Math.ceil(filteredAuditTrail.value.length / auditPerPage)))
+const paginatedAuditTrail = computed(() => {
+  const start = (auditPage.value - 1) * auditPerPage
+  return filteredAuditTrail.value.slice(start, start + auditPerPage)
+})
+
+watch(auditFilters, () => {
+  auditPage.value = 1
+}, { deep: true })
+
+watch(filteredAuditTrail, () => {
+  if (auditPage.value > auditTotalPages.value) {
+    auditPage.value = auditTotalPages.value
+  }
+})
+
+
+
+
+const selectedExamApplicantId = ref('')
+
+
+
 
 const sortedApplications = computed(() => {
-  const assigned = []
-  const unassigned = []
- 
-  applications.value.forEach(app => {
-    if (isAssignedApplication(app)) {
-      assigned.push(app)
-    } else {
-      unassigned.push(app)
+  return [...applications.value].sort((a, b) => {
+    const aDate = a.created_at ? new Date(a.created_at) : null
+    const bDate = b.created_at ? new Date(b.created_at) : null
+
+
+
+
+    if (aDate && bDate) {
+      return bDate - aDate
     }
+
+
+
+
+    return (b.id || 0) - (a.id || 0)
   })
- 
-  return [...assigned, ...unassigned]
 })
+
+
+
+
+const minDateTime = computed(() => {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() + 30)
+  return now.toISOString().slice(0, 16)
+})
+
+
+
+
+function isAssignedApplication(application) {
+  const status = String(application?.status || '').toLowerCase()
+
+  return Boolean(
+    application?.assigned_employer ||
+    status === 'assigned' ||
+    status === 'for_contract' ||
+    status === 'contract' ||
+    status === 'hired' ||
+    status === 'completed' ||
+    status === 'rejected'
+  )
+}
+
+
+
+
+function selectExamApplicant(application) {
+  if (!examForm.value.application_ids.includes(application.id)) {
+    examForm.value.application_ids.push(application.id)
+    examForm.value.batch_size = examForm.value.application_ids.length
+  }
+}
+
+
+
+
+function getSelectedExamApplicantName() {
+  if (!examForm.value.application_ids || examForm.value.application_ids.length === 0) {
+    return 'No beneficiaries selected'
+  }
+  return `${examForm.value.application_ids.length} beneficiaries selected`
+}
+
+
+
+
+function clearExamSelection() {
+  examForm.value.application_ids = []
+  examForm.value.batch_size = 1
+  selectedExamApplicantId.value = ''
+}
+
+
+
+
+function hasScheduledExam(applicationId) {
+  return exams.value.some(exam => exam.application_id === applicationId)
+}
+
+const examSchedulingApplications = computed(() => {
+  const finalExamResults = ['passed', 'failed']
+  const hiddenApplicationStatuses = [
+    'passed',
+    'failed',
+    'exam_passed',
+    'exam_failed',
+    'qualified',
+    'approved',
+    'assigned',
+    'for_contract',
+    'contract_signed',
+    'deployed',
+    'ongoing',
+    'completion_review',
+    'completed',
+    'rejected',
+  ]
+
+  return sortedApplications.value.filter((application) => {
+    const status = normalizedStatus(application.status)
+    const exam = exams.value.find((item) => Number(item.application_id) === Number(application.id))
+    const examResult = normalizedStatus(application.exam_result || application.exam?.result || exam?.result)
+
+    if (status !== 'for_exam') return false
+    if (hiddenApplicationStatuses.includes(status)) return false
+    if (finalExamResults.includes(examResult)) return false
+    if (hasScheduledExam(application.id)) return false
+
+    return true
+  })
+})
+
+
+
+
+function selectBatchCustom() {
+  if (!examForm.value.batch_name) {
+    showToast('Please enter a batch name')
+    return
+  }
+  if (examForm.value.batch_size < 1) {
+    showToast('Batch size must be at least 1')
+    return
+  }
+  // Get unassigned and unscheduled applications
+  const availableApps = sortedApplications.value.filter(
+    app => !isAssignedApplication(app) && !hasScheduledExam(app.id)
+  )
+  
+  const selectedCount = Math.min(examForm.value.batch_size, availableApps.length)
+  examForm.value.application_ids = availableApps.slice(0, selectedCount).map(app => app.id)
+  showToast(`Selected ${selectedCount} beneficiaries for batch`)
+}
+
+
+
+
+function isValidText(text) {
+  return typeof text === 'string' && text.trim().length > 0
+}
+
+
+
+
+function selectApplicant(applicationId) {
+  if (!contractForm.value.application_ids) {
+    contractForm.value.application_ids = []
+  }
+
+  const exists = contractForm.value.application_ids.some(
+    (id) => Number(id) === Number(applicationId)
+  )
+
+  if (exists) {
+    contractForm.value.application_ids = contractForm.value.application_ids.filter(
+      (id) => Number(id) !== Number(applicationId)
+    )
+  } else {
+    contractForm.value.application_ids.push(applicationId)
+  }
+
+  contractForm.value.application_id = contractForm.value.application_ids[0] || ''
+}
+
+
+
+
+function getSelectedApplicantName() {
+  const selectedIds = contractForm.value.application_ids || []
+
+  if (selectedIds.length > 1) {
+    return `${selectedIds.length} beneficiaries selected`
+  }
+
+  const applicationId = selectedIds[0] || contractForm.value.application_id
+  const application = applications.value.find(
+    (app) => String(app.id) === String(applicationId)
+  )
+
+
+
+
+  return application?.beneficiary_name || application?.name || `Applicant #${applicationId}`
+}
+
+
+
+
+function clearApplicantSelection() {
+  contractForm.value.application_id = ''
+  contractForm.value.application_ids = []
+}
+
+
+
+
+async function updateContractResult(contractId, result) {
+  const payload = {
+    result: result || 'signed',
+  }
+
+  try {
+    await axios.post(`/peso/contracts/${contractId}/result`, payload)
+    showToast('Contract result updated successfully!')
+    await loadData()
+  } catch (error) {
+    console.error('Contract result update error:', error.response?.data || error.message)
+    showToast(scheduleResultErrorMessage(error, 'Failed to update contract result'))
+  }
+}
+
+async function markContractDeployed(applicationId) {
+  if (!applicationId) {
+    showToast('Application identifier missing.')
+    return
+  }
+
+  try {
+    await axios.post(`/peso/applications/${applicationId}/deploy`)
+    showToast('Application marked as deployed.')
+    await loadData()
+  } catch (error) {
+    console.error('Deployment update error:', error.response?.data || error.message)
+    showToast(error.response?.data?.message || 'Failed to mark application as deployed')
+  }
+}
+
+async function markApplicationQualified(application) {
+  if (!application?.id || application.is_real_application === false) {
+    showToast('A valid application is required.')
+    return
+  }
+
+  try {
+    await axios.post(`/peso/applications/${application.id}/qualify`)
+    showToast('Application marked as qualified.')
+    await loadData()
+  } catch (error) {
+    console.error('Qualification update error:', error.response?.data || error.message)
+    showToast(error.response?.data?.message || 'Failed to mark application as qualified')
+  }
+}
+
+async function updateApplicationStatus(applicationId, status) {
+  const application = applications.value.find((item) => String(item.id) === String(applicationId))
+
+  if (!application || application.is_real_application === false) {
+    showToast('A valid application is required.')
+    return
+  }
+
+  const endpoint = status === 'approved'
+    ? `/peso/beneficiaries/${application.beneficiary_id}/approve`
+    : `/peso/beneficiaries/${application.beneficiary_id}/reject`
+
+  const payload = status === 'rejected'
+    ? { rejection_reason: 'Rejected by CPESO/Admin from applications management.' }
+    : {}
+
+  try {
+    await axios.post(endpoint, payload)
+    showToast(status === 'approved' ? 'Beneficiary approved.' : 'Beneficiary rejected.')
+    await loadData()
+  } catch (error) {
+    console.error('Application status update error:', error.response?.data || error.message)
+    showToast(error.response?.data?.message || 'Failed to update application status')
+  }
+}
+
+
+
+
+function statusClass(status) {
+  const normalized = String(status || '').toLowerCase()
+
+
+
+
+  if (normalized.includes('approved')) {
+    return 'bg-green-100 text-green-700'
+  }
+
+
+
+
+  if (normalized.includes('pending')) {
+    return 'bg-yellow-100 text-yellow-700'
+  }
+
+
+
+
+  if (normalized.includes('rejected') || normalized.includes('failed')) {
+    return 'bg-red-100 text-red-700'
+  }
+
+
+
+
+  if (normalized.includes('no application')) {
+    return 'bg-blue-100 text-blue-700'
+  }
+
+
+
+
+  return 'bg-gray-100 text-gray-700'
+}
+
+
+
+
+function viewBeneficiaryApplications(beneficiaryId) {
+  if (!beneficiaryId) {
+    showToast('Beneficiary identifier missing.')
+    return
+  }
+
+
+
+
+  Inertia.visit(`/peso/beneficiaries/${beneficiaryId}/applications`)
+}
+
+
+
+
+function viewContractApplication(contract) {
+  if (!contract || !contract.application_id) {
+    showToast('Invalid contract selected.')
+    return
+  }
+
+
+
+
+
+
+
+
+  const application = applications.value.find(a => String(a.id) === String(contract.application_id))
+
+
+
+
+  if (application && application.beneficiary_id) {
+    Inertia.visit(`/peso/beneficiaries/${application.beneficiary_id}/applications`)
+    return
+  }
+
+
+
+
+  showToast('Unable to locate beneficiary for this contract')
+}
+
+
+
+
+async function updateExamResult(examId, result) {
+  const payload = {
+    result: result || 'passed',
+  }
+
+  try {
+    await axios.post(`/peso/exams/${examId}/result`, payload)
+    showToast('Exam result updated successfully!')
+    await loadData()
+  } catch (error) {
+    console.error('Exam result update error:', error.response?.data || error.message)
+    showToast(scheduleResultErrorMessage(error, 'Failed to update exam result'))
+  }
+}
+
+function scheduleResultErrorMessage(error, fallback) {
+  const data = error.response?.data
+  const validationErrors = data?.errors || data?.error
+
+  if (typeof data?.message === 'string') return data.message
+  if (typeof validationErrors === 'string') return validationErrors
+
+  if (validationErrors && typeof validationErrors === 'object') {
+    return Object.values(validationErrors)
+      .flat()
+      .filter(Boolean)
+      .join('\n') || fallback
+  }
+
+  return fallback
+}
+
+
+
+
+async function updateInterviewResult(interviewId, result) {
+  try {
+    await axios.post(`/peso/interviews/${interviewId}/result`, { result })
+    showToast('Interview result updated successfully!')
+    await loadData()
+  } catch (error) {
+    console.error('Interview result update error:', error.response?.data || error.message)
+
+    const message = error.response?.data?.message || 'Failed to update interview result'
+    showToast(message)
+  }
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// DASHBOARD STATE
+// =====================================================
+const stats = ref(props.stats || {})
+const applicants = ref(props.applicants || {})
+const employers = ref(props.employers || {})
+
+
+
+
+const performance = ref({
+  labels: [],
+  series: []
+})
+
+
+
+
+const attendance = ref({
+  labels: [],
+  data: []
+})
+
+
+
+
+const completion = ref({
+  labels: [],
+  data: []
+})
+
+
+
+
+
+
+
+
+// =====================================================
+// ATTENDANCE STATE
+// =====================================================
+const attendanceRecords = ref([])
+
+
+
+
+const attendanceSummary = ref({
+  beneficiariesMonitored: 0,
+  records: 0,
+  avgPresenceDays: 0
+})
+
+
+
+
+const attendanceFilters = ref({
+  school: '',
+  employer: '',
+  status: ''
+})
+
+
+
+
+const attendanceFilterOptions = ref({
+  schools: [],
+  employers: [],
+  statuses: []
+})
+
+
+
+
 const filteredAttendanceRecords = computed(() => {
-  return attendanceRecords.value.filter(record => {
-    const schoolMatch = attendanceFilters.value.school
-      ? record.school_name === attendanceFilters.value.school
-      : true
-    const employerMatch = attendanceFilters.value.employer
-      ? record.employer_name === attendanceFilters.value.employer
-      : true
-    const statusMatch = attendanceFilters.value.status
-      ? record.status === attendanceFilters.value.status
-      : true
+  return attendanceRecords.value.filter((record) => {
+    const schoolMatch = !attendanceFilters.value.school || record.school === attendanceFilters.value.school
+    const employerMatch = !attendanceFilters.value.employer || record.employer_name === attendanceFilters.value.employer
+    const statusMatch = !attendanceFilters.value.status || record.status === attendanceFilters.value.status
+
+
 
 
     return schoolMatch && employerMatch && statusMatch
   })
 })
-const applicationStatusFlow = ref([])
-const announcements = ref((props.announcements || []).slice(0, 5))
-const auditTrail = ref(props.stats?.recent_activity || [])
-const selectedDays = ref(7)
-const dateFilter = ref('last_7_days')
-const customRange = ref({ start: '', end: '' })
-const chartStats = ref({ chart_dates: [], users_growth: [], applications_by_peso: [] })
-const chartKey = ref(0)
-const scheduleForm = ref({ application_id: '', start: '', meet_link: '' })
-const examForm = ref({
-  application_id: '',
-  exam_date: '',
-  location: ''
-})
-const contractForm = ref({
-  application_id: '',
-  contract_date: '',
-  location: ''
-})
-const selectedImage = ref(null)
-const selectedDocument = ref(null)
-const selectedDocumentName = ref('')
+
+
+
+
+function resetAttendanceFilters() {
+  attendanceFilters.value = {
+    school: '',
+    employer: '',
+    status: ''
+  }
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// LOADING STATE
+// =====================================================
+const isLoadingData = ref(false)
+const dashboardError = ref('')
 const schedulingInterview = ref(false)
 const schedulingContract = ref(false)
 
@@ -2109,6 +1861,33 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// CHART FILTERS
+// =====================================================
+const selectedDays = ref(7)
+const dateFilter = ref('last_7_days')
+
+
+
+
+const customRange = ref({
+  start: '',
+  end: ''
+})
+
+
+
+
+const chartStats = ref({
+  chart_dates: [],
+  users_growth: [],
+  applications_by_peso: []
+})
+
+
+
+
+const chartKey = ref(0)
 
 
 
@@ -2117,6 +1896,14 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// REVERT STATE
+// =====================================================
+const revertPayload = ref({
+  type: '',
+  id: null,
+  name: ''
+})
 
 
 
@@ -2125,6 +1912,335 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// ROLE COMPUTED
+// =====================================================
+const userRoles = computed(() => props.user?.roles || [])
+
+const userRoleNames = computed(() =>
+  userRoles.value
+    .map((role) => (typeof role === 'string' ? role : role?.name))
+    .filter(Boolean)
+)
+
+
+
+
+const isAdmin = computed(() =>
+  userRoleNames.value.some(role =>
+    ['Admin', 'Super Admin', 'PESO Admin'].includes(role)
+  )
+)
+
+
+
+
+const isPesoAdmin = computed(() =>
+  userRoleNames.value.some(role => role === 'PESO Admin')
+)
+
+
+
+
+const isPesoUser = computed(() =>
+  userRoleNames.value.some(role => role === 'PESO')
+)
+
+
+
+
+const isAdminRole = computed(() =>
+  isAdmin.value || isPesoAdmin.value
+)
+
+const canCreateSchedules = computed(() => isAdminRole.value)
+
+const canCompleteAssignedInterviews = computed(() =>
+  isAdminRole.value || isPesoUser.value
+)
+
+const currentUserId = computed(() => props.user?.id || page.props.auth?.user?.id || null)
+
+const assignedInterviews = computed(() => {
+  if (!currentUserId.value) return []
+
+  return interviews.value.filter((interview) =>
+    Number(interview.interviewer_id) === Number(currentUserId.value) ||
+    Number(interview.interviewer?.id) === Number(currentUserId.value)
+  )
+})
+
+const scheduleExams = computed(() => (isAdminRole.value ? exams.value : []))
+const scheduleContracts = computed(() => (isAdminRole.value ? contracts.value : []))
+const scheduleInterviews = computed(() => (isAdminRole.value ? interviews.value : assignedInterviews.value))
+
+
+
+
+const canViewDashboard = computed(() =>
+  isAdmin.value || isPesoAdmin.value || isPesoUser.value
+)
+
+
+function normalizedStatus(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, '_')
+}
+
+async function rescheduleSchedule(row, payload) {
+  const endpointMap = {
+    Interview: `/peso/interviews/${row.id}/reschedule`,
+    Exam: `/peso/exams/${row.id}/reschedule`,
+    Contract: `/peso/contracts/${row.id}/reschedule`,
+  }
+
+  const endpoint = endpointMap[row.type]
+
+  if (!endpoint) {
+    showToast('Unsupported schedule type')
+    return
+  }
+
+  try {
+    await axios.patch(endpoint, payload)
+    showToast(`${row.type} rescheduled successfully!`)
+    await loadData()
+  } catch (error) {
+    console.error('Reschedule error:', error.response?.data || error.message)
+    const response = error.response?.data
+    const message = response?.message ||
+      (response?.errors ? Object.values(response.errors).flat().join(' ') : 'Failed to reschedule')
+    showToast(message)
+    throw error
+  }
+}
+
+
+function recordDate(record, fields = ['date', 'schedule_date', 'start', 'created_at']) {
+  for (const field of fields) {
+    if (record?.[field]) {
+      return record[field]
+    }
+  }
+
+  return null
+}
+
+
+function hasIncompleteDocuments(beneficiary) {
+  const documents = beneficiary?.documents
+  if (!documents) return true
+
+  if (Array.isArray(documents)) {
+    return documents.length === 0 || documents.some((document) => {
+      const status = normalizedStatus(document?.status)
+      return ['missing', 'pending', 'rejected', 'needs_correction'].includes(status)
+    })
+  }
+
+  if (typeof documents === 'object') {
+    const values = Object.values(documents)
+    return values.length === 0 || values.some((document) => {
+      if (!document) return true
+      if (typeof document === 'string') return false
+      const status = normalizedStatus(document?.status)
+      return ['missing', 'pending', 'rejected', 'needs_correction'].includes(status)
+    })
+  }
+
+  return false
+}
+
+
+const pendingApplications = computed(() =>
+  applications.value.filter((application) => {
+    const status = normalizedStatus(application.status || application.approval_status)
+    return ['pending', 'pending_review', 'submitted', 'for_review', 'needs_review'].includes(status)
+  })
+)
+
+
+const incompleteRequirements = computed(() =>
+  beneficiaries.value.filter((beneficiary) =>
+    hasIncompleteDocuments(beneficiary) ||
+    normalizedStatus(beneficiary.approval_status) === 'needs_correction' ||
+    normalizedStatus(beneficiary.status) === 'needs_correction'
+  )
+)
+
+
+const awaitingAssignment = computed(() =>
+  beneficiaries.value.filter((beneficiary) => {
+    const status = normalizedStatus(beneficiary.status || beneficiary.approval_status)
+    return ['approved', 'qualified'].includes(status) && !beneficiary.employer_id && !beneficiary.job_listing_id
+  })
+)
+
+
+const completionReviewQueue = computed(() =>
+  beneficiaries.value
+    .filter((beneficiary) => normalizedStatus(beneficiary.application_status || beneficiary.status) === 'completion_review')
+    .map((beneficiary) => {
+      const readiness = beneficiary.completion_readiness || {}
+      const checks = [
+        readiness.has_dtr,
+        readiness.has_approved_daily_reports,
+        readiness.has_employer_rating,
+        readiness.has_certificate,
+      ]
+
+      return {
+        id: beneficiary.id,
+        application_id: beneficiary.application_id,
+        beneficiary_name: beneficiary.name || beneficiary.beneficiary_name || 'Unknown beneficiary',
+        employer_name: beneficiary.assigned_employer || beneficiary.employer_name || 'Unassigned',
+        job_title: beneficiary.job_title || 'SPES placement',
+        has_dtr: Boolean(readiness.has_dtr),
+        has_approved_daily_reports: Boolean(readiness.has_approved_daily_reports),
+        has_employer_rating: Boolean(readiness.has_employer_rating),
+        has_certificate: Boolean(readiness.has_certificate),
+        readiness_score: checks.filter(Boolean).length,
+      }
+    })
+)
+
+
+const pendingEmployers = computed(() => {
+  const pendingFromStats = Number(stats.value?.pending_employers || stats.value?.pendingEmployers || 0)
+  if (pendingFromStats) return Array.from({ length: pendingFromStats }, (_, index) => ({ id: `stat-${index}` }))
+
+  return approvedEmployers.value.filter((employer) => {
+    const status = normalizedStatus(employer.approval_status || employer.status)
+    return status === 'pending' || employer.approved === false
+  })
+})
+
+
+const priorityCards = computed(() => [
+  {
+    label: 'Pending Applications',
+    value: pendingApplications.value.length || Number(stats.value?.pending_applications || 0),
+    description: 'Applicants waiting for CPESO review.',
+    target: 'beneficiaries',
+  },
+  {
+    label: 'Incomplete Requirements',
+    value: incompleteRequirements.value.length,
+    description: 'Applicants with missing or correction-needed documents.',
+    target: 'beneficiaryMonitoring',
+  },
+  {
+    label: 'Awaiting Assignment',
+    value: awaitingAssignment.value.length,
+    description: 'Approved beneficiaries not yet placed with an employer.',
+    target: 'assignment',
+  },
+  {
+    label: 'Pending Employers',
+    value: pendingEmployers.value.length,
+    description: 'Employer accounts waiting for approval.',
+    target: 'approvedEmployers',
+  },
+])
+
+
+function scheduleItemTitle(item, fallback) {
+  return item?.beneficiary_name ||
+    item?.applicant_name ||
+    item?.name ||
+    item?.title ||
+    item?.beneficiary?.user?.name ||
+    fallback
+}
+
+
+const scheduleGroups = computed(() => [
+  {
+    label: 'Exams',
+    items: exams.value.slice(0, 4).map((exam) => ({
+      id: exam.id,
+      title: scheduleItemTitle(exam, 'Exam schedule'),
+      date: recordDate(exam, ['exam_date', 'date', 'start', 'created_at']),
+    })),
+  },
+  {
+    label: 'Interviews',
+    items: interviews.value.slice(0, 4).map((interview) => ({
+      id: interview.id,
+      title: scheduleItemTitle(interview, 'Interview schedule'),
+      date: recordDate(interview, ['scheduled_at', 'start', 'interview_date', 'date', 'created_at']),
+    })),
+  },
+  {
+    label: 'Contracts',
+    items: contracts.value.slice(0, 4).map((contract) => ({
+      id: contract.id,
+      title: scheduleItemTitle(contract, 'Contract signing'),
+      date: recordDate(contract, ['contract_date', 'date', 'start', 'created_at']),
+    })),
+  },
+])
+
+
+const quickActionItems = computed(() => [
+  { label: 'Review Applications', target: 'beneficiaries' },
+  { label: 'Assign Beneficiaries', target: 'assignment' },
+  { label: 'Post Announcement', target: 'announcements' },
+  { label: 'Generate Report', target: 'reports' },
+])
+
+
+const recentTriageActivity = computed(() => {
+  return applications.value
+    .filter((application) => ['approved', 'rejected', 'assigned'].includes(normalizedStatus(application.status)))
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 6)
+    .map((application) => {
+      const status = normalizedStatus(application.status)
+      const name = application.beneficiary_name || application.name || `Application #${application.id}`
+      const title = status === 'approved'
+        ? 'Recent approval'
+        : status === 'rejected'
+          ? 'Recent rejection'
+          : 'Recent assignment'
+
+      return {
+        id: application.id,
+        title,
+        description: `${name} was marked ${String(application.status || '').replace(/_/g, ' ')}.`,
+        date: application.updated_at || application.created_at,
+      }
+    })
+})
+
+
+const urgentAnnouncements = computed(() =>
+  announcements.value
+    .filter((announcement) => {
+      const text = `${announcement.title || ''} ${announcement.content || announcement.message || ''}`.toLowerCase()
+      return ['urgent', 'important', 'deadline', 'today', 'reminder'].some((keyword) => text.includes(keyword))
+    })
+    .slice(0, 3)
+)
+
+
+const analyticsSummary = computed(() => {
+  const totalBeneficiaries = Number(stats.value?.totalBeneficiaries || beneficiaries.value.length || 0)
+  const activeBeneficiaries = beneficiaries.value.filter((beneficiary) => {
+    const status = normalizedStatus(beneficiary.status || beneficiary.approval_status)
+    return ['approved', 'active', 'assigned', 'ongoing'].includes(status)
+  }).length
+  const approvedEmployerCount = Number(stats.value?.approvedEmployers || approvedEmployers.value.length || 0)
+  const completionRate = totalBeneficiaries
+    ? Math.round((approvedBeneficiaries.value.length / totalBeneficiaries) * 100)
+    : Number(stats.value?.completionRate || 0)
+
+  return [
+    { label: 'Total Beneficiaries', value: totalBeneficiaries },
+    { label: 'Active Beneficiaries', value: activeBeneficiaries },
+    { label: 'Approved Employers', value: approvedEmployerCount },
+    { label: 'Completion Rate', value: `${completionRate}%` },
+  ]
+})
 
 
 
@@ -2133,6 +2249,13 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// PROFILE PHOTO
+// =====================================================
+const profilePhoto = computed(() => {
+  return page.props.auth?.user?.profile_photo_url
+    || '/images/default-avatar.png'
+})
 
 
 
@@ -2141,6 +2264,10 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// SIDEBAR MENU
+// =====================================================
+const { menuItems } = useSidebarMenu(props.user)
 
 
 
@@ -2149,20 +2276,111 @@ const schedulingContract = ref(false)
 
 
 
+// =====================================================
+// HELPERS
+// =====================================================
+function isToastErrorMessage(message) {
+  const text = String(message || '').toLowerCase()
+
+  return [
+    'failed',
+    'error',
+    'required',
+    'invalid',
+    'missing',
+    'unable',
+    'unsupported',
+    'must'
+  ].some((keyword) => text.includes(keyword))
+}
+
+function showToast(message, color = null) {
+  toast.value.message = message
+  toast.value.color = color || (isToastErrorMessage(message) ? 'red' : 'green')
 
 
 
 
-
-
-
-// local toast notification state
-const toast = ref({ show: false, message: '', color: 'green' })
-function showToast(msg) {
-  toast.value.message = msg
-  toast.value.color = msg.toLowerCase().includes('fail') ? 'red' : 'green'
   toast.value.show = true
-  setTimeout(() => { toast.value.show = false }, 4000)
+
+
+
+
+  setTimeout(() => {
+    toast.value.show = false
+  }, 4000)
+}
+
+
+
+
+
+
+
+
+function formatDate(value) {
+  if (!value) return ''
+
+
+
+
+  const date = new Date(value)
+
+
+
+
+  return date.toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Manila'
+  })
+}
+
+function combineDateAndTime(date, time) {
+  if (!date || !time) return ''
+  return `${date}T${time}`
+}
+
+function getFormStart(form, fallbackField) {
+  return combineDateAndTime(form.date, form.start_time) || form[fallbackField] || ''
+}
+
+function getFormEnd(form) {
+  return combineDateAndTime(form.date, form.end_time) || ''
+}
+
+
+
+
+
+
+
+
+function toggleSidebar() {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
+
+
+
+
+
+
+
+function toggleMenu(event) {
+  event.stopPropagation()
+  menuOpen.value = !menuOpen.value
+}
+
+
+
+
+
+
+
+
+function logout() {
+  Inertia.post('/logout')
 }
 
 
@@ -2174,22 +2392,6 @@ function showToast(msg) {
 
 function openImage(src) {
   selectedImage.value = src
-}
-
-function openDocument(url, name = 'Document') {
-  selectedDocument.value = url
-  selectedDocumentName.value = name
-}
-
-function closeDocument() {
-  selectedDocument.value = null
-  selectedDocumentName.value = ''
-}
-
-function isPreviewableDocument(url) {
-  if (!url) return false
-  const ext = String(url).split('.').pop().toLowerCase()
-  return ['pdf', 'png', 'jpg', 'jpeg'].includes(ext)
 }
 
 
@@ -2204,96 +2406,40 @@ function closeImage() {
 }
 
 
-function resetAttendanceFilters() {
-  attendanceFilters.value = { school: '', employer: '', status: '' }
+
+
+
+
+
+
+function openDocument(url, name = 'Document') {
+  selectedDocument.value = url
+  selectedDocumentName.value = name
 }
 
 
-function applyAttendanceFilters() {
-  // reactive filters update automatically via computed values
+
+
+
+
+
+
+function closeDocument() {
+  selectedDocument.value = null
+  selectedDocumentName.value = ''
 }
 
 
 
 
-
-
-
-
-// ================== ROLES =================-
-const userRoles = computed(() => props.user?.roles || [])
-const isAdmin = computed(() => userRoles.value.some(r => ['Admin', 'Super Admin', 'PESO Admin'].includes(r.name)))
-const isPesoAdmin = computed(() => userRoles.value.some(r => r.name === 'PESO Admin'))
-const isPesoUser = computed(() => userRoles.value.some(r => r.name === 'PESO'))
-const isAdminRole = computed(() => isAdmin.value || isPesoAdmin.value)
-
-
-
-
-
-
-
-
-// ---------------- New computed for dashboard visibility ----------------
-const canViewDashboard = computed(() => isAdmin.value || isPesoAdmin.value || isPesoUser.value)
-
-
-
-
-
-
-
-
-const approvedEmployers = ref([]) // initialize empty array
-
-
-
-
-
-
-
-
-// ================== ANNOUNCEMENT FILTERING =================-
-// determine a simple role string used for filtering
-const userRole = computed(() => {
-  if (isAdminRole.value) return 'admin'
-  if (isPesoUser.value) return 'beneficiary'
-  // fallback to employer role (can be expanded if more roles exist)
-  return 'employer'
-})
-
-
-
-
-
-
-
-
-// only show announcements appropriate for the current user
-const filteredAnnouncements = computed(() => {
-  if (isAdminRole.value) {
-    // admins see everything
-    return announcements.value
-  }
-
-
-
-
-
-
-
-
-  return announcements.value.filter(a => {
-    return a.target_role === 'all' || a.target_role === userRole.value
-  })
-})
-// Function to load approved employers
-async function loadApprovedEmployers() {
+function isPreviewableDocument(url) {
+  if (!url) return false
   try {
-    const res = await axios.get('/peso/employers/approved')
-    approvedEmployers.value = res.data
+    const previewExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']
+    const lower = String(url).split('?')[0].toLowerCase()
+    return previewExtensions.some((ext) => lower.endsWith(ext))
   } catch (e) {
-    console.error('Failed to load approved employers', e)
+    return false
   }
 }
 
@@ -2304,178 +2450,50 @@ async function loadApprovedEmployers() {
 
 
 
-// ================== MENU =================-
-const { menuItems } = useSidebarMenu()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ================== HELPERS =================-
-const statusClass = (status) => ({
-  'bg-gray-100 text-gray-800': status === 'received',
-  'bg-blue-100 text-blue-800': status === 'screening',
-  'bg-indigo-100 text-indigo-800': status === 'qualified',
-
-
-
-
-
-
-
-
-  'bg-purple-100 text-purple-800': status === 'interview',
-
-
-
-
-
-
-
-
-  'bg-yellow-100 text-yellow-800': status === 'exam',
-
-
-
-
-
-
-
-
-  'bg-orange-100 text-orange-800': status === 'for_approval',
-
-
-
-
-
-
-
-
-  'bg-green-100 text-green-800': status === 'approved',
-
-
-
-
-
-
-
-
-  'bg-teal-100 text-teal-800': status === 'completed',
-
-
-
-
-
-
-
-
-  'bg-red-100 text-red-800': status === 'rejected'
-})
-
-
-
-
-
-
-
-
-const jobStatusClass = (status) => ({
-  'bg-yellow-100 text-yellow-800': status === 'open',
-  'bg-green-100 text-green-800': status === 'filled',
-  'bg-gray-100 text-gray-800': status === 'closed'
-})
-
-
-
-
-
-
-
-
-// ================== ACTIONS =================-
-const logout = () => Inertia.post('/logout')
-const toggleSidebar = () => { isSidebarOpen.value = !isSidebarOpen.value }
-const toggleMenu = () => { menuOpen.value = !menuOpen.value }
-function openRevertModal(type, id) {
-  revertPayload.value = {
-    type,
-    id,
-    name: type === 'beneficiaries' ? 'beneficiary' : 'employer'
-  }
+function openRevertModal(type, id, name) {
+  revertPayload.value = { type, id, name }
   showRevertModal.value = true
-
 }
+
+
+
+
 async function confirmRevertToPending() {
-  if (!revertPayload.value.type || !revertPayload.value.id) {
+  if (!revertPayload.value.type || !revertPayload.value.id) return
+
+
+
+
+  const endpoint = revertPayload.value.type === 'beneficiary'
+    ? `/peso/beneficiaries/${revertPayload.value.id}/revert`
+    : `/peso/employers/${revertPayload.value.id}/revert`
+
+
+
+
+  try {
+    await axios.post(endpoint)
+    showToast(`${revertPayload.value.name} reverted to pending.`)
     showRevertModal.value = false
+    await loadData()
+  } catch (error) {
+    console.error(error)
+    showToast('Failed to revert to pending')
+  }
+}
+
+async function approveCompletionFromQueue(item) {
+  if (!item?.application_id) {
+    showToast('Application identifier missing.')
     return
   }
 
-  showRevertModal.value = false
-
-
-
-
-
-
-
-
   try {
-    await axios.post(`/peso/${revertPayload.value.type}/${revertPayload.value.id}/revert`)
-
-
-
-
-
-
-
-
-    showToast('Reverted to Pending successfully.')
-
-
-
-
-
-
-
-
-    if (type === 'beneficiaries') {
-      await loadApprovedBeneficiaries()
-      await loadData()
-    }
-
-
-
-
-
-
-
-
-    if (type === 'employers') {
-      await loadApprovedEmployers()
-    }
-
-
-
-
-
-
-
-
+    await axios.post(`/peso/applications/${item.application_id}/approve-completion`)
+    showToast('Completion approved.')
+    await loadData()
   } catch (error) {
-    console.error(error)
-    showToast('Failed to revert.')
+    showToast(error.response?.data?.message || 'Failed to approve completion')
   }
 }
 
@@ -2486,143 +2504,66 @@ async function confirmRevertToPending() {
 
 
 
-function viewProfile(id) {
-  window.location.href = `/peso/beneficiaries/${id}/profile`
+// =====================================================
+// MENU ACTIONS
+// =====================================================
+function handleMenuClick(key) {
+
+
+
+
+  if (key === 'roles') {
+    Inertia.visit('/admin/roles')
+    return
+  }
+
+
+  if (key === 'assignment') {
+    Inertia.visit('/admin/assignment')
+    return
+  }
+
+  if (key === 'employerApplications') {
+    Inertia.visit('/peso/employers/pending')
+    return
+  }
+
+  selectedTab.value = key
+}
+
+function openScheduler(key) {
+  if (!canCreateSchedules.value) {
+    showToast('Only Admin or CPESO Admin users can create schedules.')
+    return
+  }
+
+  selectedTab.value = key
 }
 
 
 
 
-
-
-
-
-function viewDocuments(id) {
-  window.location.href = `/peso/beneficiaries/${id}/documents`
-}
-function viewBeneficiaryApplications(id) {
-  Inertia.visit(`/peso/beneficiaries/${id}/applications`)
-}
 function viewApplications(jobId) {
-  window.location.href = `/peso/analytics/job-listings/${jobId}/applications`
-}
-async function updateApplicationStatus(applicationId, status) {
-  try {
-    await axios.post('/peso/applications/update-status', {
-      application_id: applicationId,
-      status: status
-    })
-
-
-
-
-
-
-
-
-    await loadData()
-    showToast(`Status updated to ${status}`)
-  } catch (e) {
-    console.error(e)
-    alert('Failed to update status')
-  }
-}
-  async function assignBeneficiary(jobId, event) {
-    if (event) event.preventDefault()
-
-
-
-
-
-    try {
-      const beneficiaryId = prompt('Enter Beneficiary ID to assign')
-
-
-      if (!beneficiaryId || isNaN(beneficiaryId)) {
-        alert('Valid Beneficiary ID required')
-        return
-      }
-
-
-      await axios.post(route('peso.assignBeneficiary'), {
-    beneficiary_id: Number(beneficiaryId),
-    job_listing_id: Number(jobId),
-  })
-
-
-
-
-
-
-
-
-    alert('Beneficiary assigned successfully!')
-    await loadData()
-  } catch (error) {
-    alert('Failed to assign beneficiary')
-    console.error(error)
-  }
-}
-function createJobListing() {
-  window.location.href = `/employer/jobs/create`
+  Inertia.visit(`/peso/analytics/job-listings/${jobId}/applications`)
 }
 
 
-function downloadCSV(filename, headers, rows) {
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
-  ].join('\n')
 
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-
-
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-
-function exportApplicants() {
-  const headers = ['School', 'Applications']
-  const rows = (applicants.value.labels || []).map((label, index) => [label, applicants.value.data?.[index] ?? 0])
-  downloadCSV(`applicants-${new Date().toISOString().slice(0,10)}.csv`, headers, rows)
-}
-
-
-function exportEmployers() {
-  const headers = ['Employer', 'Hires']
-  const rows = (employers.value.labels || []).map((label, index) => [label, employers.value.data?.[index] ?? 0])
-  downloadCSV(`employers-${new Date().toISOString().slice(0,10)}.csv`, headers, rows)
-}
-
-
-function exportUsers() { window.location.href = '/admin/export-users' }
-
-function handleDateFilterChange(filter) {
-  dateFilter.value = filter
-  if (filter !== 'custom') {
-    customRange.value = { start: '', end: '' }
-  }
+function handleDateFilterChange(value) {
+  dateFilter.value = value
   loadData()
 }
+
+
+
 
 function handleCustomRangeChange(range) {
   customRange.value = {
     start: range.start || '',
     end: range.end || ''
   }
-  if (customRange.value.start && customRange.value.end) {
-    dateFilter.value = 'custom'
-    loadData()
-  }
+  loadData()
 }
 
 
@@ -2632,55 +2573,49 @@ function handleCustomRangeChange(range) {
 
 
 
-// Close profile menu when clicking outside
-function handleClickOutside() {
-  menuOpen.value = false
-}
-
-
-// ================== DATA FETCHING =================-
-async function loadApprovedBeneficiaries() {
-  try {
-    const res = await axios.get('/peso/beneficiaries/approved')
-    approvedBeneficiaries.value = res.data
-  } catch (e) {
-    console.error('Failed to load approved beneficiaries', e)
-  }
-}
+// =====================================================
+// API CALLS
+// =====================================================
 async function loadData() {
+
+
+
+
   chartKey.value++
 
 
 
 
-
-
-
-
   try {
 
 
 
 
+    isLoadingData.value = true
 
 
 
 
-    //  ONLY ADMIN & PESO ADMIN can access /admin/stats
+
+
+
+
+    // ================= STATS =================
     if (isAdminRole.value) {
+
+
+
+
       const statsRes = await axios.get('/admin/stats', {
-        params: { days: selectedDays.value }
+        params: {
+          days: selectedDays.value
+        }
       })
-
-
-
-
 
 
 
 
       stats.value = statsRes.data
-      auditTrail.value = statsRes.data?.recent_activity || []
     }
 
 
@@ -2690,157 +2625,63 @@ async function loadData() {
 
 
 
-    //  All PESO roles can access analytics
-    if (isAdminRole.value || isPesoUser.value) {
-      const analyticsParams = {
-        date_filter: dateFilter.value
-      }
-
-      if (dateFilter.value === 'custom' && customRange.value.start && customRange.value.end) {
-        analyticsParams.start_date = customRange.value.start
-        analyticsParams.end_date = customRange.value.end
-      }
-
-      const analyticsRes = await axios.get('/peso/analytics/dashboard', {
-        params: analyticsParams
-      })
-
-      chartStats.value = analyticsRes.data.stats || { chart_dates: [], users_growth: [], applications_by_peso: [] }
-
-
-
-
-
-
-
-
-      performance.value =
-  analyticsRes.data.performanceTrends || { labels: [], series: [] }
-
-
-
-
-
-
-
-
-completion.value =
-  analyticsRes.data.completionRate || { labels: [], data: [] }
-
-
-
-
-
-
-
-
-attendance.value =
-  analyticsRes.data.attendanceCompliance || { labels: [], data: [] }
-
-
-
-
-
-
-
-
-      applicants.value =
-        analyticsRes.data.applicantsBySchool || { labels: [], data: [] }
-
-
-
-
-
-
-
-
-      employers.value =
-        analyticsRes.data.topEmployers || { labels: [], data: [] }
-    }
-
-
-
-
-
-
-
-
-    //  Beneficiaries (All PESO roles)
-    const beneficiariesRes = await axios.get('/peso/beneficiaries/monitoring')
-    beneficiaries.value = beneficiariesRes.data
-
-
-    //  Attendance / DTR Monitoring
-    const attendanceRes = await axios.get('/peso/attendance')
-    attendanceRecords.value = attendanceRes.data.map(record => {
-      const beneficiaryName = record.beneficiary?.user?.name
-        || [record.beneficiary?.first_name, record.beneficiary?.last_name].filter(Boolean).join(' ')
-        || record.beneficiary?.name
-        || 'Unknown'
-
-
-      return {
-        id: record.id,
-        beneficiary_name: beneficiaryName,
-        employer_name: record.employer?.company_name || 'N/A',
-        school_name: record.beneficiary?.school?.name || 'N/A',
-        date: record.date,
-        time_in: record.time_in,
-        time_out: record.time_out,
-        status: record.status || (record.time_in && record.time_out ? 'present' : 'pending'),
-        notes: record.remarks || record.notes || '',
+    // ================= ANALYTICS =================
+    const analyticsRes = await axios.get('/peso/analytics/dashboard', {
+      params: {
+        date_filter: dateFilter.value,
+        start_date: customRange.value.start || undefined,
+        end_date: customRange.value.end || undefined
       }
     })
 
 
-    attendanceFilterOptions.value.statuses = Array.from(new Set(attendanceRecords.value.map(r => r.status).filter(Boolean)))
 
 
-    attendanceSummary.value.records = attendanceRecords.value.length
-    attendanceSummary.value.beneficiariesMonitored = new Set(attendanceRecords.value.map(r => r.beneficiary_name)).size
-    attendanceSummary.value.avgPresenceDays = attendanceRecords.value.length && attendanceSummary.value.beneficiariesMonitored
-      ? Number((attendanceRecords.value.length / attendanceSummary.value.beneficiariesMonitored).toFixed(1))
-      : 0
+    applicants.value = analyticsRes.data.applicantsBySchool || {}
+    employers.value = analyticsRes.data.topEmployers || {}
+    performance.value = analyticsRes.data.performanceTrends || { labels: [], series: [] }
+    chartStats.value = analyticsRes.data.stats || {
+      chart_dates: [],
+      users_growth: [],
+      applications_by_peso: []
+    }
 
 
-    const topBeneficiariesRes = await axios.get('/peso/analytics/top-beneficiaries')
-    topBeneficiaries.value = topBeneficiariesRes.data
 
 
-    const averageRatingsRes = await axios.get('/peso/analytics/average-ratings')
-    averageRatings.value = averageRatingsRes.data
 
 
-    const employerReliabilityRes = await axios.get('/peso/analytics/employer-reliability')
-    employerReliability.value = employerReliabilityRes.data.map(item => ({
-      employer_id: item.employer_id,
-      employer_name: item.employer_name || 'Unknown',
-      completed_count: item.completed_count || item.hired_count || 0,
-      job_listing_count: item.job_listing_count || 0,
-    }))
 
 
-    // ================= APPLICATIONS (ADD THIS) =================
+    // ================= BENEFICIARIES =================
+    const beneficiariesRes = await axios.get('/peso/beneficiaries/monitoring')
+
+
+
+
+    beneficiaries.value = beneficiariesRes.data
+
+
+
+
+
+
+
+
+    // ================= APPLICATIONS =================
     const applicationsRes = await axios.get('/peso/applications')
 
 
 
 
+    applications.value = applicationsRes.data
+
+    const interviewApplicationsRes = await axios.get('/peso/applications/for-interview')
 
 
 
 
-const grouped = Object.values(
-  applicationsRes.data.reduce((acc, app) => {
-
-
-
-
-
-
-
-
-    const key = app.beneficiary_id + '-' + app.job_listing_id
+    interviewApplications.value = interviewApplicationsRes.data
 
 
 
@@ -2849,63 +2690,12 @@ const grouped = Object.values(
 
 
 
-    if (!acc[key]) {
-      acc[key] = app
-    }
-
-
-
-
-
-
-
-
-    // keep latest status (important)
-    if (statusSteps.indexOf(app.status) >
-        statusSteps.indexOf(acc[key].status)) {
-      acc[key] = app
-    }
-
-
-
-
-
-
-
-
-    return acc
-  }, {})
-)
-
-
-
-
-
-
-
-
-applications.value = grouped
-
-
-    attendanceFilterOptions.value.schools = Array.from(new Set(
-      [
-        ...attendanceRecords.value.map(r => r.school_name),
-        ...(applicants.value.labels || []),
-        ...applications.value.map(a => a.school_name || a.beneficiary?.school?.name || '')
-      ].filter(name => name && name !== 'N/A')
-    )).sort()
-
-
-    attendanceFilterOptions.value.employers = Array.from(new Set(
-      [
-        ...attendanceRecords.value.map(r => r.employer_name),
-        ...applications.value.map(a => a.employer_name)
-      ].filter(name => name && name !== 'N/A')
-    )).sort()
-
-
-    //  Interviews (All PESO roles)
+    // ================= INTERVIEWS =================
     const interviewsRes = await axios.get('/peso/interviews/upcoming')
+
+
+
+
     interviews.value = interviewsRes.data
 
 
@@ -2915,85 +2705,13 @@ applications.value = grouped
 
 
 
-   // Exams (All PESO roles)
-const examsRes = await axios.get('/peso/exams/upcoming')
-exams.value = examsRes.data
-
-    // Contracts (All PESO roles)
-const contractsRes = await axios.get('/peso/contracts/upcoming')
-contracts.value = contractsRes.data
-
-
-
-
-
-// REMOVE THIS TEMPORARILY
-// const applicationsRes = await axios.get('/api/beneficiary/applications')
-
-
-
-
-
-
-
-
-// APPLICATION STATUS FLOW (CRITICAL FOR EXAM â†’ REJECT â†’ APPROVE)
-// TEMP FIX
-// const applicationStatusRes = await axios.get('/peso/applications/status-flow')
-// applicationStatusFlow.value = applicationStatusRes.data
-
-
-
-
-
-
-
-
-// âœ… ADD THIS HERE
-const reportsRes = await axios.get('/peso/reports')
-
-
-
-
-
-
-
-
-console.log('REPORTS RESPONSE:', reportsRes)
-console.log('REPORTS DATA:', reportsRes.data)
-
-
-
-
-
-
-
-
-reports.value = reportsRes.data
-
-
-
-
-
-
-
-
-    //  Jobs & Announcements ONLY for Admin & PESO Admin
+    // ================= EXAMS =================
     if (isAdminRole.value) {
-      const jobsRes = await axios.get('/peso/job-listings')
-      jobListings.value = jobsRes.data
-
-
-
-
-
-
-
-
-      const announcementsRes = await axios.get('/peso/announcements')
-      announcements.value = announcementsRes.data.slice(0, 5)
+      const examsRes = await axios.get('/peso/exams/upcoming')
+      exams.value = examsRes.data
+    } else {
+      exams.value = []
     }
-   
 
 
 
@@ -3002,6 +2720,13 @@ reports.value = reportsRes.data
 
 
 
+    // ================= CONTRACTS =================
+    if (isAdminRole.value) {
+      const contractsRes = await axios.get('/peso/contracts/upcoming')
+      contracts.value = contractsRes.data
+    } else {
+      contracts.value = []
+    }
 
 
 
@@ -3010,6 +2735,13 @@ reports.value = reportsRes.data
 
 
 
+    // ================= REPORTS =================
+    const reportsRes = await axios.get('/peso/reports')
+
+
+
+
+    reports.value = reportsRes.data
 
 
 
@@ -3018,6 +2750,13 @@ reports.value = reportsRes.data
 
 
 
+    // ================= JOBS =================
+    const jobsRes = await axios.get('/peso/job-listings')
+
+
+
+
+    jobListings.value = jobsRes.data
 
 
 
@@ -3026,6 +2765,105 @@ reports.value = reportsRes.data
 
 
 
+    // ================= ANNOUNCEMENTS =================
+    const announcementsRes = await axios.get('/peso/announcements')
+
+
+
+
+    announcements.value = announcementsRes.data
+
+
+
+
+    // ================= ATTENDANCE =================
+    const attendanceRes = await axios.get('/peso/attendance')
+    const attendanceData = attendanceRes.data || []
+
+
+
+
+    attendanceRecords.value = attendanceData.map((record) => ({
+      id: record.id,
+      beneficiary_name: record?.beneficiary?.user?.name || record?.beneficiary?.name || 'Unknown',
+      employer_name: record?.employer?.company_name || record?.employer?.name || 'Unknown',
+      school: record?.beneficiary?.school?.name || record?.beneficiary?.school || 'Unknown',
+      date: record.date || record.created_at || '',
+      time_in: record.time_in || '',
+      time_out: record.time_out || '',
+      status: record.status || 'Unknown',
+      presence_days: record.presence_days || 0,
+    }))
+
+
+
+
+    attendanceSummary.value = {
+      beneficiariesMonitored: new Set(attendanceRecords.value.map((r) => r.beneficiary_name)).size,
+      records: attendanceRecords.value.length,
+      avgPresenceDays: attendanceRecords.value.length > 0
+        ? Number(
+            (
+              attendanceRecords.value.reduce((sum, rec) => sum + (Number(rec.presence_days) || 0), 0) /
+              attendanceRecords.value.length
+            ).toFixed(1)
+          )
+        : 0,
+    }
+
+
+
+
+    attendanceFilterOptions.value = {
+      schools: [...new Set(attendanceRecords.value.map((r) => r.school).filter(Boolean))],
+      employers: [...new Set(attendanceRecords.value.map((r) => r.employer_name).filter(Boolean))],
+      statuses: [...new Set(attendanceRecords.value.map((r) => r.status).filter(Boolean))],
+    }
+
+    // ================= DAILY ACCOMPLISHMENT REPORTS =================
+    const workOutputsRes = await axios.get('/peso/work-outputs')
+    workOutputs.value = workOutputsRes.data || []
+
+
+
+
+    // ================= APPROVED BENEFICIARIES =================
+    const approvedBeneficiariesRes = await axios.get('/peso/beneficiaries/approved')
+    approvedBeneficiaries.value = approvedBeneficiariesRes.data
+
+
+
+
+    // ================= APPROVED EMPLOYERS =================
+    const approvedEmployersRes = await axios.get('/peso/employers/approved')
+    approvedEmployers.value = approvedEmployersRes.data
+
+    // ================= AUDIT TRAIL =================
+    if (isAdminRole.value) {
+      const auditTrailRes = await axios.get('/peso/audit-trail')
+      auditTrail.value = auditTrailRes.data || []
+    } else {
+      auditTrail.value = []
+    }
+
+    const interviewersRes = await axios.get('/peso/users/interviewers')
+    interviewerUsers.value = interviewersRes.data || []
+
+
+
+
+    // ================= USERS AND ROLES =================
+    if (isAdminRole.value) {
+      try {
+        const rolesRes = await axios.get('/admin/roles/json')
+        users.value = rolesRes.data.users || []
+        roles.value = rolesRes.data.roles || []
+      } catch (error) {
+        console.error('Failed to fetch users and roles:', error)
+        users.value = []
+        roles.value = []
+      }
+    }
 
 
 
@@ -3034,24 +2872,23 @@ reports.value = reportsRes.data
 
 
 
+  } catch (error) {
 
 
 
 
+    console.error(error)
+    dashboardError.value = 'Failed to load dashboard data.'
 
 
 
 
+  } finally {
 
 
 
 
-
-
-
-
-  } catch (e) {
-    console.error('Failed to load dashboard data', e)
+    isLoadingData.value = false
   }
 }
 
@@ -3062,40 +2899,91 @@ reports.value = reportsRes.data
 
 
 
-
-
-
-
-
-
-
-
-// ================== INTERVIEW SCHEDULE =================-
+// =====================================================
+// INTERVIEW FUNCTIONS
+// =====================================================
 async function scheduleInterview() {
+  const selectedIds = scheduleForm.value.application_ids || []
+  const start = getFormStart(scheduleForm.value, 'start')
+  const endAt = getFormEnd(scheduleForm.value)
+
+  if (selectedIds.length === 0 && !scheduleForm.value.application_id) {
+    showToast('Please select at least one applicant')
+    return
+  }
+
+  if (!start) {
+    showToast('Please select interview date and start time')
+    return
+  }
+
+  if (!endAt) {
+    showToast('Please select interview end time')
+    return
+  }
+
+  if (!scheduleForm.value.meet_link) {
+    showToast('Please provide a Google Meet link')
+    return
+  }
+
+  if (!scheduleForm.value.interviewer_id) {
+    showToast('Please assign a PESO interviewer')
+    return
+  }
+
   schedulingInterview.value = true
- 
+
   try {
-   await axios.post('/peso/schedule-interview', {
-  application_id: scheduleForm.value.application_id,
-  start: scheduleForm.value.start,
-  summary: 'SPES Interview',
-  attendees: [],
-  meet_link: scheduleForm.value.meet_link
-})
-    showToast('Interview scheduled successfully! 🎉')
-    scheduleForm.value = { application_id: '', start: '', meet_link: '' }
-    loadData()
+    await axios.post('/peso/schedule-interview', {
+      application_id: scheduleForm.value.application_id || null,
+      application_ids: selectedIds,
+      batch_title: scheduleForm.value.batch_title,
+      interviewer_id: scheduleForm.value.interviewer_id || null,
+      start,
+      end_at: endAt,
+      summary: 'SPES Interview',
+      attendees: [],
+      meet_link: scheduleForm.value.meet_link || null,
+      instructions: scheduleForm.value.instructions || null,
+      notify_beneficiaries: Boolean(scheduleForm.value.notify_beneficiaries)
+    })
 
+    showToast('Interview scheduled successfully!')
 
+    scheduleForm.value = {
+      application_id: '',
+      application_ids: [],
+      batch_title: '',
+      batch_size: null,
+      date: '',
+      start_time: '',
+      end_time: '',
+      interviewer_id: '',
+      meet_link: '',
+      instructions: '',
+      notify_beneficiaries: true
+    }
 
+    await loadData()
+  } catch (error) {
+    console.error('Interview scheduling error:', error.response?.data || error.message)
 
+    const response = error.response?.data
 
+    let message = 'Failed to schedule interview'
 
+    if (response?.message) {
+      message = response.message
+    } else if (response?.errors) {
+      const errors = Object.values(response.errors).flat()
 
+      if (errors.length) {
+        message = errors.join(' ')
+      }
+    }
 
-  } catch (e) {
-    console.error('Schedule failed', e)
-    showToast(e?.response?.data?.message ?? 'Failed to schedule interview ❌')
+    showToast(message)
   } finally {
     schedulingInterview.value = false
   }
@@ -3108,115 +2996,191 @@ async function scheduleInterview() {
 
 
 
+// =====================================================
+// EXAM FUNCTIONS
+// =====================================================
 async function scheduleExam() {
+  const examDate = getFormStart(examForm.value, 'exam_date')
+  const endAt = getFormEnd(examForm.value)
+
+  if (!examForm.value.application_ids || examForm.value.application_ids.length === 0) {
+    showToast('Please select at least one beneficiary')
+    return
+  }
+
+  if (!examDate) {
+    showToast('Please select an exam date and start time')
+    return
+  }
+
+  if (!endAt) {
+    showToast('Please select an exam end time')
+    return
+  }
+
+  if (!examForm.value.location) {
+    showToast('Please enter the physical exam venue')
+    return
+  }
+
   try {
-  await axios.post('/peso/exams', {
-  application_id: examForm.value.application_id,
-  exam_date: examForm.value.exam_date,
-  location: examForm.value.location
-})
+    await axios.post('/peso/exams', {
+      batch_title: examForm.value.batch_title || examForm.value.batch_name || 'Batch ' + new Date().toLocaleDateString(),
+      batch_name: examForm.value.batch_title || examForm.value.batch_name || 'Batch ' + new Date().toLocaleDateString(),
+      batch_size: examForm.value.application_ids.length,
+      application_ids: examForm.value.application_ids,
+      exam_date: examDate,
+      end_at: endAt,
+      location: examForm.value.location,
+      instructions: examForm.value.instructions || null,
+      notify_beneficiaries: Boolean(examForm.value.notify_beneficiaries)
+    })
 
-
-
-
-
-
-
-
-    showToast('Exam scheduled successfully! 🎉')
-
-
-
-
-
-
-
+    showToast('Exam scheduled successfully!')
 
     examForm.value = {
-      application_id: '',
+      batch_name: '',
+      batch_title: '',
+      batch_size: 1,
+      application_ids: [],
+      exam_title: '',
+      date: '',
+      start_time: '',
+      end_time: '',
       exam_date: '',
-      location: ''
+      location: '',
+      instructions: '',
+      notify_beneficiaries: true
     }
 
-
-
-
-
-
-
-
+    selectedExamApplicantId.value = ''
     await loadData()
-
-
-
-
-
-
-
-
-  } catch (e) {
-    console.error(e.response?.data || e)
-    showToast(e.response?.data?.message || 'Failed to schedule exam ❌')
+  } catch (error) {
+    console.error('Exam scheduling error:', error.response?.data || error.message)
+    showToast('Failed to schedule exam: ' + (error.response?.data?.message || 'Unknown error'))
   }
 }
 
+
+
+
+
+
+
+
+// =====================================================
+// CONTRACT FUNCTIONS
+// =====================================================
 async function scheduleContract() {
-  if (!contractForm.value.application_id) {
-    showToast('Please select an applicant before scheduling a contract.')
+  const selectedIds = contractForm.value.application_ids || []
+  const contractDate = getFormStart(contractForm.value, 'contract_date')
+  const endAt = getFormEnd(contractForm.value)
+
+  if (selectedIds.length === 0 && !contractForm.value.application_id) {
+    showToast('Please select at least one beneficiary')
+    return
+  }
+
+  if (!contractDate) {
+    showToast('Please select contract date and start time')
+    return
+  }
+
+  if (!endAt) {
+    showToast('Please select contract end time')
+    return
+  }
+
+  if (!contractForm.value.location) {
+    showToast('Please enter the physical contract signing venue')
     return
   }
 
   schedulingContract.value = true
 
+
+
+
   try {
+
+
+
+
     await axios.post('/peso/contracts', {
-      application_id: contractForm.value.application_id,
-      contract_date: contractForm.value.contract_date,
-      location: contractForm.value.location
+      application_id: contractForm.value.application_id || null,
+      application_ids: selectedIds,
+      batch_title: contractForm.value.batch_title || null,
+      contract_date: contractDate,
+      end_at: endAt,
+      location: contractForm.value.location,
+      instructions: contractForm.value.instructions || null,
+      notify_beneficiaries: Boolean(contractForm.value.notify_beneficiaries)
     })
 
-    showToast('Contract scheduled successfully! 🎉')
+
+
+
+    showToast('Contract scheduled successfully!')
+
+
+
 
     contractForm.value = {
       application_id: '',
+      application_ids: [],
+      batch_title: '',
+      date: '',
+      start_time: '',
+      end_time: '',
       contract_date: '',
-      location: ''
+      location: '',
+      instructions: '',
+      notify_beneficiaries: true
     }
 
+
+
+
     await loadData()
-  } catch (e) {
-    console.error(e.response?.data || e)
-    showToast(e.response?.data?.message || 'Failed to schedule contract ❌')
+
+
+
+
+  } catch (error) {
+
+
+
+
+    console.error(error)
+    // Try to surface a helpful message from the backend if available
+    const resp = error && error.response && error.response.data
+    let message = 'Failed to schedule contract'
+    if (resp) {
+      if (resp.message) message = resp.message
+      else if (resp.errors) {
+        // Flatten validation errors
+        const errs = Object.values(resp.errors).flat()
+        if (errs.length) message = errs.join(' ')
+      }
+    }
+
+
+
+
+    showToast(message)
+
+
+
+
   } finally {
+
+
+
+
     schedulingContract.value = false
   }
 }
 
-function selectApplicant(applicationId) {
-  contractForm.value.application_id = applicationId
-}
-
-function getSelectedApplicantName() {
-  const app = sortedApplications.value.find(a => a.id === contractForm.value.application_id)
-  return app ? `${app.beneficiary_name} (#${app.id})` : 'None selected'
-}
-
-function clearApplicantSelection() {
-  contractForm.value.application_id = ''
-}
-
-function clearExamSelection() {
-  examForm.value.application_id = ''
-}
-
-function selectExamApplicant(applicationId) {
-  examForm.value.application_id = applicationId
-}
-
-function getSelectedExamApplicantName() {
-  const app = sortedApplications.value.find(a => a.id === examForm.value.application_id)
-  return app ? `${app.beneficiary_name} (#${app.id})` : 'None selected'
-}
 
 
 
@@ -3224,10 +3188,24 @@ function getSelectedExamApplicantName() {
 
 
 
-
+// =====================================================
+// ANNOUNCEMENT FUNCTIONS
+// =====================================================
 async function createAnnouncement() {
+
+
+
+
   try {
+
+
+
+
     const formData = new FormData()
+
+
+
+
     formData.append('title', newAnnouncement.value.title)
     formData.append('message', newAnnouncement.value.message)
     formData.append('target_role', newAnnouncement.value.targetRole)
@@ -3250,9 +3228,7 @@ async function createAnnouncement() {
 
 
 
-    await axios.post('/peso/announcements', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    await axios.post('/peso/announcements', formData)
 
 
 
@@ -3261,8 +3237,7 @@ async function createAnnouncement() {
 
 
 
-    // show toaster locally
-    showToast('Announcement posted successfully.')
+    showToast('Announcement created successfully!')
 
 
 
@@ -3271,7 +3246,6 @@ async function createAnnouncement() {
 
 
 
-    // reset form including the new field
     newAnnouncement.value = {
       title: '',
       message: '',
@@ -3291,12 +3265,13 @@ async function createAnnouncement() {
 
 
 
+  } catch (error) {
 
 
 
 
-  } catch (e) {
-    console.error('Failed to create announcement', e)
+    console.error(error)
+    showToast('Failed to create announcement')
   }
 }
 
@@ -3307,32 +3282,205 @@ async function createAnnouncement() {
 
 
 
-function handleImageUpload(e) {
-  newAnnouncement.value.image = e.target.files[0]
+function handleImageUpload(event) {
+  newAnnouncement.value.image = event.target.files[0]
 }
+
+function openEditAnnouncement(announcement) {
+  editingAnnouncement.value = announcement
+  editAnnouncementForm.value = {
+    title: announcement?.title || '',
+    message: announcement?.message || announcement?.content || '',
+    image: null,
+    targetRole: announcement?.targetRole || announcement?.target_role || announcement?.audience || 'all'
+  }
+}
+
+function closeEditAnnouncement() {
+  editingAnnouncement.value = null
+  editAnnouncementForm.value = {
+    title: '',
+    message: '',
+    image: null,
+    targetRole: 'all'
+  }
+}
+
+function handleEditAnnouncementImage(event) {
+  editAnnouncementForm.value.image = event.target.files?.[0] || null
+}
+
+async function updateAnnouncement() {
+  if (!editingAnnouncement.value?.id) {
+    showToast('Announcement identifier missing.')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('_method', 'PATCH')
+    formData.append('title', editAnnouncementForm.value.title)
+    formData.append('message', editAnnouncementForm.value.message)
+    formData.append('target_role', editAnnouncementForm.value.targetRole)
+
+    if (editAnnouncementForm.value.image) {
+      formData.append('image', editAnnouncementForm.value.image)
+    }
+
+    await axios.post(`/peso/announcements/${editingAnnouncement.value.id}`, formData)
+
+    showToast('Announcement updated successfully!')
+    closeEditAnnouncement()
+    await loadData()
+  } catch (error) {
+    console.error(error)
+    showToast(error.response?.data?.message || 'Failed to update announcement')
+  }
+}
+
+async function deleteAnnouncement(announcement) {
+  if (!announcement?.id) {
+    showToast('Announcement identifier missing.')
+    return
+  }
+
+  announcementToDelete.value = announcement
+}
+
+function closeDeleteAnnouncement() {
+  if (deletingAnnouncement.value) return
+
+  announcementToDelete.value = null
+}
+
+async function confirmDeleteAnnouncement() {
+  if (!announcementToDelete.value?.id) {
+    showToast('Announcement identifier missing.')
+    return
+  }
+
+  deletingAnnouncement.value = true
+  try {
+    await axios.delete(`/peso/announcements/${announcementToDelete.value.id}`)
+    showToast('Announcement deleted successfully!')
+    announcementToDelete.value = null
+    await loadData()
+  } catch (error) {
+    console.error(error)
+    showToast(error.response?.data?.message || 'Failed to delete announcement')
+  } finally {
+    deletingAnnouncement.value = false
+  }
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// CLICK OUTSIDE
+// =====================================================
+function handleClickOutside(event) {
+
+
+
+
+  const clickedMenu = profileMenu.value?.contains(event.target)
+
+
+
+
+  const clickedButton = menuButton.value?.contains(event.target)
+
+
+
+
+
+
+
+
+  if (!clickedMenu && !clickedButton) {
+    menuOpen.value = false
+  }
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// AUTO REFRESH
+// =====================================================
 let interval = null
 
 
+
+
+
+
+
+
+// =====================================================
+// LIFECYCLE
+// =====================================================
 onMounted(async () => {
+
+
+
+
   await loadData()
-  loadApprovedEmployers()
-  loadApprovedBeneficiaries()
+
+
+
+
+
+
 
 
   interval = setInterval(() => {
     loadData()
-    loadApprovedEmployers()
-    loadApprovedBeneficiaries()
   }, 20000)
+
+
+
+
+
+
 
 
   document.addEventListener('click', handleClickOutside)
 })
 
 
+
+
+
+
+
+
 onBeforeUnmount(() => {
-  if (interval) clearInterval(interval)
-    document.removeEventListener('click', handleClickOutside)
+
+
+
+
+  if (interval) {
+    clearInterval(interval)
+  }
+
+
+
+
+
+
+
+
+  document.removeEventListener('click', handleClickOutside)
 })
 
 
@@ -3342,60 +3490,165 @@ onBeforeUnmount(() => {
 
 
 
+// =====================================================
+// ATTENDANCE ANALYTICS
+// =====================================================
+const averageRatings = computed(() => {
+  if (!attendanceRecords.value.length) return 0
+
+
+
+
+  const total = attendanceRecords.value.reduce((sum, record) => {
+    return sum + (Number(record.rating) || 0)
+  }, 0)
+
+
+
+
+  return (total / attendanceRecords.value.length).toFixed(1)
+})
+
+
+
+
+const employerReliability = computed(() => {
+  if (!attendanceRecords.value.length) return 0
+
+
+
+
+  const completed = attendanceRecords.value.filter(record =>
+    String(record.status).toLowerCase() === 'present'
+  ).length
+
+
+
+
+  return Math.round((completed / attendanceRecords.value.length) * 100)
+})
+
+
+
+
+
+
+
+
+// =====================================================
+// TIME FORMATTER
+// =====================================================
+function formatTime(time) {
+  if (!time) return '—'
+
+
+
+
+  try {
+    return new Date(`1970-01-01T${time}`).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (e) {
+    return time
+  }
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// EXPORT FUNCTIONS
+// =====================================================
+function exportApplicants() {
+  try {
+    const data = JSON.stringify(applicants.value, null, 2)
+
+
+
+
+    const blob = new Blob([data], {
+      type: 'application/json'
+    })
+
+
+
+
+    const url = URL.createObjectURL(blob)
+
+
+
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'applicants-report.json'
+    a.click()
+
+
+
+
+    URL.revokeObjectURL(url)
+
+
+
+
+    showToast('Applicants exported successfully!')
+  } catch (error) {
+    console.error(error)
+    showToast('Failed to export applicants')
+  }
+}
+
+
+
+
+function exportEmployers() {
+  try {
+    const data = JSON.stringify(employers.value, null, 2)
+
+
+
+
+    const blob = new Blob([data], {
+      type: 'application/json'
+    })
+
+
+
+
+    const url = URL.createObjectURL(blob)
+
+
+
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'employers-report.json'
+    a.click()
+
+
+
+
+    URL.revokeObjectURL(url)
+
+
+
+
+    showToast('Employers exported successfully!')
+  } catch (error) {
+    console.error(error)
+    showToast('Failed to export employers')
+  }
+}
+
+
+
+
 </script>
-<style scoped>
-@keyframes fadeInOut {
-  0%, 100% { opacity: 0; transform: translateY(20px); }
-  10%, 90% { opacity: 1; transform: translateY(0); }
-}
-
-
-
-
-
-
-
-
-.animate-fade-in {
-  animation: fadeInOut 4s ease forwards;
-}
-</style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -8,6 +8,15 @@ class Application extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'employer_acknowledged_at' => 'datetime',
+    ];
+
+    public function employerAcknowledgedBy()
+    {
+        return $this->belongsTo(User::class, 'employer_acknowledged_by');
+    }
+
     public function beneficiary()
     {
         return $this->belongsTo(Beneficiary::class);
@@ -21,6 +30,11 @@ class Application extends Model
     public function interview()
     {
         return $this->hasOne(Interview::class);
+    }
+
+    public function employerRating()
+    {
+        return $this->hasOne(EmployerRating::class);
     }
 
     public function batch()

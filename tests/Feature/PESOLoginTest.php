@@ -35,7 +35,6 @@ class PESOLoginTest extends TestCase
         // Debugging: record actual redirect target and session intended value
         $actual = $response->headers->get('Location') ?? $response->getTargetUrl();
         $this->assertNull(session()->get('url.intended'), 'Expected no intended url in session');
-        // For diagnostics allow either redirect to peso.dashboard or to dashboard (we will fix controller next)
-        $this->assertContains($actual, [route('peso.dashboard'), route('dashboard')]);
+        $this->assertEquals(route('peso.user.dashboard'), $actual);
     }
 }

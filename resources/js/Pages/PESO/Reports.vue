@@ -11,7 +11,7 @@
           <tr class="bg-gray-100">
             <th class="px-4 py-2 text-left">Title</th>
             <th class="px-4 py-2 text-left">Body</th>
-            <th class="px-4 py-2 text-left">Employer ID</th>
+            <th class="px-4 py-2 text-left">Employer</th>
             <th class="px-4 py-2 text-left">Document</th>
             <th class="px-4 py-2 text-left">Date</th>
           </tr>
@@ -21,7 +21,7 @@
           <tr v-for="r in reports" :key="r.id" class="border-b">
             <td class="px-4 py-2">{{ r.title }}</td>
             <td class="px-4 py-2">{{ r.body }}</td>
-            <td class="px-4 py-2">{{ r.employer_id }}</td>
+            <td class="px-4 py-2">{{ r.employer_name || 'Unknown Employer' }}</td>
             <td class="px-4 py-2">
               <a
                 v-if="r.file_url"

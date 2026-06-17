@@ -33,21 +33,22 @@
     29 => 'Laravel\\Pail\\PailServiceProvider',
     30 => 'Laravel\\Sail\\SailServiceProvider',
     31 => 'Laravel\\Sanctum\\SanctumServiceProvider',
-    32 => 'Laravel\\Tinker\\TinkerServiceProvider',
-    33 => 'Maatwebsite\\Excel\\ExcelServiceProvider',
-    34 => 'Carbon\\Laravel\\ServiceProvider',
-    35 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
-    36 => 'Termwind\\Laravel\\TermwindServiceProvider',
-    37 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
-    38 => 'Spatie\\Permission\\PermissionServiceProvider',
-    39 => 'Tighten\\Ziggy\\ZiggyServiceProvider',
-    40 => 'App\\Providers\\AppServiceProvider',
-    41 => 'App\\Providers\\AuthServiceProvider',
-    42 => 'App\\Providers\\EventServiceProvider',
-    43 => 'App\\Providers\\RouteServiceProvider',
-    44 => 'App\\Providers\\AppServiceProvider',
-    45 => 'App\\Providers\\FortifyServiceProvider',
-    46 => 'App\\Providers\\JetstreamServiceProvider',
+    32 => 'Laravel\\Socialite\\SocialiteServiceProvider',
+    33 => 'Laravel\\Tinker\\TinkerServiceProvider',
+    34 => 'Maatwebsite\\Excel\\ExcelServiceProvider',
+    35 => 'Carbon\\Laravel\\ServiceProvider',
+    36 => 'NunoMaduro\\Collision\\Adapters\\Laravel\\CollisionServiceProvider',
+    37 => 'Termwind\\Laravel\\TermwindServiceProvider',
+    38 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
+    39 => 'Spatie\\Permission\\PermissionServiceProvider',
+    40 => 'Tighten\\Ziggy\\ZiggyServiceProvider',
+    41 => 'App\\Providers\\AppServiceProvider',
+    42 => 'App\\Providers\\AuthServiceProvider',
+    43 => 'App\\Providers\\EventServiceProvider',
+    44 => 'App\\Providers\\RouteServiceProvider',
+    45 => 'App\\Providers\\AppServiceProvider',
+    46 => 'App\\Providers\\FortifyServiceProvider',
+    47 => 'App\\Providers\\JetstreamServiceProvider',
   ),
   'eager' => 
   array (
@@ -241,6 +242,7 @@
     'Illuminate\\Contracts\\Validation\\UncompromisedVerifier' => 'Illuminate\\Validation\\ValidationServiceProvider',
     'Laravel\\Sail\\Console\\InstallCommand' => 'Laravel\\Sail\\SailServiceProvider',
     'Laravel\\Sail\\Console\\PublishCommand' => 'Laravel\\Sail\\SailServiceProvider',
+    'Laravel\\Socialite\\Contracts\\Factory' => 'Laravel\\Socialite\\SocialiteServiceProvider',
     'command.tinker' => 'Laravel\\Tinker\\TinkerServiceProvider',
   ),
   'when' => 
@@ -279,6 +281,9 @@
     array (
     ),
     'Laravel\\Sail\\SailServiceProvider' => 
+    array (
+    ),
+    'Laravel\\Socialite\\SocialiteServiceProvider' => 
     array (
     ),
     'Laravel\\Tinker\\TinkerServiceProvider' => 

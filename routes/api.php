@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Peso\ExamController;
+use App\Http\Controllers\PESO\ExamController;
 use App\Http\Controllers\Beneficiary\BeneficiaryController;
 use App\Http\Controllers\Api\InterviewController;
 
@@ -34,7 +34,7 @@ Route::middleware(['web', 'auth:sanctum'])->prefix('beneficiary')->group(functio
 
     // Attendance
     Route::get('/attendance', [BeneficiaryController::class, 'attendance']);
-
+    
     // Notifications
     Route::get('/notifications', [BeneficiaryController::class, 'notifications']);
 
@@ -57,7 +57,7 @@ Route::middleware(['web', 'auth:sanctum'])->get('/my/interviews', [InterviewCont
 Route::middleware(['web', 'auth:sanctum'])->prefix('beneficiaries')->group(function () {
     Route::get('{id}/ratings', [BeneficiaryController::class, 'getRatings']);
 });
-Route::get('/beneficiary/exams', [ExamController::class, 'apiExams']);
+Route::middleware(['web', 'auth:sanctum'])->get('/beneficiary/exams', [ExamController::class, 'apiExams']);
 
 // TEST route (optional)
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

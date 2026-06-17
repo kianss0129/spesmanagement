@@ -18,14 +18,30 @@
           </p>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-4 relative">
           <label class="block text-sm text-gray-600 mb-1">Password</label>
           <input
             v-model="form.password"
-            type="password"
+            :type="showPassword ? 'text' : 'password'"
             required
-            class="w-full border rounded px-3 py-2"
+            class="w-full border rounded px-3 py-2 pr-10"
           />
+          <button
+            type="button"
+            @click="showPassword = !showPassword"
+            class="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+          >
+            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.965 9.965 0 012.622-4.063m2.1-1.6A9.966 9.966 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.3 5.92" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+            </svg>
+          </button>
           <p v-if="form.errors.password" class="text-xs text-red-500 mt-1">
             {{ form.errors.password }}
           </p>
@@ -87,6 +103,7 @@ import { onMounted, ref } from 'vue' // ✅ ADDED
 
 const siteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY // ✅ ADDED
 const recaptchaError = ref(null) // ✅ ADDED
+const showPassword = ref(false)
 
 const form = useForm({
   email: '',

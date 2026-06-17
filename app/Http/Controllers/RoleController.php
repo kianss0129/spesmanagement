@@ -29,6 +29,29 @@ class RoleController extends Controller
         ]);
     }
 
+    public function getJson(Request $request)
+    {
+        $users = User::select('id', 'name', 'email', 'created_at')
+            ->with('roles')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->roles->pluck('name')->first() ?? null,
+                ];
+            });
+
+        $roles = Role::pluck('name')->toArray();
+
+        return response()->json([
+            'users' => $users,
+            'roles' => $roles
+        ]);
+    }
+
     public function assign(Request $request)
     {
         $request->validate([
@@ -43,21 +66,45 @@ class RoleController extends Controller
     }
 
     public function remove(User $user)
-    {
-        $user->syncRoles([]); // Remove all roles from user
+{
+    $currentUser = auth()->user();
 
-        return back()->with('success', 'Role removed successfully!');
+    // Only Admin and PESO Admin can remove roles
+    if (!$currentUser->hasAnyRole(['Admin', 'PESO Admin'])) {
+        return back()->with('error', 'You do not have permission to remove roles.');
     }
+
+    // Prevent removing PESO Admin role
+    if ($user->hasRole('PESO Admin')) {
+        return back()->with('error', 'Cannot remove PESO Admin role.');
+    }
+
+    // Prevent removing your own role
+    if ($user->id === $currentUser->id) {
+        return back()->with('error', 'You cannot remove your own role.');
+    }
+
+    $user->syncRoles([]);
+
+    return back()->with('success', 'Role removed successfully!');
+}
 
     public function destroy(User $user)
 {
-    // Prevent deleting Super Admin
-    if ($user->hasRole('Super Admin')) {
-        return back()->with('error', 'Cannot delete Super Admin.');
+    $currentUser = auth()->user();
+
+    // Only Admin and PESO Admin can delete users
+    if (!$currentUser->hasAnyRole(['Admin', 'PESO Admin'])) {
+        return back()->with('error', 'You do not have permission to delete users.');
+    }
+
+    // Prevent deleting PESO Admin
+    if ($user->hasRole('PESO Admin')) {
+        return back()->with('error', 'Cannot delete PESO Admin.');
     }
 
     // Prevent deleting self
-    if ($user->id === auth()->id()) {
+    if ($user->id === $currentUser->id) {
         return back()->with('error', 'You cannot delete your own account.');
     }
 
@@ -82,5 +129,4 @@ class RoleController extends Controller
 
     return back()->with('success', 'User deleted successfully!');
 }
-
 }

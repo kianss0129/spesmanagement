@@ -11,15 +11,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Call the seeders in order
         $this->call([
-            //RoleSeeder::class,
             RoleAndAdminSeeder::class,
-            EmployerSeeder::class,
-            // BeneficiarySeeder::class,
-            ApplicationSeeder::class,
 
-            AttendanceSeeder::class
+            // SchoolSeeder::class,
+            // FullSystemSeeder::class,
+            // AttendanceSeeder::class,
+            // RatingSeeder::class,
+            // ReportSeeder::class,
         ]);
     }
 }

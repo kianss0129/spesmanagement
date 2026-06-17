@@ -2,19 +2,15 @@
 import { useForm, usePage, router } from '@inertiajs/vue3'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 
-
 const props = defineProps({
     users: Array,
     roles: Array
 })
 
-
 const page = usePage()
-
 
 const success = computed(() => page.props.flash?.success)
 const error = computed(() => page.props.flash?.error)
-
 
 /* ===============================
    TOAST NOTIFICATION
@@ -25,18 +21,15 @@ const toast = ref({
     type: 'success'
 })
 
-
 function showToast(message, type = 'success') {
     toast.value.message = message
     toast.value.type = type
     toast.value.show = true
 
-
     setTimeout(() => {
         toast.value.show = false
     }, 3000)
 }
-
 
 /* ===============================
    ASSIGN ROLE FORM
@@ -45,7 +38,6 @@ const form = useForm({
     user_id: '',
     role: ''
 })
-
 
 function submit() {
     form.post(route('admin.roles.assign'), {
@@ -60,7 +52,6 @@ function submit() {
     })
 }
 
-
 /* ===============================
    PESO CREATE FORM
 ================================= */
@@ -70,7 +61,6 @@ const pesoForm = useForm({
     password: '',
     role: 'PESO Official'
 })
-
 
 function createPesoAccount() {
     pesoForm.post(route('peso.users.create-peso'), {
@@ -85,7 +75,6 @@ function createPesoAccount() {
     })
 }
 
-
 /* ===============================
    MODAL STATE
 ================================= */
@@ -93,19 +82,16 @@ const showModal = ref(false)
 const modalType = ref(null)
 const selectedUserId = ref(null)
 
-
 function openModal(type, id) {
     modalType.value = type
     selectedUserId.value = id
     showModal.value = true
 }
 
-
 function closeModal() {
     showModal.value = false
     selectedUserId.value = null
 }
-
 
 function confirmAction() {
     if (modalType.value === 'remove') {
@@ -115,7 +101,6 @@ function confirmAction() {
         })
     }
 
-
     if (modalType.value === 'delete') {
         router.delete(route('admin.users.destroy', selectedUserId.value), {
             preserveScroll: true,
@@ -123,275 +108,369 @@ function confirmAction() {
         })
     }
 
-
     closeModal()
 }
-
 
 /* ESC KEY */
 function handleKey(e) {
     if (e.key === 'Escape') closeModal()
 }
 
-
 onMounted(() => window.addEventListener('keydown', handleKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', handleKey))
 </script>
 
-
 <template>
-<div class="max-w-6xl mx-auto p-6">
+<div
+    class="min-h-screen bg-cover bg-center bg-no-repeat relative overflow-hidden"
+    style="background-image: url('/images/spes-bg.jpg');"
+>
 
+    <!-- OVERLAY -->
+    <div class="absolute inset-0 bg-black/70"></div>
 
-    <h1 class="text-3xl font-bold text-blue-700 mb-6">
-        Role Management
-    </h1>
-
-
-    <!-- BACK -->
-    <button
-        @click="$inertia.visit(route('dashboard'))"
-        class="text-blue-600 border border-blue-600 px-4 py-2 rounded mb-4 hover:bg-blue-50">
-        ← Back
-    </button>
-
-
-    <!-- FLASH -->
-    <div v-if="success" class="bg-blue-100 p-3 rounded mb-3 text-blue-700">
-        {{ success }}
+    <!-- GLOW EFFECT -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute w-80 h-80 bg-blue-500/20 blur-3xl rounded-full -top-20 -left-20 animate-pulse"></div>
+        <div class="absolute w-80 h-80 bg-cyan-400/20 blur-3xl rounded-full bottom-0 right-0 animate-pulse"></div>
     </div>
 
+    <div class="relative z-10 max-w-6xl mx-auto p-6">
 
-    <div v-if="error" class="bg-red-100 p-3 rounded mb-3 text-red-700">
-        {{ error }}
-    </div>
+        <!-- TITLE -->
+        <h1 class="text-4xl font-extrabold text-white mb-6">
+            Role Management
+        </h1>
 
+        <!-- BACK -->
+        <button
+            @click="$inertia.visit(route('dashboard'))"
+            class="mb-6 flex items-center gap-2 text-white/80 hover:text-white transition"
+        >
+            <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                />
+            </svg>
 
-    <!-- ===============================
-         TOAST NOTIFICATION
-    ================================ -->
-    <transition name="fade">
-        <div v-if="toast.show"
-             class="fixed top-5 right-5 z-50">
+            <span class="font-medium">
+                Back
+            </span>
+        </button>
 
-
-            <div
-                :class="[
-                    'px-4 py-3 rounded-lg shadow text-white text-sm',
-                    toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                ]">
-
-
-                {{ toast.message }}
-
-
-            </div>
-
-
+        <!-- FLASH -->
+        <div
+            v-if="success"
+            class="bg-green-500/20 border border-green-400/30
+                   text-green-100 p-4 rounded-2xl mb-4 backdrop-blur-xl"
+        >
+            {{ success }}
         </div>
-    </transition>
 
+        <div
+            v-if="error"
+            class="bg-red-500/20 border border-red-400/30
+                   text-red-100 p-4 rounded-2xl mb-4 backdrop-blur-xl"
+        >
+            {{ error }}
+        </div>
 
-    <!-- ===============================
-         CREATE PESO
-    ================================ -->
-    <div class="mb-8 bg-white p-6 rounded-2xl shadow border border-blue-100">
+        <!-- TOAST -->
+        <transition name="fade">
+            <div
+                v-if="toast.show"
+                class="fixed top-5 right-5 z-50"
+            >
+                <div
+                    :class="[
+                        'px-5 py-3 rounded-2xl shadow-2xl text-white text-sm backdrop-blur-xl border',
+                        toast.type === 'success'
+                            ? 'bg-green-500/20 border-green-400/30'
+                            : 'bg-red-500/20 border-red-400/30'
+                    ]"
+                >
+                    {{ toast.message }}
+                </div>
+            </div>
+        </transition>
 
+        <!-- CREATE PESO -->
+        <div
+            class="mb-8 bg-white/10 backdrop-blur-xl border border-white/20
+                   rounded-3xl shadow-2xl p-6"
+        >
 
-        <h2 class="text-lg font-semibold text-blue-700 mb-4">
-            Create PESO Official Account
-        </h2>
-
-
-        <form @submit.prevent="createPesoAccount" class="flex flex-wrap gap-3">
-
-
-            <input v-model="pesoForm.name"
-                   type="text"
-                   placeholder="Name"
-                   class="border p-2 rounded-lg w-60" />
-
-
-            <input v-model="pesoForm.email"
-                   type="email"
-                   placeholder="Email"
-                   class="border p-2 rounded-lg w-60" />
-
-
-            <input v-model="pesoForm.password"
-                   type="password"
-                   placeholder="Password"
-                   class="border p-2 rounded-lg w-48" />
-
-
-            <button type="submit"
-                    class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">
-                Create Account
-            </button>
-
-
-        </form>
-    </div>
-
-
-    <!-- ===============================
-         ASSIGN ROLE
-    ================================ -->
-    <div class="mb-8 bg-white p-6 rounded-2xl shadow border border-blue-100">
-
-
-        <h2 class="text-lg font-semibold text-blue-700 mb-4">
-            Assign Role
-        </h2>
-
-
-        <form @submit.prevent="submit" class="flex flex-wrap gap-3">
-
-
-            <select v-model="form.user_id" class="border p-2 rounded-lg w-60">
-                <option value="">Select user</option>
-                <option v-for="u in users" :key="u.id" :value="u.id">
-                    {{ u.name }} ({{ u.email }})
-                </option>
-            </select>
-
-
-            <select v-model="form.role" class="border p-2 rounded-lg w-48">
-                <option value="">Select role</option>
-                <option v-for="r in roles" :key="r" :value="r">
-                    {{ r }}
-                </option>
-            </select>
-
-
-            <button class="bg-blue-600 text-white px-5 py-2 rounded-lg">
-                Assign Role
-            </button>
-
-
-        </form>
-    </div>
-
-
-    <!-- ===============================
-         USERS TABLE
-    ================================ -->
-    <div class="bg-white rounded-2xl shadow border overflow-hidden">
-
-
-        <table class="w-full text-sm">
-            <thead class="bg-blue-50 text-blue-700">
-                <tr>
-                    <th class="p-3">Name</th>
-                    <th class="p-3">Email</th>
-                    <th class="p-3">Role</th>
-                    <th class="p-3">Actions</th>
-                </tr>
-            </thead>
-
-
-            <tbody>
-                <tr v-for="user in users" :key="user.id" class="border-t hover:bg-blue-50">
-
-
-                    <td class="p-3">{{ user.name }}</td>
-                    <td class="p-3">{{ user.email }}</td>
-
-
-                    <td class="p-3">
-                        <span class="bg-blue-100 px-2 py-1 rounded text-xs">
-                            {{ user.role || 'No Role' }}
-                        </span>
-                    </td>
-
-
-                    <td class="p-3 space-x-2">
-
-
-                        <button
-                            v-if="user.role"
-                            @click="openModal('remove', user.id)"
-                            class="border border-blue-500 text-blue-600 px-3 py-1 rounded text-xs">
-                            Remove Role
-                        </button>
-
-
-                        <button
-                            @click="openModal('delete', user.id)"
-                            class="bg-red-600 text-white px-3 py-1 rounded text-xs">
-                            Delete User
-                        </button>
-
-
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-
-    <!-- ===============================
-         MODAL
-    ================================ -->
-    <transition name="fade">
-    <div v-if="showModal"
-         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-         @click.self="closeModal">
-
-
-        <div class="bg-white p-6 rounded-xl w-96">
-
-
-            <h2 class="text-lg font-semibold mb-3 text-blue-700">
-                Confirm Action
+            <h2 class="text-xl font-bold text-white mb-5">
+                Create PESO Official Account
             </h2>
 
+            <form @submit.prevent="createPesoAccount" class="flex flex-wrap gap-4">
 
-            <p class="mb-5 text-gray-600">
-                <span v-if="modalType === 'remove'">
-                    Remove this user's role?
-                </span>
-                <span v-else>
-                    Delete this user permanently?
-                </span>
-            </p>
+                <input
+                    v-model="pesoForm.name"
+                    type="text"
+                    placeholder="Name"
+                    class="bg-white/10 border border-white/20
+                           text-white placeholder-gray-300
+                           rounded-xl px-4 py-3 w-64 outline-none"
+                />
 
+                <input
+                    v-model="pesoForm.email"
+                    type="email"
+                    placeholder="Email"
+                    class="bg-white/10 border border-white/20
+                           text-white placeholder-gray-300
+                           rounded-xl px-4 py-3 w-64 outline-none"
+                />
 
-            <div class="flex justify-end gap-2">
+                <input
+                    v-model="pesoForm.password"
+                    type="password"
+                    placeholder="Password"
+                    class="bg-white/10 border border-white/20
+                           text-white placeholder-gray-300
+                           rounded-xl px-4 py-3 w-52 outline-none"
+                />
 
-
-                <button @click="closeModal"
-                        class="px-4 py-2 border rounded">
-                    Cancel
+                <button
+                    type="submit"
+                    class="bg-green-500 hover:bg-green-600
+                           text-white px-6 py-3 rounded-xl
+                           font-semibold transition"
+                >
+                    Create Account
                 </button>
 
+            </form>
 
-                <button @click="confirmAction"
-                        :class="modalType === 'delete'
-                            ? 'bg-red-600 text-white px-4 py-2 rounded'
-                            : 'bg-blue-600 text-white px-4 py-2 rounded'">
-                    Confirm
+        </div>
+
+        <!-- ASSIGN ROLE -->
+        <div
+            class="mb-8 bg-white/10 backdrop-blur-xl border border-white/20
+                   rounded-3xl shadow-2xl p-6"
+        >
+
+            <h2 class="text-xl font-bold text-white mb-5">
+                Assign Role
+            </h2>
+
+            <form @submit.prevent="submit" class="flex flex-wrap gap-4">
+
+                <select
+                    v-model="form.user_id"
+                    class="bg-white/10 border border-white/20
+                           text-white rounded-xl px-4 py-3
+                           w-64 outline-none"
+                >
+                    <option value="" class="text-black">
+                        Select user
+                    </option>
+
+                    <option
+                        v-for="u in users"
+                        :key="u.id"
+                        :value="u.id"
+                        class="text-black"
+                    >
+                        {{ u.name }} ({{ u.email }})
+                    </option>
+                </select>
+
+                <select
+                    v-model="form.role"
+                    class="bg-white/10 border border-white/20
+                           text-white rounded-xl px-4 py-3
+                           w-52 outline-none"
+                >
+                    <option value="" class="text-black">
+                        Select role
+                    </option>
+
+                    <option
+                        v-for="r in roles"
+                        :key="r"
+                        :value="r"
+                        class="text-black"
+                    >
+                        {{ r }}
+                    </option>
+                </select>
+
+                <button
+                    class="bg-blue-500 hover:bg-blue-600
+                           text-white px-6 py-3 rounded-xl
+                           font-semibold transition"
+                >
+                    Assign Role
                 </button>
 
+            </form>
+
+        </div>
+
+        <!-- USERS TABLE -->
+        <div
+            class="bg-white/10 backdrop-blur-xl border border-white/20
+                   rounded-3xl shadow-2xl overflow-hidden"
+        >
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-sm text-white">
+
+                    <thead class="bg-white/10">
+                        <tr>
+                            <th class="p-4 text-left">Name</th>
+                            <th class="p-4 text-left">Email</th>
+                            <th class="p-4 text-left">Role</th>
+                            <th class="p-4 text-left">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        <tr
+                            v-for="user in users"
+                            :key="user.id"
+                            class="border-t border-white/10 hover:bg-white/5 transition"
+                        >
+
+                            <td class="p-4">
+                                {{ user.name }}
+                            </td>
+
+                            <td class="p-4 text-gray-300">
+                                {{ user.email }}
+                            </td>
+
+                            <td class="p-4">
+
+                                <span
+                                    class="bg-blue-500/20 border border-blue-400/30
+                                           text-blue-100 px-3 py-1 rounded-full text-xs"
+                                >
+                                    {{ user.role || 'No Role' }}
+                                </span>
+
+                            </td>
+
+                            <td class="p-4 flex flex-wrap gap-2">
+
+                                <button
+                                    v-if="user.role"
+                                    @click="openModal('remove', user.id)"
+                                    class="border border-blue-400/30
+                                           bg-blue-500/10 text-blue-100
+                                           px-4 py-2 rounded-xl text-xs
+                                           hover:bg-blue-500/20 transition"
+                                >
+                                    Remove Role
+                                </button>
+
+                                <button
+                                    @click="openModal('delete', user.id)"
+                                    class="bg-red-500 hover:bg-red-600
+                                           text-white px-4 py-2 rounded-xl
+                                           text-xs transition"
+                                >
+                                    Delete User
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
 
             </div>
 
-
         </div>
-    </div>
-    </transition>
 
+        <!-- MODAL -->
+        <transition name="fade">
+
+            <div
+                v-if="showModal"
+                class="fixed inset-0 bg-black/70 backdrop-blur-sm
+                       flex items-center justify-center z-50"
+                @click.self="closeModal"
+            >
+
+                <div
+                    class="bg-white/10 backdrop-blur-2xl border border-white/20
+                           rounded-3xl shadow-2xl p-8 w-[90%] max-w-md"
+                >
+
+                    <h2 class="text-2xl font-bold text-white mb-4">
+                        Confirm Action
+                    </h2>
+
+                    <p class="text-gray-300 mb-6">
+
+                        <span v-if="modalType === 'remove'">
+                            Remove this user's role?
+                        </span>
+
+                        <span v-else>
+                            Delete this user permanently?
+                        </span>
+
+                    </p>
+
+                    <div class="flex justify-end gap-3">
+
+                        <button
+                            @click="closeModal"
+                            class="px-5 py-2 rounded-xl
+                                   border border-white/20
+                                   text-white hover:bg-white/10 transition"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            @click="confirmAction"
+                            :class="modalType === 'delete'
+                                ? 'bg-red-500 hover:bg-red-600'
+                                : 'bg-blue-500 hover:bg-blue-600'"
+                            class="text-white px-5 py-2 rounded-xl transition"
+                        >
+                            Confirm
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </transition>
+
+    </div>
 
 </div>
 </template>
 
-
-<style>
-.fade-enter-active, .fade-leave-active {
-    transition: opacity 0.2s;
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.25s ease;
 }
-.fade-enter-from, .fade-leave-to {
+
+.fade-enter-from,
+.fade-leave-to {
     opacity: 0;
 }
 </style>
-
