@@ -228,16 +228,17 @@ class AnalyticsController extends Controller
 
     private function summaryCards(array $filters): array
     {
-        $applications = $this->filteredApplications($filters);
+        $applicants = $this->filteredBeneficiaries($filters)
+            ->whereNotNull('beneficiaries.submitted_at');
         $beneficiaries = $this->filteredBeneficiaries($filters);
         $attendances = $this->filteredAttendances($filters);
         $workOutputs = $this->filteredWorkOutputs($filters);
 
         return [
-            'total_applicants' => $applications->count(),
+            'total_applicants' => $applicants->distinct('beneficiaries.id')->count('beneficiaries.id'),
             'approved_beneficiaries' => $this->filteredBeneficiaries($filters)->where(function ($q) {
                 $q->where('beneficiaries.approved', true)->orWhere('beneficiaries.approval_status', 'approved')->orWhere('beneficiaries.status', 'approved');
-            })->count(),
+            })->distinct('beneficiaries.id')->count('beneficiaries.id'),
             'students' => $this->categoryCount($filters, ['student', 'students']),
             'osy' => $this->categoryCount($filters, ['osy', 'out_of_school_youth', 'out of school youth']),
             'ddw' => $this->categoryCount($filters, $this->ddwCategories()),
@@ -245,8 +246,8 @@ class AnalyticsController extends Controller
             'schools_represented' => $beneficiaries->where(function ($q) {
                 $q->whereNotNull('beneficiaries.school_id')->orWhereNotNull('beneficiaries.school_name');
             })->distinct('beneficiaries.school_id')->count('beneficiaries.school_id') ?: $beneficiaries->distinct('beneficiaries.school_name')->count('beneficiaries.school_name'),
-            'ongoing_beneficiaries' => $this->ongoingBeneficiaries($filters)->count(),
-            'completed_beneficiaries' => $this->completedBeneficiaries($filters)->count(),
+            'ongoing_beneficiaries' => $this->ongoingBeneficiaries($filters)->distinct('beneficiaries.id')->count('beneficiaries.id'),
+            'completed_beneficiaries' => $this->completedBeneficiaries($filters)->distinct('beneficiaries.id')->count('beneficiaries.id'),
             'rejected_applicants' => $this->filteredApplications($filters)->where('applications.status', 'rejected')->count(),
             'pending_applications' => $this->filteredApplications($filters)->whereIn('applications.status', ['pending', 'applied', 'submitted', 'screening'])->count(),
             'dtr_submitted' => $attendances->count(),
