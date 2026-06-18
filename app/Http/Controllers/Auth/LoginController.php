@@ -104,7 +104,7 @@ class LoginController extends Controller
         } elseif ($user->hasRole('Employer')) {
             return redirect()->route('employer.dashboard');
         } elseif ($user->hasRole('Beneficiary')) {
-            return redirect()->route('onboarding');
+            return redirect()->route('beneficiary.dashboard');
         }
 
         return redirect('/dashboard'); // fallback

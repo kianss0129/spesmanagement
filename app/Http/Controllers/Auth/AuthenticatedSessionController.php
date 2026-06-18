@@ -85,7 +85,7 @@
                 // ADMIN
                 // ----------------------------------------------------
                 if ($user->hasRole('Admin') || $user->hasRole('Super Admin')) {
-                    return redirect()->route('admin.dashboard');
+                    return redirect()->route('dashboard');
                 }
 
 
@@ -160,5 +160,4 @@
             return redirect('/')->with('status', 'Logged out successfully.');
         }
     }
-
 

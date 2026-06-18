@@ -118,6 +118,11 @@ class ContractController extends Controller
                     return;
                 }
 
+                if (! in_array($application->status, ['assigned', 'job_placement', 'jobplacement'], true)) {
+                    $skippedCount++;
+                    return;
+                }
+
                 $exists = Contract::where('application_id', $application->id)
                     ->whereIn('status', ['scheduled', 'rescheduled'])
                     ->exists();

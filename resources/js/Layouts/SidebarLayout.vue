@@ -13,11 +13,6 @@
             <i class="bi bi-house-door me-2"></i> Dashboard
           </Link>
         </li>
-        <li>
-          <Link class="nav-link text-white" href="/appointments">
-            <i class="bi bi-calendar-event me-2"></i> Appointments
-          </Link>
-        </li>
         <!-- Patients link removed — SPES system does not use Patient role -->
         <li>
           <Link class="nav-link text-white" href="/logout" method="post" as="button">

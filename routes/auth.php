@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Log;
 
 // =======================
 // Auth Controllers
@@ -83,6 +84,10 @@ Route::post('/logout', [LoginController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
+Route::middleware('auth')->get('/change-password', function () {
+    return redirect()->route('profile.show');
+})->name('password.change');
+
 // =======================
 // EMAIL VERIFICATION
 // =======================
@@ -120,7 +125,23 @@ Route::middleware('auth')->group(function () {
             return back()->with('status', 'already-verified');
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        try {
+            $request->user()->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::error('Verification email failed to send', [
+                'user_id' => $request->user()->id,
+                'email' => $request->user()->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = 'The verification email could not be sent. Please check the mail server settings and try again.';
+
+            if (config('app.debug')) {
+                $message .= ' Mailer error: ' . $e->getMessage();
+            }
+
+            return back()->withErrors(['email' => $message]);
+        }
 
         return back()->with('status', 'verification-link-sent');
     })

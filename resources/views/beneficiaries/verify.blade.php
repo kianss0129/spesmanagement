@@ -197,7 +197,7 @@
 
                 <div class="space-y-6">
                     <!-- Approve Button -->
-                    <form action="{{ route('beneficiaries.verify', $beneficiary->id) }}" method="POST">
+                    <form action="{{ route('peso.beneficiaries.verify', $beneficiary->id) }}" method="POST">
                         @csrf
                         <input type="hidden" name="action" value="approve">
                         <button type="submit" 
@@ -209,7 +209,7 @@
 
                     <!-- Reject Form -->
                     <div class="border-t pt-6">
-                        <form action="{{ route('beneficiaries.verify', $beneficiary->id) }}" method="POST" id="rejectForm">
+                        <form action="{{ route('peso.beneficiaries.verify', $beneficiary->id) }}" method="POST" id="rejectForm">
                             @csrf
                             <input type="hidden" name="action" value="reject">
 

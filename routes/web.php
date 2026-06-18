@@ -10,9 +10,6 @@ use Inertia\Inertia;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Admin\AdminAssignmentController;
-use App\Http\Controllers\PESO\PESOController;
 
 // =======================
 // LOAD MODULAR ROUTES
@@ -156,15 +153,3 @@ Route::get('storage/certificates/{path}', function ($path) {
     }
     return Storage::disk('public')->response($full);
 })->where('path', '.*');
-
-Route::middleware(['auth', 'throttle:heavy-routes'])->group(function () {
-    Route::get('/admin/stats', [AdminController::class, 'stats']);
-    Route::get('/peso/attendance', [PesoController::class, 'attendance']);
-    Route::get('/peso/announcements', [PesoController::class, 'announcements']);
-    Route::get('/peso/applications', [PesoController::class, 'index']);
-    Route::get('/peso/applications/for-interview', [PesoController::class, 'applicationsForInterview']);
-    Route::get('/peso/beneficiaries/approved', [PesoController::class, 'approvedBeneficiaries']);
-    Route::get('/peso/contracts/upcoming', [PesoController::class, 'upcomingContracts']);
-    Route::get('/peso/analytics/dashboard', [PesoController::class, 'dashboard']);
-    Route::get('/admin/jobs/matched', [AdminAssignmentController::class, 'getAdminMatchedJobs']);
-});

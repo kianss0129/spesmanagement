@@ -9,6 +9,8 @@ const submitting = ref(false)
 const message = ref('')
 const error = ref('')
 const attachment = ref(null)
+const attachmentInput = ref(null)
+const editingReport = ref(null)
 
 const form = ref({
   work_date: localDate(),
@@ -18,8 +20,10 @@ const form = ref({
 })
 
 const sortedReports = computed(() =>
-  [...reports.value].sort((a, b) => new Date(b.work_date || b.created_at || 0) - new Date(a.work_date || a.created_at || 0))
+  [...reports.value].sort((a, b) => new Date(b.original_submitted_at || b.created_at || 0) - new Date(a.original_submitted_at || a.created_at || 0))
 )
+
+const isEditingCorrection = computed(() => Boolean(editingReport.value))
 
 function localDate() {
   const now = new Date()
@@ -37,7 +41,9 @@ async function loadReports() {
 
 async function submitReport() {
   const payload = new FormData()
-  payload.append('work_date', form.value.work_date)
+  if (!isEditingCorrection.value) {
+    payload.append('work_date', form.value.work_date)
+  }
   payload.append('title', form.value.title)
   payload.append('accomplishments', form.value.accomplishments)
   payload.append('hours_worked', form.value.hours_worked)
@@ -51,23 +57,55 @@ async function submitReport() {
     message.value = ''
     error.value = ''
 
-    await axios.post('/beneficiary/work-outputs', payload, {
+    const endpoint = isEditingCorrection.value
+      ? `/beneficiary/work-outputs/${editingReport.value.id}/resubmit`
+      : '/beneficiary/work-outputs'
+
+    await axios.post(endpoint, payload, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
 
-    message.value = 'Daily Accomplishment Report submitted successfully.'
-    form.value = {
-      work_date: localDate(),
-      title: '',
-      accomplishments: '',
-      hours_worked: '',
-    }
-    attachment.value = null
+    message.value = isEditingCorrection.value
+      ? 'Daily Accomplishment Report resubmitted successfully.'
+      : 'Daily Accomplishment Report submitted successfully.'
+    resetForm()
     await loadReports()
   } catch (err) {
-    error.value = err.response?.data?.message || 'Unable to submit Daily Accomplishment Report.'
+    error.value = err.response?.data?.message || (isEditingCorrection.value
+      ? 'Unable to resubmit Daily Accomplishment Report.'
+      : 'Unable to submit Daily Accomplishment Report.')
   } finally {
     submitting.value = false
+  }
+}
+
+function editCorrection(report) {
+  editingReport.value = report
+  form.value = {
+    work_date: report.work_date || localDate(),
+    title: report.title || '',
+    accomplishments: report.accomplishments || '',
+    hours_worked: report.hours_worked || '',
+  }
+  attachment.value = null
+  if (attachmentInput.value) {
+    attachmentInput.value.value = ''
+  }
+  message.value = ''
+  error.value = ''
+}
+
+function resetForm() {
+  editingReport.value = null
+  form.value = {
+    work_date: localDate(),
+    title: '',
+    accomplishments: '',
+    hours_worked: '',
+  }
+  attachment.value = null
+  if (attachmentInput.value) {
+    attachmentInput.value.value = ''
   }
 }
 
@@ -92,6 +130,19 @@ function formatDate(value) {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
+  })
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Not recorded'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: '2-digit',
   })
 }
 
@@ -129,7 +180,22 @@ onMounted(async () => {
 
       <section class="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <form class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6" @submit.prevent="submitReport">
-          <h2 class="text-lg font-bold text-slate-900">Submit Daily Report</h2>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">{{ isEditingCorrection ? 'Resubmit Corrected Report' : 'Submit Daily Report' }}</h2>
+              <p v-if="isEditingCorrection" class="mt-1 text-sm text-slate-500">
+                Editing the report originally submitted at {{ formatDateTime(editingReport.original_submitted_at || editingReport.created_at) }}.
+              </p>
+            </div>
+            <button
+              v-if="isEditingCorrection"
+              type="button"
+              class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              @click="resetForm"
+            >
+              Cancel Edit
+            </button>
+          </div>
 
           <div v-if="message" class="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-800">
             {{ message }}
@@ -141,7 +207,8 @@ onMounted(async () => {
           <div class="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
               <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Work Date</label>
-              <input v-model="form.work_date" type="date" required class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none">
+              <input v-model="form.work_date" type="date" required :disabled="isEditingCorrection" class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500">
+              <p v-if="isEditingCorrection" class="mt-1 text-xs text-slate-500">Work date remains unchanged during correction.</p>
             </div>
             <div>
               <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Hours Worked</label>
@@ -161,8 +228,11 @@ onMounted(async () => {
 
           <div class="mt-4">
             <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Optional Attachment</label>
-            <input type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" class="block w-full rounded-lg border border-slate-300 bg-white text-sm text-slate-700 file:mr-4 file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" @change="handleAttachment">
+            <input ref="attachmentInput" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" class="block w-full rounded-lg border border-slate-300 bg-white text-sm text-slate-700 file:mr-4 file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" @change="handleAttachment">
             <p v-if="attachment" class="mt-2 text-xs text-slate-500">Selected: {{ attachment.name }}</p>
+            <p v-else-if="isEditingCorrection && editingReport.file_url" class="mt-2 text-xs text-slate-500">
+              Current attachment will be kept unless you choose a replacement.
+            </p>
           </div>
 
           <button
@@ -170,7 +240,7 @@ onMounted(async () => {
             :disabled="submitting"
             class="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {{ submitting ? 'Submitting...' : 'Submit Daily Report' }}
+            {{ submitting ? 'Submitting...' : (isEditingCorrection ? 'Resubmit Daily Report' : 'Submit Daily Report') }}
           </button>
         </form>
 
@@ -195,12 +265,38 @@ onMounted(async () => {
                 </span>
               </div>
               <p class="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{{ report.accomplishments }}</p>
+              <dl class="mt-3 grid gap-2 rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-600 sm:grid-cols-2">
+                <div>
+                  <dt class="font-bold uppercase tracking-wide text-slate-500">Original submitted at</dt>
+                  <dd class="mt-1 text-slate-800">{{ formatDateTime(report.original_submitted_at || report.created_at) }}</dd>
+                </div>
+                <div>
+                  <dt class="font-bold uppercase tracking-wide text-slate-500">Resubmitted at</dt>
+                  <dd class="mt-1 text-slate-800">{{ report.resubmitted_at ? formatDateTime(report.resubmitted_at) : 'Not resubmitted' }}</dd>
+                </div>
+                <div>
+                  <dt class="font-bold uppercase tracking-wide text-slate-500">Current status</dt>
+                  <dd class="mt-1 text-slate-800">{{ statusLabel(report.status) }}</dd>
+                </div>
+                <div>
+                  <dt class="font-bold uppercase tracking-wide text-slate-500">Employer remarks</dt>
+                  <dd class="mt-1 text-slate-800">{{ report.review_remarks || 'No remarks yet' }}</dd>
+                </div>
+              </dl>
               <a v-if="report.file_url" :href="report.file_url" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex text-sm font-semibold text-blue-700">
                 View Attachment
               </a>
               <p v-if="report.review_remarks" class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 Employer remarks: {{ report.review_remarks }}
               </p>
+              <button
+                v-if="String(report.status || '').toLowerCase() === 'needs_correction'"
+                type="button"
+                class="mt-3 inline-flex rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700"
+                @click="editCorrection(report)"
+              >
+                Resubmit / Edit
+              </button>
             </article>
           </div>
         </section>

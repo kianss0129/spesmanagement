@@ -21,6 +21,10 @@ const verificationLinkSent = computed(() => {
   return props.status === 'verification-link-sent'
 })
 
+const alreadyVerified = computed(() => {
+  return props.status === 'already-verified'
+})
+
 const userEmail = computed(() => {
   return usePage().props.auth.user.email
 })
@@ -89,6 +93,24 @@ const userEmail = computed(() => {
           class="mt-6 bg-green-500/20 border border-green-400/30 text-green-300 px-4 py-3 rounded-xl text-sm text-center"
         >
           ✔ A new verification link has been sent successfully.
+        </div>
+      </transition>
+
+      <transition name="fade">
+        <div
+          v-if="alreadyVerified"
+          class="mt-6 bg-blue-500/20 border border-blue-400/30 text-blue-200 px-4 py-3 rounded-xl text-sm text-center"
+        >
+          This email address is already verified.
+        </div>
+      </transition>
+
+      <transition name="fade">
+        <div
+          v-if="form.errors.email"
+          class="mt-6 bg-red-500/20 border border-red-400/30 text-red-200 px-4 py-3 rounded-xl text-sm text-center"
+        >
+          {{ form.errors.email }}
         </div>
       </transition>
 

@@ -158,6 +158,51 @@
             </button>
           </section>
 
+          <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            <div
+              v-for="card in analyticsCards"
+              :key="card.key"
+              class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <p class="text-sm font-semibold text-slate-600">{{ card.label }}</p>
+              <p class="mt-3 text-3xl font-bold text-slate-900">{{ card.value }}</p>
+              <p class="mt-2 text-xs text-slate-500">{{ card.description }}</p>
+            </div>
+          </section>
+
+          <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 class="text-lg font-bold text-slate-900">Automatic Insights</h2>
+                <p class="mt-1 text-sm text-slate-500">Highlights based on current SPES records.</p>
+              </div>
+              <button
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                @click="handleMenuClick('reports')"
+              >
+                Generate Reports
+              </button>
+            </div>
+            <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div
+                v-for="insight in reporting.insights"
+                :key="insight.label"
+                class="rounded-lg bg-slate-50 p-4"
+              >
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{{ insight.label }}</p>
+                <p class="mt-2 text-lg font-bold text-slate-900">{{ insight.value }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ insight.meta }}</p>
+              </div>
+              <p
+                v-if="!reporting.insights?.length"
+                class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500"
+              >
+                Insights will appear when records are available.
+              </p>
+            </div>
+          </section>
+
           <section class="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
             <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
               <div class="border-b border-slate-200 p-5">
@@ -456,8 +501,13 @@
         <ReportsSection
           :selected-tab="selectedTab"
           :reports="reports"
+          :reporting="reporting"
+          :filters="reportFilters"
+          :loading="isLoadingData"
           :format-date="formatDate"
           :open-document="openDocument"
+          @update:filters="updateReportFilters"
+          @refresh="loadData"
         />
 
 
@@ -524,7 +574,7 @@
               <span class="font-semibold text-slate-900">{{ entry.user_name || entry.user || 'System' }}</span>
               <span>{{ entry.action || 'Activity recorded' }}</span>
               <span>{{ entry.module || entry.record || entry.subject || 'System' }}</span>
-              <span>{{ entry.details || entry.description || entry.record || 'No details provided.' }}</span>
+              <span>{{ formatAuditDetails(entry) }}</span>
             </div>
 
             <div
@@ -1265,6 +1315,28 @@ const toast = ref({
 // DATA STATE
 // =====================================================
 const reports = ref([])
+const reporting = ref({
+  summary: {},
+  charts: {},
+  reports: {},
+  insights: [],
+  filters: {
+    employers: [],
+    schools: [],
+    categories: [],
+    statuses: [],
+    batches: [],
+  },
+})
+const reportFilters = ref({
+  start_date: '',
+  end_date: '',
+  employer_id: '',
+  school_id: '',
+  category: '',
+  status: '',
+  batch_id: '',
+})
 const workOutputs = ref([])
 const exams = ref([])
 const batchHistory = ref([])
@@ -2188,6 +2260,39 @@ const quickActionItems = computed(() => [
   { label: 'Generate Report', target: 'reports' },
 ])
 
+const analyticsCardDefinitions = [
+  ['total_applicants', 'Total Applicants', 'Applications received by CPESO.'],
+  ['approved_beneficiaries', 'Total Approved Beneficiaries', 'Beneficiaries approved for SPES.'],
+  ['students', 'Total Students', 'Approved and applicant records tagged as student.'],
+  ['osy', 'Total OSY', 'Out-of-school youth records.'],
+  ['ddw', 'Total DDW', 'Dependents of displaced workers.'],
+  ['participating_employers', 'Total Participating Employers', 'Approved or active employer partners.'],
+  ['schools_represented', 'Total Schools Represented', 'Schools found in beneficiary records.'],
+  ['ongoing_beneficiaries', 'Ongoing Beneficiaries', 'Approved beneficiaries still active.'],
+  ['completed_beneficiaries', 'Completed Beneficiaries', 'Beneficiaries marked completed.'],
+  ['rejected_applicants', 'Rejected Applicants', 'Applications rejected by CPESO.'],
+  ['pending_applications', 'Pending Applications', 'Applications still awaiting action.'],
+  ['dtr_submitted', 'Total DTR Submitted', 'Attendance/DTR records submitted.'],
+  ['daily_reports_submitted', 'Total Daily Reports Submitted', 'Daily accomplishment reports submitted.'],
+]
+
+const analyticsCards = computed(() =>
+  analyticsCardDefinitions.map(([key, label, description]) => ({
+    key,
+    label,
+    description,
+    value: Number(reporting.value.summary?.[key] ?? 0).toLocaleString(),
+  }))
+)
+
+function updateReportFilters(nextFilters) {
+  reportFilters.value = {
+    ...reportFilters.value,
+    ...(nextFilters || {}),
+  }
+  loadData()
+}
+
 
 const recentTriageActivity = computed(() => {
   return applications.value
@@ -2336,9 +2441,92 @@ function formatDate(value) {
   })
 }
 
+function parseAuditProperties(entry) {
+  if (entry?.properties && typeof entry.properties === 'object') {
+    return entry.properties
+  }
+
+  if (typeof entry?.details !== 'string') {
+    return null
+  }
+
+  const value = entry.details.trim()
+  if (!value.startsWith('{') && !value.startsWith('[')) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function labelFromKey(key) {
+  return String(key)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function formatAuditDetails(entry) {
+  const properties = parseAuditProperties(entry)
+
+  if (!properties) {
+    return entry.details || entry.description || entry.record || 'No details provided.'
+  }
+
+  const hiddenKeys = new Set(['module', 'backfilled'])
+  const preferredKeys = [
+    'batch_title',
+    'exam_date',
+    'location',
+    'status',
+    'result',
+    'reschedule_reason',
+    'beneficiary_id',
+    'application_id',
+    'exam_id',
+  ]
+
+  const keys = [
+    ...preferredKeys.filter((key) => properties[key] !== undefined && properties[key] !== null && properties[key] !== ''),
+    ...Object.keys(properties).filter((key) => !preferredKeys.includes(key) && !hiddenKeys.has(key)),
+  ]
+
+  const details = keys
+    .filter((key) => !hiddenKeys.has(key))
+    .map((key) => {
+      const value = key.endsWith('_date') || key.endsWith('_at')
+        ? formatDate(properties[key])
+        : properties[key]
+
+      return `${labelFromKey(key)}: ${value}`
+    })
+
+  return details.length ? details.join(' | ') : entry.description || 'No details provided.'
+}
+
 function combineDateAndTime(date, time) {
   if (!date || !time) return ''
   return `${date}T${time}`
+}
+
+function addMinutesToDateTime(value, minutes) {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  date.setMinutes(date.getMinutes() + minutes)
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const mins = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${mins}`
 }
 
 function getFormStart(form, fallbackField) {
@@ -2630,7 +2818,14 @@ async function loadData() {
       params: {
         date_filter: dateFilter.value,
         start_date: customRange.value.start || undefined,
-        end_date: customRange.value.end || undefined
+        end_date: customRange.value.end || undefined,
+        report_start_date: reportFilters.value.start_date || undefined,
+        report_end_date: reportFilters.value.end_date || undefined,
+        employer_id: reportFilters.value.employer_id || undefined,
+        school_id: reportFilters.value.school_id || undefined,
+        category: reportFilters.value.category || undefined,
+        status: reportFilters.value.status || undefined,
+        batch_id: reportFilters.value.batch_id || undefined,
       }
     })
 
@@ -2644,6 +2839,19 @@ async function loadData() {
       chart_dates: [],
       users_growth: [],
       applications_by_peso: []
+    }
+    reporting.value = analyticsRes.data.reporting || {
+      summary: {},
+      charts: {},
+      reports: {},
+      insights: [],
+      filters: {
+        employers: [],
+        schools: [],
+        categories: [],
+        statuses: [],
+        batches: [],
+      },
     }
 
 
@@ -2904,8 +3112,9 @@ async function loadData() {
 // =====================================================
 async function scheduleInterview() {
   const selectedIds = scheduleForm.value.application_ids || []
+  const selectedCount = selectedIds.length || (scheduleForm.value.application_id ? 1 : 0)
   const start = getFormStart(scheduleForm.value, 'start')
-  const endAt = getFormEnd(scheduleForm.value)
+  const endAt = addMinutesToDateTime(start, Math.max(selectedCount, 1) * 30)
 
   if (selectedIds.length === 0 && !scheduleForm.value.application_id) {
     showToast('Please select at least one applicant')
@@ -2914,11 +3123,6 @@ async function scheduleInterview() {
 
   if (!start) {
     showToast('Please select interview date and start time')
-    return
-  }
-
-  if (!endAt) {
-    showToast('Please select interview end time')
     return
   }
 
@@ -3649,12 +3853,5 @@ function exportEmployers() {
 
 
 </script>
-
-
-
-
-
-
-
 
 

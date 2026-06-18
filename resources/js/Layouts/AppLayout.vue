@@ -45,7 +45,7 @@ const logout = () => {
           <div class="flex justify-between h-16 items-center">
             <!-- ✅ Custom Logo -->
             <div class="flex items-center">
-              <img src="/images/logo.png.svg" alt="" class="h-9 w-auto" />
+              <img src="/images/spes-logo.png" alt="" class="h-9 w-auto" />
               <span class="ml-2 font-bold text-lg text-gray-800">SPES MANAGEMENT SYSTEM</span>
             </div>
 

@@ -60,6 +60,20 @@ class ExamController extends Controller
             }
         });
 
+        $exam->refresh();
+
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($exam)
+            ->withProperties([
+                'module' => 'Exam',
+                'exam_id' => $exam->id,
+                'application_id' => $exam->application_id,
+                'status' => $exam->status,
+                'result' => $validated['result'],
+            ])
+            ->log('Exam marked as ' . $validated['result']);
+
         return response()->json([
             'message' => 'Exam result updated successfully.',
         ]);
@@ -153,6 +167,22 @@ class ExamController extends Controller
                     'status' => 'for_exam',
                 ]);
 
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($exam)
+                    ->withProperties([
+                        'module' => 'Exam',
+                        'exam_id' => $exam->id,
+                        'application_id' => $application->id,
+                        'beneficiary_id' => $application->beneficiary_id,
+                        'schedule_group_id' => $scheduleGroupId,
+                        'batch_title' => $batchTitle,
+                        'exam_date' => $examDate->toDateTimeString(),
+                        'location' => $validated['location'],
+                        'status' => 'scheduled',
+                    ])
+                    ->log('Exam scheduled by PESO');
+
                 $email = optional(optional($application->beneficiary)->user)->email;
 
                 if ($notifyBeneficiaries && $email) {
@@ -243,6 +273,21 @@ class ExamController extends Controller
                 'notify_beneficiaries' => $notifyBeneficiaries,
                 'status' => 'rescheduled',
             ]);
+
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($target)
+                ->withProperties([
+                    'module' => 'Exam',
+                    'exam_id' => $target->id,
+                    'application_id' => $target->application_id,
+                    'schedule_group_id' => $target->schedule_group_id,
+                    'exam_date' => $target->exam_date?->toDateTimeString(),
+                    'location' => $target->location,
+                    'reschedule_reason' => $validated['reschedule_reason'],
+                    'status' => 'rescheduled',
+                ])
+                ->log('Exam rescheduled by PESO');
 
             // TODO: Add dedicated exam reschedule notification content.
             $updated->push($target->fresh(['application.beneficiary.user', 'scheduledBy:id,name,email']));

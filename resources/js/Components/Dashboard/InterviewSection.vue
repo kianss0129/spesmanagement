@@ -63,6 +63,38 @@ const selectedApplications = computed(() => {
     .filter(Boolean)
 })
 
+const selectedScheduleCount = computed(() => {
+  const selectedIds = props.scheduleForm?.application_ids || []
+
+  if (selectedIds.length > 0) {
+    return selectedIds.length
+  }
+
+  return props.scheduleForm?.application_id ? 1 : 0
+})
+
+const computedEndTime = computed(() => {
+  const date = props.scheduleForm?.date
+  const startTime = props.scheduleForm?.start_time
+
+  if (!date || !startTime || selectedScheduleCount.value < 1) {
+    return ''
+  }
+
+  const start = new Date(`${date}T${startTime}`)
+
+  if (Number.isNaN(start.getTime())) {
+    return ''
+  }
+
+  start.setMinutes(start.getMinutes() + (selectedScheduleCount.value * 30))
+
+  return [
+    String(start.getHours()).padStart(2, '0'),
+    String(start.getMinutes()).padStart(2, '0'),
+  ].join(':')
+})
+
 const totalInterviews = computed(() => props.interviews?.length || 0)
 
 const pendingInterviews = computed(() => {
@@ -559,9 +591,10 @@ function statusClass(status) {
                 End Time
               </label>
               <input
-                v-model="scheduleForm.end_time"
+                :value="computedEndTime"
                 type="time"
                 required
+                readonly
                 class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
               />
             </div>

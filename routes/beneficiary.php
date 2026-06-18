@@ -312,5 +312,6 @@ Route::middleware(['auth', 'verified', 'role:Beneficiary'])
         })->name('activities');
         Route::get('/work-outputs', [WorkOutputController::class, 'beneficiaryIndex'])->name('work-outputs.index');
         Route::post('/work-outputs', [WorkOutputController::class, 'beneficiaryStore'])->name('work-outputs.store');
+        Route::post('/work-outputs/{workOutput}/resubmit', [WorkOutputController::class, 'beneficiaryResubmit'])->name('work-outputs.resubmit');
         Route::post('/change-password', [ChangePasswordController::class, 'update'])->name('change-password');
     });

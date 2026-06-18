@@ -36,12 +36,12 @@ class RouteServiceProvider extends ServiceProvider
                 $role = auth()->user()->getRoleNames()->first();
 
                 return match ($role) {
-                    'Admin' => redirect('/admin-dashboard'),
+                    'Admin' => redirect('/dashboard'),
                     'PESO' => redirect('/peso-user/dashboard'),
                     'PESO User' => redirect('/peso-user/dashboard'),
-                    'Employer' => redirect('/employer/dashboard'),
-                    'Beneficiary' => redirect('/beneficiary/dashboard'),
-                    'Super Admin' => redirect('/admin-dashboard'),
+                    'Employer' => redirect('/employer'),
+                    'Beneficiary' => redirect('/beneficiary'),
+                    'Super Admin' => redirect('/dashboard'),
                     default => abort(403),
                 };
             });

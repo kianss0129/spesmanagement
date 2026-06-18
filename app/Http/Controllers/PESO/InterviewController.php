@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -29,7 +30,7 @@ class InterviewController extends Controller
             'batch_name' => 'nullable|string|max:255',
             'interviewer_id' => 'required|exists:users,id',
             'start' => 'required|date',
-            'end_at' => 'nullable|date|after:start',
+            'end_at' => 'nullable|date',
             'summary' => 'nullable|string',
             'attendees' => 'nullable|array',
             'meet_link' => 'required_without:google_meet_link|nullable|url',
@@ -58,21 +59,18 @@ class InterviewController extends Controller
             ]);
         }
 
-        $scheduledAt = Carbon::parse($data['start']);
-        $endAt = ! empty($data['end_at'])
-            ? Carbon::parse($data['end_at'])
-            : $scheduledAt->copy()->addHour();
+        $baseScheduledAt = Carbon::parse($data['start']);
         $meetLink = $data['meet_link'] ?? $data['google_meet_link'] ?? null;
         $scheduleGroupId = (string) Str::uuid();
         $batchTitle = $data['batch_title'] ?? $data['batch_name'] ?? null;
         $notifyBeneficiaries = $request->boolean('notify_beneficiaries', true);
+        $slotMinutes = 30;
 
-        $scheduledCount = 0;
         $warnings = [];
+        $eligibleApplications = collect();
 
         foreach ($applicationIds as $applicationId) {
             $application = Application::with(['beneficiary.user', 'jobListing', 'interview'])->findOrFail($applicationId);
-            $beneficiary = $application->beneficiary;
 
             if ($application->status !== 'for_interview') {
                 $warnings[] = "This applicant is not eligible for interview scheduling.";
@@ -88,44 +86,113 @@ class InterviewController extends Controller
                 continue;
             }
 
-            // Cancel any existing stale scheduled interviews for this application
-            Interview::where('application_id', $application->id)
-                ->where('status', 'scheduled')
-                ->update(['status' => 'cancelled']);
+            $eligibleApplications->push($application);
+        }
 
-            $interview = Interview::create([
-                'application_id' => $application->id,
-                'job_listing_id' => $application->job_listing_id,
-                'employer_id' => $application->jobListing?->employer_id,
-                'beneficiary_id' => $application->beneficiary_id,
-                'scheduled_at' => $scheduledAt,
-                'end_at' => $endAt,
-                'meet_link' => $meetLink,
-                'schedule_group_id' => $scheduleGroupId,
-                'batch_title' => $batchTitle,
-                'scheduled_by' => auth()->id(),
-                'interviewer_id' => $data['interviewer_id'] ?? null,
-                'instructions' => $data['instructions'] ?? null,
-                'notify_beneficiaries' => $notifyBeneficiaries,
-                'status' => 'scheduled',
-                'result' => 'pending',
-            ]);
-
-            $application->update([
-                'status' => 'for_interview',
-            ]);
-
-            activity()
-                ->causedBy(auth()->user())
-                ->performedOn($interview)
-                ->log('Interview scheduled by PESO');
-
-            if ($notifyBeneficiaries && $beneficiary) {
-                NotificationService::sendInterviewNotification($beneficiary, $interview);
+        if ($eligibleApplications->isEmpty()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'This applicant is not eligible for interview scheduling.',
+                    'warnings' => $warnings,
+                ], 422);
             }
 
-            $scheduledCount++;
+            return back()->withErrors([
+                'error' => 'No interviews were scheduled. ' . implode(' ', $warnings),
+            ]);
         }
+
+        $selectedApplicationIds = $eligibleApplications->pluck('id')->all();
+
+        foreach ($eligibleApplications->values() as $index => $application) {
+            $slotStart = $baseScheduledAt->copy()->addMinutes($index * $slotMinutes);
+            $slotEnd = $slotStart->copy()->addMinutes($slotMinutes);
+            $conflict = $this->findOverlappingInterview(
+                (int) $data['interviewer_id'],
+                $slotStart,
+                $slotEnd,
+                $selectedApplicationIds
+            );
+
+            if ($conflict) {
+                return response()->json([
+                    'message' => sprintf(
+                        'Interview schedule overlaps with an existing interview for %s from %s to %s.',
+                        $this->getInterviewApplicantName($conflict),
+                        $conflict->scheduled_at?->format('h:i A') ?? 'unknown time',
+                        ($conflict->end_at ?: $conflict->scheduled_at?->copy()->addMinutes($slotMinutes))?->format('h:i A') ?? 'unknown time'
+                    ),
+                ], 422);
+            }
+        }
+
+        $scheduledCount = 0;
+
+        DB::transaction(function () use (
+            $eligibleApplications,
+            $baseScheduledAt,
+            $slotMinutes,
+            $meetLink,
+            $scheduleGroupId,
+            $batchTitle,
+            $data,
+            $notifyBeneficiaries,
+            &$scheduledCount
+        ) {
+            foreach ($eligibleApplications->values() as $index => $application) {
+                $beneficiary = $application->beneficiary;
+                $slotStart = $baseScheduledAt->copy()->addMinutes($index * $slotMinutes);
+                $slotEnd = $slotStart->copy()->addMinutes($slotMinutes);
+
+                // Cancel any existing stale scheduled interviews for this application.
+                Interview::where('application_id', $application->id)
+                    ->where('status', 'scheduled')
+                    ->update(['status' => 'cancelled']);
+
+                $interview = Interview::create([
+                    'application_id' => $application->id,
+                    'job_listing_id' => $application->job_listing_id,
+                    'employer_id' => $application->jobListing?->employer_id,
+                    'beneficiary_id' => $application->beneficiary_id,
+                    'scheduled_at' => $slotStart,
+                    'end_at' => $slotEnd,
+                    'meet_link' => $meetLink,
+                    'schedule_group_id' => $scheduleGroupId,
+                    'batch_title' => $batchTitle,
+                    'scheduled_by' => auth()->id(),
+                    'interviewer_id' => $data['interviewer_id'] ?? null,
+                    'instructions' => $data['instructions'] ?? null,
+                    'notify_beneficiaries' => $notifyBeneficiaries,
+                    'status' => 'scheduled',
+                    'result' => 'pending',
+                ]);
+
+                $application->update([
+                    'status' => 'for_interview',
+                ]);
+
+                activity()
+                    ->causedBy(auth()->user())
+                    ->performedOn($interview)
+                    ->withProperties([
+                        'module' => 'Interview',
+                        'application_id' => $application->id,
+                        'beneficiary_id' => $application->beneficiary_id,
+                        'interviewer_id' => $data['interviewer_id'] ?? null,
+                        'scheduled_at' => $slotStart->toDateTimeString(),
+                        'end_at' => $slotEnd->toDateTimeString(),
+                        'schedule_group_id' => $scheduleGroupId,
+                        'batch_title' => $batchTitle,
+                    ])
+                    ->log('Interview scheduled by PESO');
+
+                if ($notifyBeneficiaries && $beneficiary) {
+                    NotificationService::sendInterviewNotification($beneficiary, $interview);
+                }
+
+                $scheduledCount++;
+            }
+        });
 
         if ($scheduledCount === 0) {
             if ($request->wantsJson()) {
@@ -245,17 +312,43 @@ class InterviewController extends Controller
         $targets = $this->resolveRescheduleTargets($interview, $validated['reschedule_scope'] ?? 'single');
         $notifyBeneficiaries = $request->boolean('notify_beneficiaries', true);
         $updated = collect();
+        $slotMinutes = 30;
+        $ignoredApplicationIds = $targets->pluck('application_id')->filter()->all();
 
-        foreach ($targets as $target) {
+        foreach ($targets->values() as $index => $target) {
             $newScheduledAt = $scheduledAtValue
-                ? Carbon::parse($scheduledAtValue)
+                ? Carbon::parse($scheduledAtValue)->addMinutes($index * $slotMinutes)
                 : $target->scheduled_at;
+            $newEndAt = $scheduledAtValue
+                ? $newScheduledAt->copy()->addMinutes($slotMinutes)
+                : (! empty($validated['end_at']) ? Carbon::parse($validated['end_at']) : $target->end_at);
+            $newInterviewerId = $validated['interviewer_id'] ?? $target->interviewer_id;
+
+            if ($newInterviewerId) {
+                $conflict = $this->findOverlappingInterview(
+                    (int) $newInterviewerId,
+                    $newScheduledAt,
+                    $newEndAt,
+                    $ignoredApplicationIds
+                );
+
+                if ($conflict) {
+                    return response()->json([
+                        'message' => sprintf(
+                            'Interview schedule overlaps with an existing interview for %s from %s to %s.',
+                            $this->getInterviewApplicantName($conflict),
+                            $conflict->scheduled_at?->format('h:i A') ?? 'unknown time',
+                            ($conflict->end_at ?: $conflict->scheduled_at?->copy()->addMinutes($slotMinutes))?->format('h:i A') ?? 'unknown time'
+                        ),
+                    ], 422);
+                }
+            }
 
             $target->update([
                 'scheduled_at' => $newScheduledAt,
-                'end_at' => ! empty($validated['end_at']) ? Carbon::parse($validated['end_at']) : $target->end_at,
+                'end_at' => $newEndAt,
                 'meet_link' => $validated['meet_link'] ?? $validated['google_meet_link'] ?? $target->meet_link,
-                'interviewer_id' => $validated['interviewer_id'] ?? $target->interviewer_id,
+                'interviewer_id' => $newInterviewerId,
                 'original_schedule_at' => $target->original_schedule_at ?? $target->scheduled_at,
                 'rescheduled_at' => now(),
                 'reschedule_reason' => $validated['reschedule_reason'],
@@ -387,6 +480,33 @@ class InterviewController extends Controller
         }
 
         return collect([$interview->load(['beneficiary.user', 'jobListing.employer'])]);
+    }
+
+    private function findOverlappingInterview(int $interviewerId, Carbon $slotStart, Carbon $slotEnd, array $ignoredApplicationIds = []): ?Interview
+    {
+        return Interview::with('beneficiary.user')
+            ->where('interviewer_id', $interviewerId)
+            ->where('status', 'scheduled')
+            ->whereDate('scheduled_at', $slotStart->toDateString())
+            ->when(! empty($ignoredApplicationIds), function ($query) use ($ignoredApplicationIds) {
+                $query->whereNotIn('application_id', $ignoredApplicationIds);
+            })
+            ->get()
+            ->first(function (Interview $interview) use ($slotStart, $slotEnd) {
+                $existingStart = $interview->scheduled_at;
+                $existingEnd = $interview->end_at ?: $existingStart?->copy()->addMinutes(30);
+
+                return $existingStart && $existingEnd && $existingStart->lt($slotEnd) && $existingEnd->gt($slotStart);
+            });
+    }
+
+    private function getInterviewApplicantName(Interview $interview): string
+    {
+        return trim(implode(' ', array_filter([
+            $interview->beneficiary?->first_name,
+            $interview->beneficiary?->middle_name,
+            $interview->beneficiary?->last_name,
+        ]))) ?: $interview->beneficiary?->user?->name ?? 'another applicant';
     }
 
     private function formatInterview(Interview $interview): array

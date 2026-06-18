@@ -101,7 +101,7 @@
             </Link>
 
             <button
-              v-if="canApprove"
+              v-if="canShowDecisionActions(beneficiary)"
               type="button"
               class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 hover:bg-green-100"
               @click="openApproveDialog(beneficiary.id)"
@@ -110,7 +110,7 @@
             </button>
 
             <button
-              v-if="canApprove"
+              v-if="canShowDecisionActions(beneficiary)"
               type="button"
               class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100"
               @click="openCorrectionDialog(beneficiary.id)"
@@ -119,7 +119,7 @@
             </button>
 
             <button
-              v-if="canApprove"
+              v-if="canShowDecisionActions(beneficiary)"
               type="button"
               class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
               @click="openRejectDialog(beneficiary.id)"
@@ -247,6 +247,10 @@ function beneficiaryName(beneficiary) {
 
 function formatStatusValue(record) {
   return String(record.approval_status || record.status || 'pending').toLowerCase()
+}
+
+function canShowDecisionActions(beneficiary) {
+  return props.canApprove && formatStatusValue(beneficiary) !== 'approved'
 }
 
 function formatStatus(status) {

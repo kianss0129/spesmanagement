@@ -23,11 +23,48 @@ const props = defineProps({
 })
 
 const selectedIds = computed(() => props.contractForm?.application_ids || [])
-const assignedApplications = computed(() => (props.sortedApplications || []).filter(props.isAssignedApplication))
+const assignedApplications = computed(() => {
+  return (props.sortedApplications || []).filter((app) => {
+    if (typeof props.isAssignedApplication === 'function' && !props.isAssignedApplication(app)) {
+      return false
+    }
+
+    return isReadyForContractScheduling(app)
+  })
+})
 const unassignedApplications = computed(() => (props.sortedApplications || []).filter((app) => !props.isAssignedApplication(app)))
 
 function isSelected(id) {
   return selectedIds.value.some((item) => Number(item) === Number(id))
+}
+
+function normalizedStatus(value) {
+  return String(value || '').toLowerCase().trim()
+}
+
+function isReadyForContractScheduling(app) {
+  const status = normalizedStatus(app?.status)
+  const contractStatus = normalizedStatus(app?.contract_status || app?.contract?.status)
+  const contractResult = normalizedStatus(app?.contract_result || app?.contract?.result)
+  const terminalStatuses = [
+    'for_contract',
+    'contract',
+    'contract_signed',
+    'signed',
+    'deployed',
+    'ongoing',
+    'completion_review',
+    'completed',
+    'rejected',
+    'failed',
+    'cancelled',
+  ]
+
+  if (terminalStatuses.includes(status)) return false
+  if (['scheduled', 'rescheduled', 'completed'].includes(contractStatus)) return false
+  if (['signed', 'not_signed'].includes(contractResult)) return false
+
+  return status === 'assigned' || status === 'job_placement' || status === 'jobplacement'
 }
 </script>
 

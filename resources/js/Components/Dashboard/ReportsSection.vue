@@ -1,5 +1,8 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { Chart, registerables } from 'chart.js'
+
+Chart.register(...registerables)
 
 const props = defineProps({
   selectedTab: String,
@@ -7,113 +10,218 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  reporting: {
+    type: Object,
+    default: () => ({
+      summary: {},
+      charts: {},
+      reports: {},
+      insights: [],
+      filters: {},
+    }),
+  },
+  filters: {
+    type: Object,
+    default: () => ({}),
+  },
+  loading: Boolean,
   formatDate: {
     type: Function,
     default: (date) => date,
   },
-  openDocument: {
-    type: Function,
-    default: () => {},
-  },
 })
 
-const search = ref('')
-const currentPage = ref(1)
-const selectedReport = ref(null)
-const itemsPerPage = 10
+const emit = defineEmits(['update:filters', 'refresh'])
 
-const filteredReports = computed(() => {
-  const keyword = search.value.trim().toLowerCase()
+const localFilters = ref({
+  start_date: props.filters.start_date || '',
+  end_date: props.filters.end_date || '',
+  employer_id: props.filters.employer_id || '',
+  school_id: props.filters.school_id || '',
+  category: props.filters.category || '',
+  status: props.filters.status || '',
+  batch_id: props.filters.batch_id || '',
+})
 
-  return props.reports.filter((report) => {
-    const haystack = [
-      submittedBy(report),
-      reportTitle(report),
-      reportBody(report),
-      employerName(report),
-      report.id,
-    ].join(' ').toLowerCase()
+const selectedReport = ref('company')
+const chartCanvas = ref({})
+const chartInstances = new Map()
 
-    return !keyword || haystack.includes(keyword)
+const reportTabs = [
+  { key: 'company', label: 'Company Report' },
+  { key: 'school', label: 'School Report' },
+  { key: 'category', label: 'Category Report' },
+  { key: 'application', label: 'Application Report' },
+  { key: 'attendance', label: 'Attendance Report' },
+  { key: 'daily_report', label: 'Daily Report Report' },
+  { key: 'employer_participation', label: 'Employer Participation' },
+]
+
+const chartDefinitions = [
+  ['beneficiaries_per_company', 'Beneficiaries Per Company', 'bar'],
+  ['beneficiaries_per_school', 'Beneficiaries Per School', 'bar'],
+  ['beneficiary_categories', 'Beneficiary Categories', 'pie'],
+  ['application_status_distribution', 'Application Status Distribution', 'pie'],
+  ['applications_per_month', 'Applications Per Month', 'line'],
+  ['completed_beneficiaries_per_month', 'Completed Beneficiaries Per Month', 'line'],
+  ['dtr_status_summary', 'DTR Status Summary', 'bar'],
+  ['daily_report_status_summary', 'Daily Report Status Summary', 'bar'],
+  ['top_participating_employers', 'Top Participating Employers', 'bar'],
+  ['top_schools_with_most_beneficiaries', 'Top Schools With Most Beneficiaries', 'bar'],
+]
+
+const summaryCards = computed(() => {
+  const summary = props.reporting?.summary || {}
+  return [
+    ['total_applicants', 'Total Applicants'],
+    ['approved_beneficiaries', 'Approved Beneficiaries'],
+    ['participating_employers', 'Participating Employers'],
+    ['ongoing_beneficiaries', 'Ongoing Beneficiaries'],
+    ['completed_beneficiaries', 'Completed Beneficiaries'],
+    ['dtr_submitted', 'DTR Submitted'],
+    ['daily_reports_submitted', 'Daily Reports'],
+  ].map(([key, label]) => ({ key, label, value: Number(summary[key] || 0).toLocaleString() }))
+})
+
+const activeRows = computed(() => {
+  const value = props.reporting?.reports?.[selectedReport.value]
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') return [value]
+  return []
+})
+
+const activeColumns = computed(() => {
+  const row = activeRows.value[0]
+  if (!row) return []
+  return Object.keys(row)
+})
+
+const filterOptions = computed(() => props.reporting?.filters || {})
+
+watch(() => props.filters, (value) => {
+  localFilters.value = { ...localFilters.value, ...(value || {}) }
+}, { deep: true })
+
+watch(() => props.reporting?.charts, () => {
+  if (props.selectedTab === 'reports') renderCharts()
+}, { deep: true })
+
+watch(() => props.selectedTab, (tab) => {
+  if (tab === 'reports') renderCharts()
+})
+
+onBeforeUnmount(() => {
+  chartInstances.forEach((chart) => chart.destroy())
+  chartInstances.clear()
+})
+
+function setChartRef(key, el) {
+  if (el) chartCanvas.value[key] = el
+}
+
+function applyFilters() {
+  emit('update:filters', { ...localFilters.value })
+}
+
+function clearFilters() {
+  localFilters.value = {
+    start_date: '',
+    end_date: '',
+    employer_id: '',
+    school_id: '',
+    category: '',
+    status: '',
+    batch_id: '',
+  }
+  applyFilters()
+}
+
+function renderCharts() {
+  nextTick(() => {
+    chartDefinitions.forEach(([key, title, type]) => {
+      const canvas = chartCanvas.value[key]
+      const dataset = props.reporting?.charts?.[key] || { labels: [], data: [] }
+      if (!canvas) return
+
+      chartInstances.get(key)?.destroy()
+
+      chartInstances.set(key, new Chart(canvas, {
+        type,
+        data: {
+          labels: dataset.labels || [],
+          datasets: [{
+            label: title,
+            data: dataset.data || [],
+            backgroundColor: type === 'pie'
+              ? ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b']
+              : 'rgba(37, 99, 235, 0.72)',
+            borderColor: type === 'line' ? '#2563eb' : 'rgba(37, 99, 235, 0.9)',
+            borderWidth: type === 'line' ? 3 : 1,
+            fill: type === 'line',
+            tension: 0.35,
+            borderRadius: type === 'bar' ? 8 : 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: type === 'pie' },
+          },
+          scales: type === 'pie' ? {} : {
+            x: { grid: { display: false }, ticks: { color: '#64748b' } },
+            y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b' }, grid: { color: '#e2e8f0' } },
+          },
+        },
+      }))
+    })
   })
-})
-
-const totalPages = computed(() => Math.max(Math.ceil(filteredReports.value.length / itemsPerPage), 1))
-
-const paginatedReports = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return filteredReports.value.slice(start, start + itemsPerPage)
-})
-
-const summaryCards = computed(() => [
-  {
-    label: 'Submitted',
-    value: props.reports.length,
-    description: 'Reports received by CPESO.',
-  },
-  {
-    label: 'With Attachment',
-    value: props.reports.filter((report) => Boolean(fileUrl(report))).length,
-    description: 'Reports with uploaded proof or files.',
-  },
-  {
-    label: 'No Attachment',
-    value: props.reports.filter((report) => !fileUrl(report)).length,
-    description: 'Reports submitted without files.',
-  },
-])
-
-watch(search, () => {
-  currentPage.value = 1
-})
-
-function submittedBy(report) {
-  return report.submitted_by || report.employer_name || report.employer?.company_name || 'Unknown submitter'
 }
 
-function employerName(report) {
-  return report.employer_name || report.employer?.company_name || submittedBy(report)
+function formatLabel(key) {
+  return String(key)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function reportTitle(report) {
-  return report.title || 'Untitled report'
+function formatValue(value, key = '') {
+  if (value === null || value === undefined || value === '') return 'N/A'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (key.includes('date') || key.includes('_at')) return props.formatDate(value)
+  if (typeof value === 'number') return Number.isInteger(value) ? value.toLocaleString() : value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  return value
 }
 
-function reportBody(report) {
-  return report.body || report.message || report.report_details || ''
+function exportCsv(extension = 'csv') {
+  const rows = activeRows.value
+  const columns = activeColumns.value
+  const reportName = reportTabs.find((tab) => tab.key === selectedReport.value)?.label || 'Report'
+  const csvRows = [
+    columns.map(formatLabel),
+    ...rows.map((row) => columns.map((column) => csvCell(formatValue(row[column], column)))),
+  ]
+  const csv = csvRows.map((row) => row.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${reportName.toLowerCase().replace(/\s+/g, '-')}.${extension}`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
-function bodyPreview(report) {
-  const text = reportBody(report).trim()
-  if (!text) return 'No message provided.'
-  return text.length > 120 ? `${text.slice(0, 120)}...` : text
+function csvCell(value) {
+  const text = String(value ?? '')
+  return `"${text.replace(/"/g, '""')}"`
 }
 
-function fileUrl(report) {
-  const url = report.file_url || report.attachment_url || report.document_url || report.path || report.file_path || ''
-  if (!url) return ''
-  if (/^https?:\/\//i.test(url) || url.startsWith('/')) return url
-  return `/storage/${url}`
+function printReport() {
+  window.print()
 }
 
-function downloadUrl(report) {
-  return fileUrl(report) || '#'
-}
-
-function openDetails(report) {
-  selectedReport.value = report
-}
-
-function closeDetails() {
-  selectedReport.value = null
-}
-
-function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++
-}
-
-function prevPage() {
-  if (currentPage.value > 1) currentPage.value--
+function hasChartData(key) {
+  const data = props.reporting?.charts?.[key]?.data || []
+  return data.some((value) => Number(value) > 0)
 }
 </script>
 
@@ -122,150 +230,140 @@ function prevPage() {
     <header class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Report Records</p>
-          <h1 class="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Reports</h1>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Reporting Center</p>
+          <h1 class="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Generate Reports</h1>
           <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            View employer-submitted reports and uploaded supporting files.
+            Monitor SPES implementation, beneficiary progress, employer participation, attendance, and daily report compliance using live database records.
           </p>
         </div>
 
-        <a
-          href="/peso/reports/dole"
-          class="inline-flex w-fit items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          Generate DOLE Report
-        </a>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="exportCsv('csv')">
+            Excel
+          </button>
+          <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="printReport">
+            PDF
+          </button>
+          <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" @click="printReport">
+            Print
+          </button>
+        </div>
       </div>
     </header>
 
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <div v-for="card in summaryCards" :key="card.label" class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm font-semibold text-slate-600">{{ card.label }}</p>
-        <p class="mt-3 text-3xl font-bold text-slate-900">{{ card.value }}</p>
-        <p class="mt-2 text-xs text-slate-500">{{ card.description }}</p>
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm print:hidden">
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <input v-model="localFilters.start_date" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+        <input v-model="localFilters.end_date" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+        <select v-model="localFilters.employer_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <option value="">All Employers</option>
+          <option v-for="employer in filterOptions.employers || []" :key="employer.id" :value="employer.id">{{ employer.name }}</option>
+        </select>
+        <select v-model="localFilters.school_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <option value="">All Schools</option>
+          <option v-for="school in filterOptions.schools || []" :key="school.id" :value="school.id">{{ school.name }}</option>
+        </select>
+        <select v-model="localFilters.category" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <option value="">All Categories</option>
+          <option v-for="category in filterOptions.categories || []" :key="category" :value="category">{{ category }}</option>
+        </select>
+        <select v-model="localFilters.status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <option value="">All Statuses</option>
+          <option v-for="status in filterOptions.statuses || []" :key="status" :value="status">{{ formatLabel(status) }}</option>
+        </select>
       </div>
-    </section>
-
-    <section class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <input
-        v-model="search"
-        type="search"
-        placeholder="Search submitter, report title, employer, or message..."
-        class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
-      >
-    </section>
-
-    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div class="hidden grid-cols-[1fr_1.1fr_1fr_0.9fr_1.2fr_1fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 xl:grid">
-        <span>Submitted By</span>
-        <span>Report Title</span>
-        <span>Employer</span>
-        <span>Date Submitted</span>
-        <span>Message Preview</span>
-        <span>Action</span>
-      </div>
-
-      <div
-        v-for="report in paginatedReports"
-        :key="report.id"
-        class="grid gap-4 border-b border-slate-200 px-5 py-5 last:border-b-0 xl:grid-cols-[1fr_1.1fr_1fr_0.9fr_1.2fr_1fr] xl:items-center"
-      >
-        <div>
-          <p class="font-semibold text-slate-900">{{ submittedBy(report) }}</p>
-          <p class="mt-1 text-xs text-slate-500">Report #{{ report.id }}</p>
-        </div>
-        <p class="text-sm text-slate-700">{{ reportTitle(report) }}</p>
-        <p class="text-sm text-slate-700">{{ employerName(report) }}</p>
-        <p class="text-sm text-slate-700">{{ formatDate(report.created_at || report.submitted_at) }}</p>
-        <p class="text-sm leading-6 text-slate-600">{{ bodyPreview(report) }}</p>
-        <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
-            @click="openDetails(report)"
-          >
-            View Details
-          </button>
-          <a
-            v-if="fileUrl(report)"
-            :href="downloadUrl(report)"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            download
-          >
-            Download File
-          </a>
-          <span v-else class="inline-flex items-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">
-            No attachment
-          </span>
-        </div>
-      </div>
-
-      <div v-if="paginatedReports.length === 0" class="px-5 py-12 text-center">
-        <p class="text-sm font-semibold text-slate-700">No reports found.</p>
-        <p class="mt-1 text-sm text-slate-500">Try adjusting the search keyword.</p>
-      </div>
-
-      <div v-if="filteredReports.length > itemsPerPage" class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-slate-500">Page {{ currentPage }} of {{ totalPages }}</p>
+      <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <select v-model="localFilters.batch_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none sm:w-72">
+          <option value="">All Program Batches</option>
+          <option v-for="batch in filterOptions.batches || []" :key="batch.id" :value="batch.id">{{ batch.name }}</option>
+        </select>
         <div class="flex gap-2">
-          <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50" :disabled="currentPage === 1" @click="prevPage">
-            Previous
+          <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="clearFilters">
+            Clear
           </button>
-          <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50" :disabled="currentPage === totalPages" @click="nextPage">
-            Next
+          <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60" :disabled="loading" @click="applyFilters">
+            {{ loading ? 'Loading...' : 'Apply Filters' }}
           </button>
         </div>
       </div>
     </section>
 
-    <div v-if="selectedReport" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="closeDetails">
-      <div class="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-6 shadow-xl">
-        <div class="flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Report Details</p>
-            <h2 class="mt-2 text-xl font-bold text-slate-900">{{ reportTitle(selectedReport) }}</h2>
-            <p class="mt-1 text-sm text-slate-500">Submitted by {{ submittedBy(selectedReport) }}</p>
-          </div>
-          <button type="button" class="rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200" @click="closeDetails">
-            Close
-          </button>
-        </div>
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
+      <div v-for="card in summaryCards" :key="card.key" class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ card.label }}</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
+      </div>
+    </section>
 
-        <dl class="mt-5 grid gap-4 text-sm sm:grid-cols-2">
-          <div class="rounded-lg bg-slate-50 p-4">
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Employer</dt>
-            <dd class="mt-2 font-semibold text-slate-900">{{ employerName(selectedReport) }}</dd>
-          </div>
-          <div class="rounded-lg bg-slate-50 p-4">
-            <dt class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Date Submitted</dt>
-            <dd class="mt-2 font-semibold text-slate-900">{{ formatDate(selectedReport.created_at || selectedReport.submitted_at) }}</dd>
-          </div>
-        </dl>
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex flex-wrap gap-2 print:hidden">
+        <button
+          v-for="tab in reportTabs"
+          :key="tab.key"
+          type="button"
+          class="rounded-lg px-3 py-2 text-sm font-semibold transition"
+          :class="selectedReport === tab.key ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'"
+          @click="selectedReport = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
 
-        <div class="mt-5">
-          <p class="text-sm font-semibold text-slate-700">Report Message</p>
-          <p class="mt-2 whitespace-pre-line rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-800">
-            {{ reportBody(selectedReport) || 'No message provided.' }}
-          </p>
-        </div>
+      <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+          <thead class="bg-slate-50">
+            <tr>
+              <th v-for="column in activeColumns" :key="column" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                {{ formatLabel(column) }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200">
+            <tr v-for="(row, index) in activeRows" :key="index">
+              <td v-for="column in activeColumns" :key="column" class="px-4 py-3 text-slate-700">
+                {{ formatValue(row[column], column) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-        <div class="mt-5 rounded-lg border border-slate-200 p-4">
-          <p class="text-sm font-semibold text-slate-700">Attachment</p>
-          <a
-            v-if="fileUrl(selectedReport)"
-            :href="downloadUrl(selectedReport)"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="mt-3 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            download
-          >
-            Download File
-          </a>
-          <p v-else class="mt-2 text-sm text-slate-500">No attachment uploaded.</p>
+        <div v-if="activeRows.length === 0" class="rounded-lg bg-slate-50 p-8 text-center">
+          <p class="text-sm font-semibold text-slate-700">No report data found.</p>
+          <p class="mt-1 text-sm text-slate-500">Adjust the filters or add records to generate this report.</p>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-2">
+      <div
+        v-for="[key, title] in chartDefinitions"
+        :key="key"
+        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+      >
+        <div class="mb-4 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">{{ title }}</h2>
+            <p class="mt-1 text-sm text-slate-500">Based on the current report filters.</p>
+          </div>
+        </div>
+        <div class="h-72 rounded-lg bg-slate-50 p-3">
+          <canvas :ref="(el) => setChartRef(key, el)" class="h-full w-full"></canvas>
+          <div v-if="!hasChartData(key)" class="-mt-72 flex h-72 items-center justify-center text-sm text-slate-500">
+            No chart data available.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-900">Insights</h2>
+      <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div v-for="insight in reporting.insights || []" :key="insight.label" class="rounded-lg bg-slate-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ insight.label }}</p>
+          <p class="mt-2 text-lg font-bold text-slate-900">{{ insight.value }}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ insight.meta }}</p>
+        </div>
+      </div>
+    </section>
   </section>
 </template>

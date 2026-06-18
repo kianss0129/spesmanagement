@@ -82,6 +82,7 @@ class WorkOutputController extends Controller
             'hours_worked' => $validated['hours_worked'],
             'status' => 'submitted',
             'submitted_by' => $request->user()->id,
+            'original_submitted_at' => now(),
             'file_path' => $path,
             'original_name' => $originalName,
         ]);
@@ -112,6 +113,72 @@ class WorkOutputController extends Controller
             'message' => 'Daily Accomplishment Report submitted successfully.',
             'report' => $this->formatWorkOutput($workOutput->fresh($this->relations())),
         ], 201);
+    }
+
+    public function beneficiaryResubmit(Request $request, WorkOutput $workOutput)
+    {
+        $beneficiary = $request->user()->beneficiary;
+
+        if (! $beneficiary || (int) $workOutput->beneficiary_id !== (int) $beneficiary->id) {
+            abort(403, 'You can only resubmit your own daily reports.');
+        }
+
+        if ($workOutput->status !== 'needs_correction') {
+            return response()->json([
+                'message' => 'Only reports marked as Needs Correction can be resubmitted.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'accomplishments' => 'required|string',
+            'hours_worked' => 'required|numeric|min:0|max:24',
+            'attachment' => 'nullable|file|max:10240',
+            'file' => 'nullable|file|max:10240',
+        ]);
+
+        $file = $request->file('attachment') ?: $request->file('file');
+        $updates = [
+            'title' => $validated['title'] ?? null,
+            'accomplishments' => $validated['accomplishments'],
+            'hours_worked' => $validated['hours_worked'],
+            'status' => 'submitted',
+            'submitted_by' => $request->user()->id,
+            'original_submitted_at' => $workOutput->original_submitted_at ?: $workOutput->created_at,
+            'resubmitted_at' => now(),
+        ];
+
+        if ($file) {
+            if ($workOutput->file_path) {
+                Storage::disk('public')->delete($workOutput->file_path);
+            }
+
+            $updates['file_path'] = $file->store('work_outputs', 'public');
+            $updates['original_name'] = $file->getClientOriginalName();
+        }
+
+        $workOutput->update($updates);
+
+        try {
+            activity()
+                ->causedBy($request->user())
+                ->performedOn($workOutput)
+                ->withProperties([
+                    'module' => 'Work Output',
+                    'user_id' => $request->user()->id,
+                    'status' => 'resubmitted',
+                    'original_submitted_at' => optional($workOutput->original_submitted_at ?: $workOutput->created_at)->toDateTimeString(),
+                    'resubmitted_at' => optional($workOutput->resubmitted_at)->toDateTimeString(),
+                ])
+                ->log('Beneficiary resubmitted daily accomplishment report');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return response()->json([
+            'message' => 'Daily Accomplishment Report resubmitted successfully.',
+            'report' => $this->formatWorkOutput($workOutput->fresh($this->relations())),
+        ]);
     }
 
     public function employerIndex(Request $request)
@@ -329,6 +396,8 @@ class WorkOutputController extends Controller
             'hours_worked' => $workOutput->hours_worked,
             'status' => $workOutput->status,
             'submitted_by' => $workOutput->submittedBy,
+            'original_submitted_at' => $workOutput->original_submitted_at ?: $workOutput->created_at,
+            'resubmitted_at' => $workOutput->resubmitted_at,
             'reviewed_by' => $workOutput->reviewedBy,
             'reviewed_at' => $workOutput->reviewed_at,
             'review_remarks' => $workOutput->review_remarks,

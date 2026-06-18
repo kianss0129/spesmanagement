@@ -153,7 +153,7 @@ const form = ref({
 })
 
 function updateProfile() {
-  Inertia.post('/profile/update', form.value, {
+  Inertia.patch('/profile', form.value, {
     preserveScroll: true,
     onSuccess: () => {
       alert('Profile updated successfully!')

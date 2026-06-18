@@ -21,6 +21,8 @@ class WorkOutput extends Model
         'hours_worked',
         'status',
         'submitted_by',
+        'original_submitted_at',
+        'resubmitted_at',
         'reviewed_by',
         'reviewed_at',
         'review_remarks',
@@ -31,6 +33,8 @@ class WorkOutput extends Model
     protected $casts = [
         'work_date' => 'date',
         'hours_worked' => 'decimal:2',
+        'original_submitted_at' => 'datetime',
+        'resubmitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];
 
