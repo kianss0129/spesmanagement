@@ -41,6 +41,7 @@ const localFilters = ref({
   category: props.filters.category || '',
   status: props.filters.status || '',
   batch_id: props.filters.batch_id || '',
+  job_listing_id: props.filters.job_listing_id || '',
 })
 
 const selectedReport = ref('company')
@@ -55,6 +56,7 @@ const reportTabs = [
   { key: 'attendance', label: 'Attendance Report' },
   { key: 'daily_report', label: 'Daily Report Report' },
   { key: 'employer_participation', label: 'Employer Participation' },
+  { key: 'jobs_posted_per_employer', label: 'Jobs Posted Per Employer' },
 ]
 
 const chartDefinitions = [
@@ -66,9 +68,22 @@ const chartDefinitions = [
   ['completed_beneficiaries_per_month', 'Completed Beneficiaries Per Month', 'line'],
   ['dtr_status_summary', 'DTR Status Summary', 'bar'],
   ['daily_report_status_summary', 'Daily Report Status Summary', 'bar'],
+  ['jobs_posted_per_employer', 'Jobs Posted Per Employer', 'bar'],
   ['top_participating_employers', 'Top Participating Employers', 'bar'],
   ['top_schools_with_most_beneficiaries', 'Top Schools With Most Beneficiaries', 'bar'],
 ]
+
+const reportColumnOrder = {
+  jobs_posted_per_employer: [
+    'company_name',
+    'job_title',
+    'location',
+    'type',
+    'slots',
+    'closing_date',
+    'date_posted',
+  ],
+}
 
 const summaryCards = computed(() => {
   const summary = props.reporting?.summary || {}
@@ -93,14 +108,31 @@ const activeRows = computed(() => {
 const activeColumns = computed(() => {
   const row = activeRows.value[0]
   if (!row) return []
+  if (reportColumnOrder[selectedReport.value]) return reportColumnOrder[selectedReport.value]
   return Object.keys(row)
 })
 
 const filterOptions = computed(() => props.reporting?.filters || {})
+const filteredJobOptions = computed(() => {
+  const jobs = filterOptions.value.jobs || []
+  const employerId = String(localFilters.value.employer_id || '')
+
+  if (!employerId) return jobs
+
+  return jobs.filter((job) => String(job.employer_id) === employerId)
+})
 
 watch(() => props.filters, (value) => {
   localFilters.value = { ...localFilters.value, ...(value || {}) }
 }, { deep: true })
+
+watch(() => localFilters.value.employer_id, () => {
+  const selectedJobId = String(localFilters.value.job_listing_id || '')
+  if (!selectedJobId) return
+
+  const jobStillAvailable = filteredJobOptions.value.some((job) => String(job.id) === selectedJobId)
+  if (!jobStillAvailable) localFilters.value.job_listing_id = ''
+})
 
 watch(() => props.reporting?.charts, () => {
   if (props.selectedTab === 'reports') renderCharts()
@@ -132,6 +164,7 @@ function clearFilters() {
     category: '',
     status: '',
     batch_id: '',
+    job_listing_id: '',
   }
   applyFilters()
 }
@@ -270,6 +303,10 @@ function hasChartData(key) {
         <select v-model="localFilters.status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
           <option value="">All Statuses</option>
           <option v-for="status in filterOptions.statuses || []" :key="status" :value="status">{{ formatLabel(status) }}</option>
+        </select>
+        <select v-model="localFilters.job_listing_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+          <option value="">All Jobs</option>
+          <option v-for="job in filteredJobOptions" :key="job.id" :value="job.id">{{ job.label || job.title }}</option>
         </select>
       </div>
       <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

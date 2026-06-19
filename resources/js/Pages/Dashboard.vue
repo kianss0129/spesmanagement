@@ -1326,6 +1326,7 @@ const reporting = ref({
     categories: [],
     statuses: [],
     batches: [],
+    jobs: [],
   },
 })
 const reportFilters = ref({
@@ -1336,6 +1337,7 @@ const reportFilters = ref({
   category: '',
   status: '',
   batch_id: '',
+  job_listing_id: '',
 })
 const workOutputs = ref([])
 const exams = ref([])
@@ -2826,6 +2828,7 @@ async function loadData() {
         category: reportFilters.value.category || undefined,
         status: reportFilters.value.status || undefined,
         batch_id: reportFilters.value.batch_id || undefined,
+        job_listing_id: reportFilters.value.job_listing_id || undefined,
       }
     })
 
@@ -3853,5 +3856,4 @@ function exportEmployers() {
 
 
 </script>
-
 

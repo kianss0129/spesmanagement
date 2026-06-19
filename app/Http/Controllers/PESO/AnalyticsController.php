@@ -9,6 +9,7 @@ use App\Models\Batch;
 use App\Models\Beneficiary;
 use App\Models\Employer;
 use App\Models\EmployerRating;
+use App\Models\JobListing;
 use App\Models\School;
 use App\Models\User;
 use App\Models\WorkOutput;
@@ -266,6 +267,7 @@ class AnalyticsController extends Controller
             'completed_beneficiaries_per_month' => $this->completedPerMonth($filters),
             'dtr_status_summary' => $this->dtrStatusSummary($filters),
             'daily_report_status_summary' => $this->dailyReportStatusSummary($filters),
+            'jobs_posted_per_employer' => $this->jobsPostedPerEmployer($filters),
             'top_participating_employers' => $this->beneficiariesPerCompany($filters, 10),
             'top_schools_with_most_beneficiaries' => $this->beneficiariesPerSchool($filters, 10),
         ];
@@ -281,6 +283,7 @@ class AnalyticsController extends Controller
             'attendance' => $this->attendanceReport($filters),
             'daily_report' => $this->dailyReport($filters),
             'employer_participation' => $this->employerParticipationReport($filters),
+            'jobs_posted_per_employer' => $this->jobsPostedPerEmployerReport($filters),
         ];
     }
 
@@ -290,7 +293,7 @@ class AnalyticsController extends Controller
         $topSchoolApplicants = $this->applicantsBySchoolReport($filters, 1)->first();
         $summary = $this->summaryCards($filters);
         $submittedDtr = $summary['dtr_submitted'];
-        $approvedDtr = $this->filteredAttendances($filters)->where('attendances.status', 'approved')->count();
+        $approvedDtr = $this->filteredAttendances($filters)->whereRaw($this->attendanceReviewStatusSql() . ' = ?', ['approved'])->count();
         $mostActiveEmployer = $this->companyReport($filters)->sortByDesc('evaluation_count')->first();
         $representedSchool = $this->beneficiariesPerSchool($filters, 1);
 
@@ -308,6 +311,23 @@ class AnalyticsController extends Controller
     {
         return [
             'employers' => Employer::orderBy('company_name')->get(['id', 'company_name as name']),
+            'jobs' => JobListing::query()
+                ->join('employers', 'job_listings.employer_id', '=', 'employers.id')
+                ->orderBy('employers.company_name')
+                ->orderBy('job_listings.title')
+                ->get([
+                    'job_listings.id',
+                    'job_listings.employer_id',
+                    'job_listings.title',
+                    'employers.company_name',
+                ])
+                ->map(fn ($job) => [
+                    'id' => $job->id,
+                    'employer_id' => $job->employer_id,
+                    'title' => $job->title,
+                    'label' => trim(($job->company_name ? $job->company_name . ' - ' : '') . $job->title),
+                ])
+                ->values(),
             'schools' => School::orderBy('name')->get(['id', 'name']),
             'categories' => Beneficiary::whereNotNull('category')->distinct()->orderBy('category')->pluck('category')->values(),
             'statuses' => Application::whereNotNull('status')->distinct()->orderBy('status')->pluck('status')->values(),
@@ -391,8 +411,8 @@ class AnalyticsController extends Controller
 
         return [
             'submitted_dtr' => $base->count(),
-            'approved_dtr' => $this->filteredAttendances($filters)->where('attendances.status', 'approved')->count(),
-            'needs_correction' => $this->filteredAttendances($filters)->whereIn('attendances.status', ['needs_correction', 'correction'])->count(),
+            'approved_dtr' => $this->filteredAttendances($filters)->whereRaw($this->attendanceReviewStatusSql() . ' = ?', ['approved'])->count(),
+            'needs_correction' => $this->filteredAttendances($filters)->whereRaw($this->attendanceReviewStatusSql() . ' in (?, ?)', ['needs_correction', 'correction'])->count(),
             'missing_dtr' => max($this->ongoingBeneficiaries($filters)->count() - $base->distinct('attendances.beneficiary_id')->count('attendances.beneficiary_id'), 0),
             'total_rendered_hours' => round((float) $this->filteredAttendances($filters)->selectRaw('COALESCE(SUM(TIMESTAMPDIFF(MINUTE, time_in, time_out)) / 60, 0) as hours')->value('hours'), 2),
         ];
@@ -423,6 +443,67 @@ class AnalyticsController extends Controller
     {
         $data = $this->companyReport($filters)->take($limit);
         return ['labels' => $data->pluck('company_name')->all(), 'data' => $data->pluck('total_beneficiaries')->map(fn ($v) => (int) $v)->all()];
+    }
+
+    private function jobsPostedPerEmployer(array $filters, int $limit = 12): array
+    {
+        $data = $this->jobListingReportQuery($filters)
+            ->orderByDesc('total_posted_jobs')
+            ->limit($limit)
+            ->get();
+
+        return [
+            'labels' => $data->pluck('company_name')->all(),
+            'data' => $data->pluck('total_posted_jobs')->map(fn ($value) => (int) $value)->all(),
+        ];
+    }
+
+    private function jobsPostedPerEmployerReport(array $filters)
+    {
+        return JobListing::query()
+            ->join('employers', 'job_listings.employer_id', '=', 'employers.id')
+            ->when($filters['employer_id'], fn ($q) => $q->where('job_listings.employer_id', $filters['employer_id']))
+            ->when($filters['job_listing_id'], fn ($q) => $q->where('job_listings.id', $filters['job_listing_id']))
+            ->when($filters['start_date'] && $filters['end_date'], fn ($q) => $q->whereBetween('job_listings.created_at', [$filters['start_date'], $filters['end_date']]))
+            ->select([
+                'employers.company_name',
+                'job_listings.title as job_title',
+                'job_listings.location',
+                'job_listings.type',
+                'job_listings.slots',
+                'job_listings.closing_date',
+                'job_listings.created_at as date_posted',
+            ])
+            ->orderBy('employers.company_name')
+            ->latest('job_listings.created_at')
+            ->get()
+            ->map(fn ($row) => [
+                'company_name' => $row->company_name,
+                'job_title' => $row->job_title,
+                'location' => $row->location,
+                'type' => $row->type,
+                'slots' => (int) $row->slots,
+                'closing_date' => $row->closing_date,
+                'date_posted' => $row->date_posted,
+            ])
+            ->values();
+    }
+
+    private function jobListingReportQuery(array $filters): Builder
+    {
+        return JobListing::query()
+            ->join('employers', 'job_listings.employer_id', '=', 'employers.id')
+            ->when($filters['employer_id'], fn ($q) => $q->where('job_listings.employer_id', $filters['employer_id']))
+            ->when($filters['job_listing_id'], fn ($q) => $q->where('job_listings.id', $filters['job_listing_id']))
+            ->when($filters['start_date'] && $filters['end_date'], fn ($q) => $q->whereBetween('job_listings.created_at', [$filters['start_date'], $filters['end_date']]))
+            ->selectRaw('
+                employers.company_name,
+                COUNT(job_listings.id) as total_posted_jobs,
+                COUNT(CASE WHEN job_listings.employer_choice = "approved" THEN 1 END) as approved_jobs,
+                COUNT(CASE WHEN job_listings.employer_choice = "pending" THEN 1 END) as pending_jobs,
+                COUNT(CASE WHEN job_listings.employer_choice = "rejected" THEN 1 END) as rejected_jobs
+            ')
+            ->groupBy('job_listings.employer_id', 'employers.company_name');
     }
 
     private function beneficiariesPerSchool(array $filters, int $limit = 12): array
@@ -480,8 +561,8 @@ class AnalyticsController extends Controller
     private function dtrStatusSummary(array $filters): array
     {
         $data = $this->filteredAttendances($filters)
-            ->selectRaw('COALESCE(NULLIF(attendances.status, ""), "Submitted") as label, COUNT(*) as total')
-            ->groupBy('attendances.status')
+            ->selectRaw($this->attendanceReviewStatusSql() . ' as label, COUNT(*) as total')
+            ->groupBy('label')
             ->get();
 
         return ['labels' => $data->pluck('label')->all(), 'data' => $data->pluck('total')->map(fn ($v) => (int) $v)->all()];
@@ -577,11 +658,20 @@ class AnalyticsController extends Controller
         return Attendance::query()
             ->leftJoin('beneficiaries', 'attendances.beneficiary_id', '=', 'beneficiaries.id')
             ->leftJoin('applications', 'attendances.application_id', '=', 'applications.id')
+            ->leftJoin('job_listings', 'applications.job_listing_id', '=', 'job_listings.id')
             ->when($filters['start_date'] && $filters['end_date'], fn ($q) => $q->whereBetween('attendances.date', [$filters['start_date']->toDateString(), $filters['end_date']->toDateString()]))
-            ->when($filters['employer_id'], fn ($q) => $q->where('attendances.employer_id', $filters['employer_id']))
+            ->when($filters['employer_id'], fn ($q) => $q->where(function ($employerQuery) use ($filters) {
+                $employerQuery->where('attendances.employer_id', $filters['employer_id'])
+                    ->orWhere('job_listings.employer_id', $filters['employer_id']);
+            }))
             ->when($filters['school_id'], fn ($q) => $q->where('beneficiaries.school_id', $filters['school_id']))
             ->when($filters['category'], fn ($q) => $q->whereRaw('LOWER(beneficiaries.category) = ?', [strtolower($filters['category'])]))
             ->when($filters['batch_id'], fn ($q) => $q->where('applications.batch_id', $filters['batch_id']));
+    }
+
+    private function attendanceReviewStatusSql(): string
+    {
+        return 'COALESCE(NULLIF(attendances.review_status, ""), NULLIF(attendances.status, ""), "Submitted")';
     }
 
     private function filteredWorkOutputs(array $filters): Builder
@@ -650,6 +740,7 @@ class AnalyticsController extends Controller
             'category' => $request->query('category') ?: null,
             'status' => $request->query('status') ?: null,
             'batch_id' => $request->query('batch_id') ?: null,
+            'job_listing_id' => $request->query('job_listing_id') ?: null,
         ];
     }
 
@@ -685,7 +776,7 @@ class AnalyticsController extends Controller
             'charts' => [],
             'reports' => [],
             'insights' => [],
-            'filters' => ['employers' => [], 'schools' => [], 'categories' => [], 'statuses' => [], 'batches' => []],
+            'filters' => ['employers' => [], 'jobs' => [], 'schools' => [], 'categories' => [], 'statuses' => [], 'batches' => []],
         ];
     }
 }
