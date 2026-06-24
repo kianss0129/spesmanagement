@@ -259,7 +259,7 @@ function hasChartData(key) {
 </script>
 
 <template>
-  <section v-if="selectedTab === 'reports'" class="space-y-6">
+  <section v-if="selectedTab === 'reports'" class="print-report-area space-y-6">
     <header class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -270,7 +270,7 @@ function hasChartData(key) {
           </p>
         </div>
 
-        <div class="flex flex-wrap gap-2">
+        <div class="print-hide flex flex-wrap gap-2">
           <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="exportCsv('csv')">
             Excel
           </button>
@@ -284,7 +284,7 @@ function hasChartData(key) {
       </div>
     </header>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm print:hidden">
+    <section class="print-hide rounded-lg border border-slate-200 bg-white p-5 shadow-sm print:hidden">
       <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         <input v-model="localFilters.start_date" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
         <input v-model="localFilters.end_date" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
@@ -325,15 +325,15 @@ function hasChartData(key) {
       </div>
     </section>
 
-    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
-      <div v-for="card in summaryCards" :key="card.key" class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <section class="print-summary-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
+      <div v-for="card in summaryCards" :key="card.key" class="print-avoid-break rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ card.label }}</p>
         <p class="mt-2 text-2xl font-bold text-slate-900">{{ card.value }}</p>
       </div>
     </section>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="flex flex-wrap gap-2 print:hidden">
+    <section class="print-avoid-break print-report-card rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="print-hide flex flex-wrap gap-2 print:hidden">
         <button
           v-for="tab in reportTabs"
           :key="tab.key"
@@ -346,8 +346,8 @@ function hasChartData(key) {
         </button>
       </div>
 
-      <div class="mt-5 overflow-x-auto">
-        <table class="min-w-full divide-y divide-slate-200 text-sm">
+      <div class="print-table-wrap mt-5 overflow-x-auto">
+        <table class="print-report-table min-w-full divide-y divide-slate-200 text-sm">
           <thead class="bg-slate-50">
             <tr>
               <th v-for="column in activeColumns" :key="column" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -371,11 +371,11 @@ function hasChartData(key) {
       </div>
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-2">
+    <section class="print-chart-grid grid gap-6 xl:grid-cols-2">
       <div
         v-for="[key, title] in chartDefinitions"
         :key="key"
-        class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+        class="print-chart-card rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div class="mb-4 flex items-start justify-between gap-4">
           <div>
@@ -383,7 +383,7 @@ function hasChartData(key) {
             <p class="mt-1 text-sm text-slate-500">Based on the current report filters.</p>
           </div>
         </div>
-        <div class="h-72 rounded-lg bg-slate-50 p-3">
+        <div class="print-chart-box h-72 rounded-lg bg-slate-50 p-3">
           <canvas :ref="(el) => setChartRef(key, el)" class="h-full w-full"></canvas>
           <div v-if="!hasChartData(key)" class="-mt-72 flex h-72 items-center justify-center text-sm text-slate-500">
             No chart data available.
@@ -392,10 +392,10 @@ function hasChartData(key) {
       </div>
     </section>
 
-    <section class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <section class="print-avoid-break print-report-card rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <h2 class="text-lg font-bold text-slate-900">Insights</h2>
       <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <div v-for="insight in reporting.insights || []" :key="insight.label" class="rounded-lg bg-slate-50 p-4">
+        <div v-for="insight in reporting.insights || []" :key="insight.label" class="print-avoid-break rounded-lg bg-slate-50 p-4">
           <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{{ insight.label }}</p>
           <p class="mt-2 text-lg font-bold text-slate-900">{{ insight.value }}</p>
           <p class="mt-1 text-sm text-slate-500">{{ insight.meta }}</p>

@@ -8,3 +8,129 @@
 [x-cloak] {
     display: none;
 }
+
+@page {
+    size: A4 landscape;
+    margin: 10mm;
+}
+
+@media print {
+    html,
+    body {
+        width: 100%;
+        min-width: 0;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .print-report-area,
+    .print-report-area * {
+        visibility: visible !important;
+    }
+
+    .print-report-area {
+        position: absolute !important;
+        inset: 0 auto auto 0 !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #0f172a !important;
+    }
+
+    .print-hide,
+    .print-hide *,
+    .print-report-area button,
+    .print-report-area input,
+    .print-report-area select {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    .print-report-area,
+    .print-report-area section,
+    .print-report-area header,
+    .print-report-card,
+    .print-chart-card {
+        box-shadow: none !important;
+    }
+
+    .print-report-area {
+        gap: 5mm !important;
+    }
+
+    .print-report-area > header,
+    .print-report-area > section,
+    .print-report-card,
+    .print-chart-card {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 0 5mm !important;
+        padding: 4mm !important;
+        border-color: #cbd5e1 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .print-summary-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 3mm !important;
+    }
+
+    .print-chart-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 5mm !important;
+    }
+
+    .print-chart-card,
+    .print-avoid-break,
+    .print-report-table,
+    .print-report-table tr,
+    .print-report-table thead,
+    .print-report-table tbody {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .print-chart-box {
+        height: 68mm !important;
+        padding: 2mm !important;
+        background: #fff !important;
+    }
+
+    .print-chart-box canvas {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .print-table-wrap {
+        overflow: visible !important;
+        width: 100% !important;
+    }
+
+    .print-report-table {
+        width: 100% !important;
+        min-width: 0 !important;
+        table-layout: auto !important;
+        border-collapse: collapse !important;
+        font-size: 9px !important;
+    }
+
+    .print-report-table th,
+    .print-report-table td {
+        padding: 3px 5px !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere !important;
+        vertical-align: top !important;
+    }
+}

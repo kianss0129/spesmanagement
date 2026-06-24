@@ -213,7 +213,7 @@
           </button>
           <button
             class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            :disabled="assignmentSubmitting || !assignmentForm.employer_id || !assignmentForm.job_listing_id"
+            :disabled="!canSubmitAssignment"
             @click="submitAssignment"
           >
             {{ assignmentSubmitting ? 'Assigning...' : 'Confirm Assignment' }}
@@ -284,6 +284,20 @@ const availableJobsForSelectedEmployer = computed(() => {
   if (!assignmentForm.value.employer_id) return availableJobs.value
   return jobsForEmployer(assignmentForm.value.employer_id)
 })
+
+const selectedAssignmentJob = computed(() => {
+  if (!assignmentForm.value.job_listing_id) return null
+
+  return availableJobsForSelectedEmployer.value.find((job) => Number(job.id) === Number(assignmentForm.value.job_listing_id)) || null
+})
+
+const canSubmitAssignment = computed(() => (
+  !assignmentSubmitting.value &&
+  Boolean(assignmentForm.value.employer_id) &&
+  Boolean(assignmentForm.value.job_listing_id) &&
+  Boolean(selectedAssignmentJob.value) &&
+  Number(selectedAssignmentJob.value.available_slots ?? selectedAssignmentJob.value.slots ?? 0) > 0
+))
 
 const summaryCards = computed(() => {
   const assigned = beneficiaries.value.filter((beneficiary) => String(beneficiary.employment_status || '').toLowerCase() === 'assigned').length
@@ -361,6 +375,8 @@ async function loadAvailableJobs() {
     const response = await fetch('/admin/jobs')
     const data = await response.json()
     availableJobs.value = (Array.isArray(data) ? data : data.data || []).map(normalizeJob).filter(isJobAvailable)
+    keepSelectedJobFilterIfAvailable()
+    keepSelectedJobIfAvailable()
   } catch (error) {
     console.error('Error loading jobs:', error)
   }
@@ -399,6 +415,13 @@ function handleProfileAssignment() {
 
 async function submitAssignment() {
   assignmentError.value = ''
+
+  if (!canSubmitAssignment.value) {
+    assignmentError.value = 'This job has no remaining slots. Please choose another job.'
+    keepSelectedJobIfAvailable()
+    return
+  }
+
   assignmentSubmitting.value = true
 
   try {
@@ -408,7 +431,13 @@ async function submitAssignment() {
     })
 
     showAssignmentModal.value = false
-    refreshBeneficiaries()
+    await Promise.all([
+      refreshBeneficiaries(),
+      loadAvailableJobs(),
+      loadEmployers(),
+    ])
+
+    await refreshMatchingSuggestionsForSelectedJob()
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error(error.response?.data)
@@ -497,6 +526,25 @@ function keepSelectedJobIfAvailable() {
 
   if (!selectedJobStillAvailable) {
     assignmentForm.value.job_listing_id = ''
+  }
+}
+
+function keepSelectedJobFilterIfAvailable() {
+  if (!selectedJobId.value) return
+
+  const selectedJobStillAvailable = availableJobs.value.some((job) => Number(job.id) === Number(selectedJobId.value))
+
+  if (!selectedJobStillAvailable) {
+    selectedJobId.value = ''
+    matchingSuggestions.value = []
+  }
+}
+
+async function refreshMatchingSuggestionsForSelectedJob() {
+  keepSelectedJobFilterIfAvailable()
+
+  if (selectedJobId.value) {
+    await getMatchingSuggestions()
   }
 }
 

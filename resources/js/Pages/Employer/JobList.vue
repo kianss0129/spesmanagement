@@ -18,7 +18,7 @@ const activeJobs = computed(() => props.jobs || [])
 const totalSlots = computed(() => activeJobs.value.reduce((sum, job) => sum + Number(job.slots || 0), 0))
 
 function goBack() {
-  window.history.back()
+  router.visit('/dashboard')
 }
 
 function openModal(job) {

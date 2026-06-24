@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { Inertia } from '@inertiajs/inertia';
 import ActionMessage from '@/Components/ActionMessage.vue';
@@ -18,12 +18,23 @@ const form = useForm({
     _method: 'PUT',
     name: props.user.name,
     email: props.user.email,
+    confirm_email: '',
     photo: null,
 });
 
 const verificationLinkSent = ref(null);
 const photoPreview = ref(null);
 const photoInput = ref(null);
+const emailChanged = computed(() => form.email !== props.user.email);
+const emailConfirmationError = computed(() => (
+    emailChanged.value &&
+    form.confirm_email &&
+    form.confirm_email !== form.email
+));
+const saveDisabled = computed(() => (
+    form.processing ||
+    (emailChanged.value && (! form.confirm_email || form.confirm_email !== form.email))
+));
 
 const updateProfileInformation = () => {
     if (photoInput.value) {
@@ -160,6 +171,26 @@ const clearPhotoFileInput = () => {
                 />
                 <InputError :message="form.errors.email" class="mt-2" />
 
+                <div v-if="emailChanged" class="mt-4">
+                    <InputLabel for="confirm_email" value="Confirm New Email" />
+                    <TextInput
+                        id="confirm_email"
+                        v-model="form.confirm_email"
+                        type="email"
+                        class="mt-1 block w-full"
+                        required
+                        autocomplete="off"
+                    />
+                    <InputError :message="form.errors.confirm_email" class="mt-2" />
+                    <p v-if="emailConfirmationError" class="mt-2 text-sm text-red-600">
+                        Email addresses do not match.
+                    </p>
+                </div>
+
+                <p class="mt-2 text-sm text-amber-700">
+                    ⚠ Make sure this email is correct. Your account verification may be sent here.
+                </p>
+
                 <div v-if="$page.props.jetstream.hasEmailVerification && user.email_verified_at === null">
                     <p class="text-sm mt-2">
                         Your email address is unverified.
@@ -187,7 +218,7 @@ const clearPhotoFileInput = () => {
                 Saved.
             </ActionMessage>
 
-            <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
+            <PrimaryButton :class="{ 'opacity-25': saveDisabled }" :disabled="saveDisabled">
                 Save
             </PrimaryButton>
         </template>
