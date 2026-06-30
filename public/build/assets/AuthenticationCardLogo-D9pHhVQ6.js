@@ -1,1 +1,0 @@
-import{c as o,w as t,a as e,g as s,s as n,o as r}from"./app-f6cZK7YS.js";const u={__name:"AuthenticationCardLogo",setup(c){return(i,a)=>(r(),o(s(n),{href:"/"},{default:t(()=>[...a[0]||(a[0]=[e("img",{src:"/images/spes-logo.png",alt:"Clinic Logo",class:"h-16 w-16 object-contain mx-auto"},null,-1)])]),_:1}))}};export{u as _};
